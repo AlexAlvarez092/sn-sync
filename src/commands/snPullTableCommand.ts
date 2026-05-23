@@ -99,7 +99,9 @@ export async function runSnPullTableCommand(
     });
 
     if (!selected) {
-      void runtime.showInformationMessage(SN_SYNC_MESSAGES.PULL_TABLE_CANCELLED);
+      void runtime.showInformationMessage(
+        SN_SYNC_MESSAGES.PULL_TABLE_CANCELLED,
+      );
       return;
     }
 
@@ -111,7 +113,9 @@ export async function runSnPullTableCommand(
       SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_SKIP_ACTION,
     );
 
-    if (clearChoice === SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION) {
+    if (
+      clearChoice === SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION
+    ) {
       await clearTableFolder(runtime, workspaceFolderUri, setting.folder);
     }
 
@@ -169,10 +173,10 @@ async function clearTableFolder(
   }
 
   for (const [entryName] of entries) {
-    await runtime.delete(
-      vscode.Uri.joinPath(tableFolderUri, entryName),
-      { recursive: true, useTrash: false },
-    );
+    await runtime.delete(vscode.Uri.joinPath(tableFolderUri, entryName), {
+      recursive: true,
+      useTrash: false,
+    });
   }
 }
 

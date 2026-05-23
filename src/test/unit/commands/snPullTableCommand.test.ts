@@ -55,8 +55,7 @@ suite("snPullTableCommand", () => {
         },
         readDirectory: async () => [],
         delete: async () => undefined,
-        withProgress: async (_title, task) =>
-          task({ report: () => undefined }),
+        withProgress: async (_title, task) => task({ report: () => undefined }),
       },
     );
 
@@ -96,8 +95,7 @@ suite("snPullTableCommand", () => {
         delete: async () => {
           throw new Error("must-not-be-called");
         },
-        withProgress: async (_title, task) =>
-          task({ report: () => undefined }),
+        withProgress: async (_title, task) => task({ report: () => undefined }),
       },
     );
 
@@ -143,14 +141,11 @@ suite("snPullTableCommand", () => {
         delete: async () => {
           throw new Error("must-not-be-called");
         },
-        withProgress: async (_title, task) =>
-          task({ report: () => undefined }),
+        withProgress: async (_title, task) => task({ report: () => undefined }),
       },
     );
 
-    assert.deepStrictEqual(shownInfos, [
-      SN_SYNC_MESSAGES.PULL_TABLE_CANCELLED,
-    ]);
+    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.PULL_TABLE_CANCELLED]);
   });
 
   test("clears table folder and pulls with progress and shows success summary", async () => {
@@ -182,7 +177,12 @@ suite("snPullTableCommand", () => {
         ],
       } as unknown as never,
       {
-        pullConfiguredScripts: async (_context, _workspaceUri, settings, options) => {
+        pullConfiguredScripts: async (
+          _context,
+          _workspaceUri,
+          settings,
+          options,
+        ) => {
           pulledSettingFolders.push(settings[0].folder);
           options?.onFileWritten?.({
             settingFolder: settings[0].folder,
@@ -196,7 +196,8 @@ suite("snPullTableCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-table-success"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-table-success"),
         showErrorMessage: async () => undefined,
         showInformationMessage: async (message: string) => {
           shownInfos.push(message);
@@ -285,8 +286,7 @@ suite("snPullTableCommand", () => {
         delete: async () => {
           deleteCalled = true;
         },
-        withProgress: async (_title, task) =>
-          task({ report: () => undefined }),
+        withProgress: async (_title, task) => task({ report: () => undefined }),
       },
     );
 
@@ -336,8 +336,7 @@ suite("snPullTableCommand", () => {
         delete: async () => {
           throw new Error("must-not-be-called");
         },
-        withProgress: async (_title, task) =>
-          task({ report: () => undefined }),
+        withProgress: async (_title, task) => task({ report: () => undefined }),
       },
     );
 
@@ -380,8 +379,7 @@ suite("snPullTableCommand", () => {
           SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION,
         readDirectory: async () => [],
         delete: async () => undefined,
-        withProgress: async (_title, task) =>
-          task({ report: () => undefined }),
+        withProgress: async (_title, task) => task({ report: () => undefined }),
       },
     );
 
@@ -426,8 +424,7 @@ suite("snPullTableCommand", () => {
           throw new Error("permission-denied");
         },
         delete: async () => undefined,
-        withProgress: async (_title, task) =>
-          task({ report: () => undefined }),
+        withProgress: async (_title, task) => task({ report: () => undefined }),
       },
     );
 
@@ -437,58 +434,60 @@ suite("snPullTableCommand", () => {
   });
 
   test("uses default runtime and shows success when workspace exists", async () => {
-    await withTempDir("pull-table-default-runtime-success-", async (tempDir) => {
-      const shownInfos: string[] = [];
-      const workspaceUri = vscode.Uri.file(tempDir);
-      const tableDir = path.join(tempDir, "src", "business_rules");
+    await withTempDir(
+      "pull-table-default-runtime-success-",
+      async (tempDir) => {
+        const shownInfos: string[] = [];
+        const workspaceUri = vscode.Uri.file(tempDir);
+        const tableDir = path.join(tempDir, "src", "business_rules");
 
-      await fs.mkdir(tableDir, { recursive: true });
+        await fs.mkdir(tableDir, { recursive: true });
 
-      await withPatchedWorkspaceFolders(
-        [{ uri: workspaceUri, name: "tmp", index: 0 }],
-        async () => {
-          await withPatchedWindowMessages(
-            async (_message: string) => undefined,
-            async (message: string) => {
-              shownInfos.push(message);
-              return undefined;
-            },
-            async (items) => items[0],
-            async () =>
-              SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION,
-            async (_options, task) =>
-              task({ report: () => undefined }),
-            async () => {
-              await runSnPullTableCommand(
-                {} as vscode.ExtensionContext,
-                {
-                  getSyncSettings: async () => [
-                    {
-                      folder: "business_rules",
-                      table: "sys_script",
-                      query: "active=true",
-                      key: "name",
-                      fields: [{ extension: "js", field_name: "script" }],
-                    },
-                  ],
-                } as unknown as never,
-                {
-                  pullConfiguredScripts: async () => ({
-                    settings: 1,
-                    records: 1,
-                    files: 1,
-                  }),
-                },
-              );
-            },
-          );
-        },
-      );
+        await withPatchedWorkspaceFolders(
+          [{ uri: workspaceUri, name: "tmp", index: 0 }],
+          async () => {
+            await withPatchedWindowMessages(
+              async (_message: string) => undefined,
+              async (message: string) => {
+                shownInfos.push(message);
+                return undefined;
+              },
+              async (items) => items[0],
+              async () =>
+                SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION,
+              async (_options, task) => task({ report: () => undefined }),
+              async () => {
+                await runSnPullTableCommand(
+                  {} as vscode.ExtensionContext,
+                  {
+                    getSyncSettings: async () => [
+                      {
+                        folder: "business_rules",
+                        table: "sys_script",
+                        query: "active=true",
+                        key: "name",
+                        fields: [{ extension: "js", field_name: "script" }],
+                      },
+                    ],
+                  } as unknown as never,
+                  {
+                    pullConfiguredScripts: async () => ({
+                      settings: 1,
+                      records: 1,
+                      files: 1,
+                    }),
+                  },
+                );
+              },
+            );
+          },
+        );
 
-      assert.deepStrictEqual(shownInfos, [
-        `${SN_SYNC_MESSAGES.PULL_TABLE_SUCCESS_PREFIX} 1 files from 1 records (business_rules).`,
-      ]);
-    });
+        assert.deepStrictEqual(shownInfos, [
+          `${SN_SYNC_MESSAGES.PULL_TABLE_SUCCESS_PREFIX} 1 files from 1 records (business_rules).`,
+        ]);
+      },
+    );
   });
 
   test("uses default runtime and clears table folder when it exists", async () => {
@@ -498,11 +497,7 @@ suite("snPullTableCommand", () => {
       const tableDir = path.join(tempDir, "src", "business_rules");
 
       await fs.mkdir(path.join(tableDir, "sub"), { recursive: true });
-      await fs.writeFile(
-        path.join(tableDir, "old_rule.js"),
-        "old",
-        "utf-8",
-      );
+      await fs.writeFile(path.join(tableDir, "old_rule.js"), "old", "utf-8");
 
       await withPatchedWorkspaceFolders(
         [{ uri: workspaceUri, name: "tmp", index: 0 }],
@@ -514,10 +509,8 @@ suite("snPullTableCommand", () => {
               return undefined;
             },
             async (items) => items[0],
-            async () =>
-              SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION,
-            async (_options, task) =>
-              task({ report: () => undefined }),
+            async () => SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION,
+            async (_options, task) => task({ report: () => undefined }),
             async () => {
               await runSnPullTableCommand(
                 {} as vscode.ExtensionContext,
@@ -565,8 +558,7 @@ suite("snPullTableCommand", () => {
         async (_message: string) => undefined,
         async () => undefined,
         async () => undefined,
-        async (_options, task) =>
-          task({ report: () => undefined }),
+        async (_options, task) => task({ report: () => undefined }),
         async () => {
           await runSnPullTableCommand(
             {} as vscode.ExtensionContext,
