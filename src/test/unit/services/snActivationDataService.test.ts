@@ -85,7 +85,7 @@ suite("snActivationDataService", () => {
     );
   });
 
-  test("uses global in-progress query when app is global", async () => {
+  test("filters global update sets by application=global", async () => {
     let requestedUrl: string | undefined;
 
     const service = new SnActivationDataService(
@@ -114,8 +114,11 @@ suite("snActivationDataService", () => {
       "global",
     );
 
-    assert.ok(requestedUrl?.includes("sysparm_query=state%3Din%20progress"));
-    assert.strictEqual(requestedUrl?.includes("application%3D"), false);
+    assert.ok(
+      requestedUrl?.includes(
+        "sysparm_query=state%3Din%20progress%5Eapplication%3Dglobal",
+      ),
+    );
   });
 
   test("throws status-based message for non-auth HTTP errors", async () => {

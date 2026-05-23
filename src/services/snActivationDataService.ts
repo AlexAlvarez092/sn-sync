@@ -65,10 +65,7 @@ export class SnActivationDataService implements SnActivationDataServiceApi {
     workspaceFolderUri: vscode.Uri,
     applicationSysId: string,
   ): Promise<SnUpdateSet[]> {
-    const query =
-      applicationSysId === "global"
-        ? "state=in progress"
-        : `state=in progress^application=${applicationSysId}`;
+    const query = `state=in progress^application=${applicationSysId}`;
 
     const result = await this.requestTable(
       context,
