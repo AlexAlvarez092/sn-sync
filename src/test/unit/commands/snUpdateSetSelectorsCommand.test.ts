@@ -691,6 +691,7 @@ suite("snUpdateSetSelectorsCommand", () => {
       globalUpdateSet: string;
       globalUpdateSetName: string;
     }> = [];
+    const shownInfos: string[] = [];
 
     await initializeUpdateSetSelectors(
       {} as vscode.ExtensionContext,
@@ -722,6 +723,10 @@ suite("snUpdateSetSelectorsCommand", () => {
         ...createRuntimeStub(),
         getWorkspaceFolderUri: () =>
           createTempWorkspaceUri("selectors-fallback-empty-global"),
+        showInformationMessage: async (message: string) => {
+          shownInfos.push(message);
+          return undefined;
+        },
       },
     );
 
@@ -731,6 +736,50 @@ suite("snUpdateSetSelectorsCommand", () => {
         globalUpdateSetName: "",
       },
     ]);
+    assert.ok(
+      shownInfos.some((message) =>
+        message.startsWith(
+          `${SN_SYNC_MESSAGES.UPDATE_SET_SELECTORS_INIT_FAILED_PREFIX} no-auth`,
+        ),
+      ),
+    );
+  });
+
+  test("initialization does not show info toast when auth is not configured", async () => {
+    const shownInfos: string[] = [];
+
+    await initializeUpdateSetSelectors(
+      {} as vscode.ExtensionContext,
+      {
+        listScopedApplications: async () => {
+          throw new Error(SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED);
+        },
+        listInProgressUpdateSets: async () => [],
+      },
+      {
+        getScopeUpdateSetSelections: async () => ({}),
+        replaceScopeUpdateSetSelections: async () => undefined,
+        setActivationSelection: async () => undefined,
+        setScopeUpdateSetSelection: async () => undefined,
+      } as unknown as never,
+      {
+        updateState: async () => undefined,
+        selectScope: async () => undefined,
+        selectUpdateSet: async () => undefined,
+        dispose: () => undefined,
+      },
+      {
+        ...createRuntimeStub(),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("selectors-auth-not-configured"),
+        showInformationMessage: async (message: string) => {
+          shownInfos.push(message);
+          return undefined;
+        },
+      },
+    );
+
+    assert.deepStrictEqual(shownInfos, []);
   });
 
   test("default runtime quick-pick path delegates to vscode window API", async () => {

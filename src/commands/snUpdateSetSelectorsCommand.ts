@@ -297,6 +297,8 @@ export async function initializeUpdateSetSelectors(
       selectedScope,
     });
   } catch (error) {
+    const errorMessage = getErrorMessage(error);
+
     const fallbackSelections =
       await configService.getScopeUpdateSetSelections(workspaceFolderUri);
     await uiController.updateState({
@@ -313,9 +315,11 @@ export async function initializeUpdateSetSelectors(
       selectedScope: GLOBAL_SCOPED_APP.scope,
     });
 
-    void runtime.showInformationMessage(
-      `${SN_SYNC_MESSAGES.UPDATE_SET_SELECTORS_INIT_FAILED_PREFIX} ${getErrorMessage(error)}`,
-    );
+    if (errorMessage !== SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED) {
+      void runtime.showInformationMessage(
+        `${SN_SYNC_MESSAGES.UPDATE_SET_SELECTORS_INIT_FAILED_PREFIX} ${errorMessage}`,
+      );
+    }
   }
 }
 
