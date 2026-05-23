@@ -5,6 +5,7 @@ export const SN_SYNC_COMMANDS = {
   ACTIVATE: "sn-sync.activate",
   RESET_SELECTIONS: "sn-sync.reset-selections",
   PULL: "sn-sync.pull",
+  CLEAR_SRC: "sn-sync.clear-src",
   ACTIVATE_SELECT_SCOPE: "sn-sync.activate.select-scope",
   ACTIVATE_SELECT_UPDATE_SET: "sn-sync.activate.select-update-set",
 } as const;
@@ -48,8 +49,18 @@ export const SN_SYNC_MESSAGES = {
   RESET_SELECTIONS_FAILED_PREFIX: "Failed to reset sn-sync selections:",
   PULL_NO_SETTINGS:
     "No sync settings found in extension config. Nothing to pull.",
+  PULL_CLEAR_SRC_PROMPT:
+    "Clear src before pull to avoid stale local files?",
+  PULL_CLEAR_SRC_SKIP_ACTION: "Keep src",
   PULL_SUCCESS_PREFIX: "sn-sync pull completed.",
   PULL_FAILED_PREFIX: "Failed to pull scripts from ServiceNow:",
+  CLEAR_SRC_CONFIRM:
+    "This will permanently delete all files and folders inside src. Continue?",
+  CLEAR_SRC_CONFIRM_ACTION: "Clear src",
+  CLEAR_SRC_CANCELLED: "sn-sync clear src cancelled.",
+  CLEAR_SRC_NOT_FOUND: "src folder not found. Nothing to clear.",
+  CLEAR_SRC_SUCCESS: "sn-sync src folder cleared.",
+  CLEAR_SRC_FAILED_PREFIX: "Failed to clear src folder:",
 } as const;
 
 export const SN_SYNC_SECRET_KEYS = {

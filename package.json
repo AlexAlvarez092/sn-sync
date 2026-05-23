@@ -36,6 +36,10 @@
       {
         "command": "sn-sync.pull",
         "title": "sn: pull"
+      },
+      {
+        "command": "sn-sync.clear-src",
+        "title": "sn: clear src"
       }
     ]
   },

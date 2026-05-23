@@ -1,11 +1,16 @@
 import * as assert from "assert";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import * as vscode from "vscode";
 import {
   registerSnPullCommand,
   runSnPullCommand,
 } from "@commands/snPullCommand.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
-import { createTempWorkspaceUri } from "@test/helpers/testRuntime.js";
+import {
+  createTempWorkspaceUri,
+  withTempDir,
+} from "@test/helpers/testRuntime.js";
 
 suite("snPullCommand", () => {
   test("registers command and stores disposable in context subscriptions", () => {
@@ -41,6 +46,9 @@ suite("snPullCommand", () => {
           return undefined;
         },
         showInformationMessage: async () => undefined,
+        showWarningMessage: async () => undefined,
+        readDirectory: async () => [],
+        delete: async () => undefined,
         withProgress: async (_title, task) =>
           task({
             report: () => undefined,
@@ -71,6 +79,15 @@ suite("snPullCommand", () => {
           shownInfos.push(message);
           return undefined;
         },
+        showWarningMessage: async () => {
+          throw new Error("must-not-be-called");
+        },
+        readDirectory: async () => {
+          throw new Error("must-not-be-called");
+        },
+        delete: async () => {
+          throw new Error("must-not-be-called");
+        },
         withProgress: async (_title, task) =>
           task({
             report: () => undefined,
@@ -81,8 +98,9 @@ suite("snPullCommand", () => {
     assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.PULL_NO_SETTINGS]);
   });
 
-  test("pulls configured scripts and shows granular progress and success summary", async () => {
+  test("pull clears src when selected and shows granular progress and success summary", async () => {
     const shownInfos: string[] = [];
+    const deletedEntries: string[] = [];
     const pulledSettingFolders: string[] = [];
     const progressMessages: string[] = [];
     const progressIncrements: number[] = [];
@@ -165,6 +183,14 @@ suite("snPullCommand", () => {
           shownInfos.push(message);
           return undefined;
         },
+        showWarningMessage: async () => SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
+        readDirectory: async () => [
+          ["business_rules", vscode.FileType.Directory],
+          ["old-file.js", vscode.FileType.File],
+        ],
+        delete: async (uri: vscode.Uri) => {
+          deletedEntries.push(uri.toString());
+        },
         withProgress: async (title, task) => {
           progressTitles.push(title);
           return task({
@@ -179,6 +205,9 @@ suite("snPullCommand", () => {
       },
     );
 
+    assert.strictEqual(deletedEntries.length, 2);
+    assert.ok(deletedEntries[0].includes("/src/business_rules"));
+    assert.ok(deletedEntries[1].includes("/src/old-file.js"));
     assert.deepStrictEqual(pulledSettingFolders, [
       "business_rules",
       "security_rules",
@@ -197,9 +226,108 @@ suite("snPullCommand", () => {
       "security_rules complete (4 files)",
     ]);
     assert.deepStrictEqual(progressIncrements, [50, 50]);
-
     assert.deepStrictEqual(shownInfos, [
       `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 6 files from 5 records (2 settings).`,
+    ]);
+  });
+
+  test("pull keeps src when selected and still syncs", async () => {
+    let deleteCalled = false;
+    const shownInfos: string[] = [];
+
+    await runSnPullCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async () => ({
+          settings: 1,
+          records: 1,
+          files: 1,
+        }),
+      },
+      {
+        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-keep-src"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async (message: string) => {
+          shownInfos.push(message);
+          return undefined;
+        },
+        showWarningMessage: async () => SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+        readDirectory: async () => {
+          throw new Error("must-not-be-called");
+        },
+        delete: async () => {
+          deleteCalled = true;
+        },
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+      },
+    );
+
+    assert.strictEqual(deleteCalled, false);
+    assert.deepStrictEqual(shownInfos, [
+      `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
+    ]);
+  });
+
+  test("pull clear-src selection ignores missing src folder", async () => {
+    const shownInfos: string[] = [];
+
+    await runSnPullCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async () => ({
+          settings: 1,
+          records: 1,
+          files: 1,
+        }),
+      },
+      {
+        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-src-missing"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async (message: string) => {
+          shownInfos.push(message);
+          return undefined;
+        },
+        showWarningMessage: async () => SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
+        readDirectory: async () => {
+          throw new Error("FileNotFound");
+        },
+        delete: async () => {
+          throw new Error("must-not-be-called");
+        },
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+      },
+    );
+
+    assert.deepStrictEqual(shownInfos, [
+      `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
     ]);
   });
 
@@ -231,6 +359,9 @@ suite("snPullCommand", () => {
           return undefined;
         },
         showInformationMessage: async () => undefined,
+        showWarningMessage: async () => SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+        readDirectory: async () => [],
+        delete: async () => undefined,
         withProgress: async (_title, task) =>
           task({
             report: () => undefined,
@@ -240,6 +371,53 @@ suite("snPullCommand", () => {
 
     assert.deepStrictEqual(shownErrors, [
       `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} pull-fail`,
+    ]);
+  });
+
+  test("shows detailed error when clearing src fails", async () => {
+    const shownErrors: string[] = [];
+
+    await runSnPullCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async () => {
+          throw new Error("must-not-be-called");
+        },
+      },
+      {
+        getWorkspaceFolderUri: () => createTempWorkspaceUri(
+          "pull-clear-src-failure",
+        ),
+        showErrorMessage: async (message: string) => {
+          shownErrors.push(message);
+          return undefined;
+        },
+        showInformationMessage: async () => undefined,
+        showWarningMessage: async () => SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
+        readDirectory: async () => {
+          throw new Error("permission-denied");
+        },
+        delete: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+      },
+    );
+
+    assert.deepStrictEqual(shownErrors, [
+      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} permission-denied`,
     ]);
   });
 
@@ -256,6 +434,7 @@ suite("snPullCommand", () => {
             shownInfos.push(message);
             return undefined;
           },
+          async () => SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
           async (_options, task) =>
             task({
               report: () => undefined,
@@ -292,6 +471,68 @@ suite("snPullCommand", () => {
     ]);
   });
 
+  test("uses default runtime and clears src when selected", async () => {
+    await withTempDir("pull-default-runtime-clear-src-", async (tempDir) => {
+      const shownInfos: string[] = [];
+      const workspaceUri = vscode.Uri.file(tempDir);
+      const srcDir = path.join(tempDir, "src");
+
+      await fs.mkdir(path.join(srcDir, "old_folder"), { recursive: true });
+      await fs.writeFile(
+        path.join(srcDir, "old_folder", "old.js"),
+        "old",
+        "utf-8",
+      );
+
+      await withPatchedWorkspaceFolders(
+        [{ uri: workspaceUri, name: "tmp", index: 0 }],
+        async () => {
+          await withPatchedWindowMessages(
+            async (_message: string) => undefined,
+            async (message: string) => {
+              shownInfos.push(message);
+              return undefined;
+            },
+            async () => SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
+            async (_options, task) =>
+              task({
+                report: () => undefined,
+              }),
+            async () => {
+              await runSnPullCommand(
+                {} as vscode.ExtensionContext,
+                {
+                  getSyncSettings: async () => [
+                    {
+                      folder: "security_rules",
+                      table: "sys_security_acl",
+                      query: "active=true",
+                      key: "name",
+                      fields: [{ extension: "js", field_name: "script" }],
+                    },
+                  ],
+                } as unknown as never,
+                {
+                  pullConfiguredScripts: async () => ({
+                    settings: 1,
+                    records: 1,
+                    files: 1,
+                  }),
+                },
+              );
+            },
+          );
+        },
+      );
+
+      const remainingEntries = await fs.readdir(srcDir);
+      assert.deepStrictEqual(remainingEntries, []);
+      assert.deepStrictEqual(shownInfos, [
+        `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
+      ]);
+    });
+  });
+
   test("uses default runtime and shows no-workspace error when workspace is missing", async () => {
     const shownErrors: string[] = [];
 
@@ -302,6 +543,7 @@ suite("snPullCommand", () => {
           return undefined;
         },
         async (_message: string) => undefined,
+        async () => undefined,
         async (_options, task) =>
           task({
             report: () => undefined,
@@ -358,6 +600,10 @@ async function withPatchedWorkspaceFolders(
 async function withPatchedWindowMessages(
   showErrorMessage: (message: string) => Thenable<string | undefined>,
   showInformationMessage: (message: string) => Thenable<string | undefined>,
+  showWarningMessage: (
+    message: string,
+    ...items: string[]
+  ) => Thenable<string | undefined>,
   withProgress: <T>(
     options: vscode.ProgressOptions,
     task: (
@@ -369,6 +615,10 @@ async function withPatchedWindowMessages(
   const windowObject = vscode.window as unknown as {
     showErrorMessage: (message: string) => Thenable<string | undefined>;
     showInformationMessage: (message: string) => Thenable<string | undefined>;
+    showWarningMessage: (
+      message: string,
+      ...items: string[]
+    ) => Thenable<string | undefined>;
     withProgress: <T>(
       options: vscode.ProgressOptions,
       task: (
@@ -379,10 +629,12 @@ async function withPatchedWindowMessages(
 
   const originalShowErrorMessage = windowObject.showErrorMessage;
   const originalShowInformationMessage = windowObject.showInformationMessage;
+  const originalShowWarningMessage = windowObject.showWarningMessage;
   const originalWithProgress = windowObject.withProgress;
 
   windowObject.showErrorMessage = showErrorMessage;
   windowObject.showInformationMessage = showInformationMessage;
+  windowObject.showWarningMessage = showWarningMessage;
   windowObject.withProgress = withProgress;
 
   try {
@@ -390,6 +642,7 @@ async function withPatchedWindowMessages(
   } finally {
     windowObject.showErrorMessage = originalShowErrorMessage;
     windowObject.showInformationMessage = originalShowInformationMessage;
+    windowObject.showWarningMessage = originalShowWarningMessage;
     windowObject.withProgress = originalWithProgress;
   }
 }
