@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { registerSnActivateCommand } from "@commands/snActivateCommand.js";
 import { registerSnAuthCommand } from "@commands/snAuthCommand.js";
 import { registerSnInitCommand } from "@commands/snInitCommand.js";
+import { registerSnResetSelectionsCommand } from "@commands/snResetSelectionsCommand.js";
 import { registerSnValidateAuthCommand } from "@commands/snValidateAuthCommand.js";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -9,6 +10,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerSnAuthCommand(context);
   registerSnValidateAuthCommand(context);
   registerSnActivateCommand(context);
+  registerSnResetSelectionsCommand(context);
 }
 
 export function deactivate() {}

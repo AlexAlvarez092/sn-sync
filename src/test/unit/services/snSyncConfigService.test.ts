@@ -541,4 +541,41 @@ suite("snSyncConfigService", () => {
       assert.strictEqual(instanceName, "dev-instance");
     });
   });
+
+  test("clearActivationSelections clears app/update set and scope mappings while preserving instance", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+
+      await service.setInstanceName(workspaceFolderUri, "dev-instance");
+      await service.setActivationSelection(
+        workspaceFolderUri,
+        "app-1",
+        "us-1",
+        "App One",
+        "Update Set One",
+      );
+      await service.setScopeUpdateSetSelection(workspaceFolderUri, "x_app", {
+        application: "app-1",
+        application_name: "App One",
+        update_set: "us-1",
+        update_set_name: "Update Set One",
+      });
+
+      await service.clearActivationSelections(workspaceFolderUri);
+
+      const instanceConfigPath = path.join(
+        tempDir,
+        SN_SYNC_PATHS.ROOT_FOLDER,
+        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
+      );
+
+      await assertJsonFileEquals(instanceConfigPath, {
+        instance: "dev-instance",
+        application: "",
+        update_set: "",
+        scope_update_sets: {},
+      });
+    });
+  });
 });

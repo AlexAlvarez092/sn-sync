@@ -3,6 +3,7 @@ export const SN_SYNC_COMMANDS = {
   AUTH: "sn-sync.auth",
   AUTH_VALIDATE: "sn-sync.auth-validate",
   ACTIVATE: "sn-sync.activate",
+  RESET_SELECTIONS: "sn-sync.reset-selections",
   ACTIVATE_SELECT_SCOPE: "sn-sync.activate.select-scope",
   ACTIVATE_SELECT_UPDATE_SET: "sn-sync.activate.select-update-set",
 } as const;
@@ -41,6 +42,9 @@ export const SN_SYNC_MESSAGES = {
   ACTIVATE_FAILED_PREFIX: "Failed to activate sn-sync:",
   ACTIVATE_STATUS_HTTP_STATUS_PREFIX:
     "ServiceNow data request failed with status:",
+  RESET_SELECTIONS_SUCCESS:
+    "sn-sync selections reset. Scope/update set configuration has been cleared.",
+  RESET_SELECTIONS_FAILED_PREFIX: "Failed to reset sn-sync selections:",
 } as const;
 
 export const SN_SYNC_SECRET_KEYS = {

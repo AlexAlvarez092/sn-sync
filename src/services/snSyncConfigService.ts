@@ -170,6 +170,26 @@ export class SnSyncConfigService {
     );
   }
 
+  public async clearActivationSelections(
+    workspaceFolderUri: vscode.Uri,
+  ): Promise<void> {
+    await this.initialize(workspaceFolderUri);
+
+    const { instanceConfigUri } = getSnSyncPaths(workspaceFolderUri);
+    const config = await this.readInstanceConfig(instanceConfigUri);
+    const updatedConfig: InstanceConfig = {
+      instance: config.instance,
+      application: "",
+      update_set: "",
+      scope_update_sets: {},
+    };
+
+    await vscode.workspace.fs.writeFile(
+      instanceConfigUri,
+      new TextEncoder().encode(JSON.stringify(updatedConfig, null, 2)),
+    );
+  }
+
   public async getInstanceName(
     workspaceFolderUri: vscode.Uri,
   ): Promise<string | undefined> {

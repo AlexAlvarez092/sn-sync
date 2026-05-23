@@ -28,6 +28,10 @@
       {
         "command": "sn-sync.activate",
         "title": "sn: activate"
+      },
+      {
+        "command": "sn-sync.reset-selections",
+        "title": "sn: reset selections"
       }
     ]
   },
