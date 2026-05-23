@@ -14,6 +14,12 @@ export interface SnPullRuntime {
   getWorkspaceFolderUri(): vscode.Uri | undefined;
   showErrorMessage(message: string): Thenable<string | undefined>;
   showInformationMessage(message: string): Thenable<string | undefined>;
+  withProgress<T>(
+    title: string,
+    task: (
+      progress: vscode.Progress<{ message?: string; increment?: number }>,
+    ) => Thenable<T>,
+  ): Thenable<T>;
 }
 
 const defaultRuntime: SnPullRuntime = {
@@ -22,6 +28,15 @@ const defaultRuntime: SnPullRuntime = {
     vscode.window.showErrorMessage(message),
   showInformationMessage: (message: string) =>
     vscode.window.showInformationMessage(message),
+  withProgress: (title, task) =>
+    vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title,
+        cancellable: false,
+      },
+      task,
+    ),
 };
 
 export async function runSnPullCommand(
@@ -45,10 +60,43 @@ export async function runSnPullCommand(
       return;
     }
 
-    const summary = await pullService.pullConfiguredScripts(
-      context,
-      workspaceFolderUri,
-      settings,
+    const summary = await runtime.withProgress(
+      "Pulling scripts from ServiceNow...",
+      async (progress) => {
+        let totalRecords = 0;
+        let totalFiles = 0;
+        let visibleFilesWritten = 0;
+
+        for (const setting of settings) {
+          const settingSummary = await pullService.pullConfiguredScripts(
+            context,
+            workspaceFolderUri,
+            [setting],
+            {
+              onFileWritten: ({ settingFolder, fileName }) => {
+                visibleFilesWritten += 1;
+                progress.report({
+                  message: `Writing ${visibleFilesWritten} files... (${settingFolder}/${fileName})`,
+                });
+              },
+            },
+          );
+
+          totalRecords += settingSummary.records;
+          totalFiles += settingSummary.files;
+
+          progress.report({
+            increment: 100 / settings.length,
+            message: `${setting.folder} complete (${settingSummary.files} files)`,
+          });
+        }
+
+        return {
+          settings: settings.length,
+          records: totalRecords,
+          files: totalFiles,
+        };
+      },
     );
 
     void runtime.showInformationMessage(

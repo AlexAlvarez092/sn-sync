@@ -3,7 +3,6 @@ import * as vscode from "vscode";
 import {
   registerSnPullCommand,
   runSnPullCommand,
-  type SnPullRuntime,
 } from "@commands/snPullCommand.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 import { createTempWorkspaceUri } from "@test/helpers/testRuntime.js";
@@ -42,6 +41,10 @@ suite("snPullCommand", () => {
           return undefined;
         },
         showInformationMessage: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
       },
     );
 
@@ -68,19 +71,34 @@ suite("snPullCommand", () => {
           shownInfos.push(message);
           return undefined;
         },
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
       },
     );
 
     assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.PULL_NO_SETTINGS]);
   });
 
-  test("pulls configured scripts and shows success summary", async () => {
+  test("pulls configured scripts and shows granular progress and success summary", async () => {
     const shownInfos: string[] = [];
+    const pulledSettingFolders: string[] = [];
+    const progressMessages: string[] = [];
+    const progressIncrements: number[] = [];
+    const progressTitles: string[] = [];
 
     await runSnPullCommand(
       {} as vscode.ExtensionContext,
       {
         getSyncSettings: async () => [
+          {
+            folder: "business_rules",
+            table: "sys_script",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
           {
             folder: "security_rules",
             table: "sys_security_acl",
@@ -91,11 +109,54 @@ suite("snPullCommand", () => {
         ],
       } as unknown as never,
       {
-        pullConfiguredScripts: async () => ({
-          settings: 1,
-          records: 2,
-          files: 2,
-        }),
+        pullConfiguredScripts: async (
+          _context,
+          _workspaceUri,
+          settings,
+          options,
+        ) => {
+          pulledSettingFolders.push(settings[0].folder);
+
+          if (settings[0].folder === "business_rules") {
+            options?.onFileWritten?.({
+              settingFolder: "business_rules",
+              fileName: "rule1.js",
+            });
+            options?.onFileWritten?.({
+              settingFolder: "business_rules",
+              fileName: "rule2.js",
+            });
+
+            return {
+              settings: 1,
+              records: 2,
+              files: 2,
+            };
+          }
+
+          options?.onFileWritten?.({
+            settingFolder: "security_rules",
+            fileName: "acl1.js",
+          });
+          options?.onFileWritten?.({
+            settingFolder: "security_rules",
+            fileName: "acl2.js",
+          });
+          options?.onFileWritten?.({
+            settingFolder: "security_rules",
+            fileName: "acl3.js",
+          });
+          options?.onFileWritten?.({
+            settingFolder: "security_rules",
+            fileName: "acl4.js",
+          });
+
+          return {
+            settings: 1,
+            records: 3,
+            files: 4,
+          };
+        },
       },
       {
         getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-success"),
@@ -104,11 +165,41 @@ suite("snPullCommand", () => {
           shownInfos.push(message);
           return undefined;
         },
+        withProgress: async (title, task) => {
+          progressTitles.push(title);
+          return task({
+            report: ({ message, increment }) => {
+              progressMessages.push(message ?? "");
+              if (typeof increment === "number") {
+                progressIncrements.push(increment);
+              }
+            },
+          });
+        },
       },
     );
 
+    assert.deepStrictEqual(pulledSettingFolders, [
+      "business_rules",
+      "security_rules",
+    ]);
+    assert.deepStrictEqual(progressTitles, [
+      "Pulling scripts from ServiceNow...",
+    ]);
+    assert.deepStrictEqual(progressMessages, [
+      "Writing 1 files... (business_rules/rule1.js)",
+      "Writing 2 files... (business_rules/rule2.js)",
+      "business_rules complete (2 files)",
+      "Writing 3 files... (security_rules/acl1.js)",
+      "Writing 4 files... (security_rules/acl2.js)",
+      "Writing 5 files... (security_rules/acl3.js)",
+      "Writing 6 files... (security_rules/acl4.js)",
+      "security_rules complete (4 files)",
+    ]);
+    assert.deepStrictEqual(progressIncrements, [50, 50]);
+
     assert.deepStrictEqual(shownInfos, [
-      `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 2 files from 2 records (1 settings).`,
+      `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 6 files from 5 records (2 settings).`,
     ]);
   });
 
@@ -140,6 +231,10 @@ suite("snPullCommand", () => {
           return undefined;
         },
         showInformationMessage: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
       },
     );
 
@@ -161,6 +256,10 @@ suite("snPullCommand", () => {
             shownInfos.push(message);
             return undefined;
           },
+          async (_options, task) =>
+            task({
+              report: () => undefined,
+            }),
           async () => {
             await runSnPullCommand(
               {} as vscode.ExtensionContext,
@@ -203,6 +302,10 @@ suite("snPullCommand", () => {
           return undefined;
         },
         async (_message: string) => undefined,
+        async (_options, task) =>
+          task({
+            report: () => undefined,
+          }),
         async () => {
           await runSnPullCommand(
             {} as vscode.ExtensionContext,
@@ -255,23 +358,38 @@ async function withPatchedWorkspaceFolders(
 async function withPatchedWindowMessages(
   showErrorMessage: (message: string) => Thenable<string | undefined>,
   showInformationMessage: (message: string) => Thenable<string | undefined>,
+  withProgress: <T>(
+    options: vscode.ProgressOptions,
+    task: (
+      progress: vscode.Progress<{ message?: string; increment?: number }>,
+    ) => Thenable<T>,
+  ) => Thenable<T>,
   run: () => Promise<void>,
 ): Promise<void> {
   const windowObject = vscode.window as unknown as {
     showErrorMessage: (message: string) => Thenable<string | undefined>;
     showInformationMessage: (message: string) => Thenable<string | undefined>;
+    withProgress: <T>(
+      options: vscode.ProgressOptions,
+      task: (
+        progress: vscode.Progress<{ message?: string; increment?: number }>,
+      ) => Thenable<T>,
+    ) => Thenable<T>;
   };
 
   const originalShowErrorMessage = windowObject.showErrorMessage;
   const originalShowInformationMessage = windowObject.showInformationMessage;
+  const originalWithProgress = windowObject.withProgress;
 
   windowObject.showErrorMessage = showErrorMessage;
   windowObject.showInformationMessage = showInformationMessage;
+  windowObject.withProgress = withProgress;
 
   try {
     await run();
   } finally {
     windowObject.showErrorMessage = originalShowErrorMessage;
     windowObject.showInformationMessage = originalShowInformationMessage;
+    windowObject.withProgress = originalWithProgress;
   }
 }

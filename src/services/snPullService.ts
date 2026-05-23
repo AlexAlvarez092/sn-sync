@@ -13,11 +13,21 @@ export interface SnPullSummary {
   files: number;
 }
 
+export interface SnPullProgressEvent {
+  settingFolder: string;
+  fileName: string;
+}
+
+export interface SnPullOptions {
+  onFileWritten?: (event: SnPullProgressEvent) => void;
+}
+
 export interface SnPullServiceApi {
   pullConfiguredScripts(
     context: vscode.ExtensionContext,
     workspaceFolderUri: vscode.Uri,
     settings: ExtensionConfigSetting[],
+    options?: SnPullOptions,
   ): Promise<SnPullSummary>;
 }
 
@@ -32,6 +42,7 @@ export class SnPullService implements SnPullServiceApi {
     context: vscode.ExtensionContext,
     workspaceFolderUri: vscode.Uri,
     settings: ExtensionConfigSetting[],
+    options?: SnPullOptions,
   ): Promise<SnPullSummary> {
     let pulledRecords = 0;
     let writtenFiles = 0;
@@ -67,6 +78,7 @@ export class SnPullService implements SnPullServiceApi {
           setting,
           keyValue,
           record,
+          options,
         );
       }
     }
@@ -83,6 +95,7 @@ export class SnPullService implements SnPullServiceApi {
     setting: ExtensionConfigSetting,
     keyValue: string,
     record: Record<string, unknown>,
+    options?: SnPullOptions,
   ): Promise<number> {
     const safeKeyValue = this.sanitizePathSegment(keyValue);
 
@@ -106,6 +119,11 @@ export class SnPullService implements SnPullServiceApi {
         fileUri,
         new TextEncoder().encode(content),
       );
+
+      options?.onFileWritten?.({
+        settingFolder: setting.folder,
+        fileName,
+      });
     }
 
     return setting.fields.length;

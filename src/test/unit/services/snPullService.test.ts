@@ -11,6 +11,8 @@ suite("snPullService", () => {
   test("pulls files using subdir, multi-field, and single-field patterns", async () => {
     await withTempDir("sn-sync-pull-", async (tempDir) => {
       const workspaceUri = vscode.Uri.file(tempDir);
+      const writtenFiles: Array<{ settingFolder: string; fileName: string }> =
+        [];
 
       const service = new SnPullService(
         {
@@ -106,6 +108,11 @@ suite("snPullService", () => {
         {} as vscode.ExtensionContext,
         workspaceUri,
         settings,
+        {
+          onFileWritten: (event) => {
+            writtenFiles.push(event);
+          },
+        },
       );
 
       assert.deepStrictEqual(summary, {
@@ -113,6 +120,18 @@ suite("snPullService", () => {
         records: 3,
         files: 6,
       });
+
+      assert.deepStrictEqual(
+        writtenFiles.map((entry) => entry.settingFolder),
+        [
+          "business_rules",
+          "sp_widgets",
+          "sp_widgets",
+          "sp_widgets",
+          "sp_widgets",
+          "security_rules",
+        ],
+      );
 
       assert.strictEqual(
         await fs.readFile(
