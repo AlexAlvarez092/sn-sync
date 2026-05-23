@@ -15,10 +15,12 @@ suite("snInitCommand", () => {
       subscriptions: [] as vscode.Disposable[],
     } as unknown as vscode.ExtensionContext;
 
-    registerSnInitCommand(context);
+    withPatchedRegisterCommand(() => {
+      registerSnInitCommand(context);
 
-    assert.strictEqual(context.subscriptions.length, 1);
-    context.subscriptions[0].dispose();
+      assert.strictEqual(context.subscriptions.length, 1);
+      context.subscriptions[0].dispose();
+    });
   });
 
   test("shows error when no workspace folder is open", async () => {
@@ -157,6 +159,27 @@ suite("snInitCommand", () => {
     ]);
   });
 });
+
+function withPatchedRegisterCommand(run: () => void): void {
+  const commandsObject = vscode.commands as unknown as {
+    registerCommand: (
+      command: string,
+      callback: (...args: unknown[]) => unknown,
+    ) => vscode.Disposable;
+  };
+  const originalRegisterCommand = commandsObject.registerCommand;
+
+  commandsObject.registerCommand = (
+    _command: string,
+    _callback: (...args: unknown[]) => unknown,
+  ) => new vscode.Disposable(() => undefined);
+
+  try {
+    run();
+  } finally {
+    commandsObject.registerCommand = originalRegisterCommand;
+  }
+}
 
 async function withPatchedWorkspaceFolders(
   folders: vscode.WorkspaceFolder[] | undefined,

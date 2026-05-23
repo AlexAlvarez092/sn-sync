@@ -1,11 +1,11 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { SnActivationDataService } from "@services/snActivationDataService.js";
+import { SnUpdateSetDataService } from "@services/snUpdateSetDataService.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 
-suite("snActivationDataService", () => {
+suite("snUpdateSetDataService", () => {
   test("lists scoped applications from ServiceNow", async () => {
-    const service = new SnActivationDataService(
+    const service = new SnUpdateSetDataService(
       {
         getSavedAuth: async () => ({
           instanceName: "dev1",
@@ -49,7 +49,7 @@ suite("snActivationDataService", () => {
   test("filters update sets by app when app is not global", async () => {
     let requestedUrl: string | undefined;
 
-    const service = new SnActivationDataService(
+    const service = new SnUpdateSetDataService(
       {
         getSavedAuth: async () => ({
           instanceName: "dev1",
@@ -88,7 +88,7 @@ suite("snActivationDataService", () => {
   test("filters global update sets by application=global", async () => {
     let requestedUrl: string | undefined;
 
-    const service = new SnActivationDataService(
+    const service = new SnUpdateSetDataService(
       {
         getSavedAuth: async () => ({
           instanceName: "dev1",
@@ -122,7 +122,7 @@ suite("snActivationDataService", () => {
   });
 
   test("throws status-based message for non-auth HTTP errors", async () => {
-    const service = new SnActivationDataService(
+    const service = new SnUpdateSetDataService(
       {
         getSavedAuth: async () => ({
           instanceName: "dev1",
@@ -149,7 +149,7 @@ suite("snActivationDataService", () => {
       (error: unknown) => {
         assert.strictEqual(
           (error as Error).message,
-          `${SN_SYNC_MESSAGES.ACTIVATE_STATUS_HTTP_STATUS_PREFIX} 500 Internal Server Error`,
+          `${SN_SYNC_MESSAGES.SN_REQUEST_HTTP_STATUS_PREFIX} 500 Internal Server Error`,
         );
         return true;
       },
@@ -157,7 +157,7 @@ suite("snActivationDataService", () => {
   });
 
   test("returns empty array when payload result is not an array", async () => {
-    const service = new SnActivationDataService(
+    const service = new SnUpdateSetDataService(
       {
         getSavedAuth: async () => ({
           instanceName: "dev1",
@@ -183,7 +183,7 @@ suite("snActivationDataService", () => {
   });
 
   test("returns invalid credentials error on 401", async () => {
-    const service = new SnActivationDataService(
+    const service = new SnUpdateSetDataService(
       {
         getSavedAuth: async () => ({
           instanceName: "dev1",
@@ -218,7 +218,7 @@ suite("snActivationDataService", () => {
   });
 
   test("throws when saved auth is missing", async () => {
-    const service = new SnActivationDataService(
+    const service = new SnUpdateSetDataService(
       {
         getSavedAuth: async () => undefined,
       } as unknown as never,

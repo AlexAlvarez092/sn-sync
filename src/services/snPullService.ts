@@ -222,7 +222,7 @@ export class SnPullService implements SnPullServiceApi {
         }
 
         throw new Error(
-          `${SN_SYNC_MESSAGES.ACTIVATE_STATUS_HTTP_STATUS_PREFIX} ${response.status} ${response.statusText}`.trim(),
+          `${SN_SYNC_MESSAGES.SN_REQUEST_HTTP_STATUS_PREFIX} ${response.status} ${response.statusText}`.trim(),
         );
       }
 

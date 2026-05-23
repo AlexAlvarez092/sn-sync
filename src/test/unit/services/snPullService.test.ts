@@ -344,7 +344,7 @@ suite("snPullService", () => {
       (error: unknown) => {
         assert.strictEqual(
           (error as Error).message,
-          `${SN_SYNC_MESSAGES.ACTIVATE_STATUS_HTTP_STATUS_PREFIX} 500 Internal Server Error`,
+          `${SN_SYNC_MESSAGES.SN_REQUEST_HTTP_STATUS_PREFIX} 500 Internal Server Error`,
         );
         return true;
       },
