@@ -183,7 +183,8 @@ suite("snPullCommand", () => {
           shownInfos.push(message);
           return undefined;
         },
-        showWarningMessage: async () => SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
         readDirectory: async () => [
           ["business_rules", vscode.FileType.Directory],
           ["old-file.js", vscode.FileType.File],
@@ -262,7 +263,8 @@ suite("snPullCommand", () => {
           shownInfos.push(message);
           return undefined;
         },
-        showWarningMessage: async () => SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
         readDirectory: async () => {
           throw new Error("must-not-be-called");
         },
@@ -312,7 +314,8 @@ suite("snPullCommand", () => {
           shownInfos.push(message);
           return undefined;
         },
-        showWarningMessage: async () => SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
         readDirectory: async () => {
           throw new Error("FileNotFound");
         },
@@ -359,7 +362,8 @@ suite("snPullCommand", () => {
           return undefined;
         },
         showInformationMessage: async () => undefined,
-        showWarningMessage: async () => SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
         readDirectory: async () => [],
         delete: async () => undefined,
         withProgress: async (_title, task) =>
@@ -396,15 +400,15 @@ suite("snPullCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri(
-          "pull-clear-src-failure",
-        ),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-clear-src-failure"),
         showErrorMessage: async (message: string) => {
           shownErrors.push(message);
           return undefined;
         },
         showInformationMessage: async () => undefined,
-        showWarningMessage: async () => SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
         readDirectory: async () => {
           throw new Error("permission-denied");
         },

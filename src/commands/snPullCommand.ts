@@ -40,7 +40,8 @@ const defaultRuntime: SnPullRuntime = {
   showWarningMessage: (message: string, ...items: string[]) =>
     vscode.window.showWarningMessage(message, ...items),
   readDirectory: (uri: vscode.Uri) => vscode.workspace.fs.readDirectory(uri),
-  delete: (uri: vscode.Uri, options) => vscode.workspace.fs.delete(uri, options),
+  delete: (uri: vscode.Uri, options) =>
+    vscode.workspace.fs.delete(uri, options),
   withProgress: (title, task) =>
     vscode.window.withProgress(
       {

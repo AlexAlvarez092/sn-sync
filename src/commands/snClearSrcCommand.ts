@@ -14,7 +14,10 @@ export interface SnClearSrcRuntime {
     ...items: string[]
   ): Thenable<string | undefined>;
   readDirectory(uri: vscode.Uri): Thenable<[string, vscode.FileType][]>;
-  delete(uri: vscode.Uri, options: { recursive: boolean; useTrash: boolean }): Thenable<void>;
+  delete(
+    uri: vscode.Uri,
+    options: { recursive: boolean; useTrash: boolean },
+  ): Thenable<void>;
 }
 
 const defaultRuntime: SnClearSrcRuntime = {
@@ -26,7 +29,8 @@ const defaultRuntime: SnClearSrcRuntime = {
   showWarningMessage: (message: string, ...items: string[]) =>
     vscode.window.showWarningMessage(message, { modal: true }, ...items),
   readDirectory: (uri: vscode.Uri) => vscode.workspace.fs.readDirectory(uri),
-  delete: (uri: vscode.Uri, options) => vscode.workspace.fs.delete(uri, options),
+  delete: (uri: vscode.Uri, options) =>
+    vscode.workspace.fs.delete(uri, options),
 };
 
 export async function runSnClearSrcCommand(
@@ -57,7 +61,9 @@ export async function runSnClearSrcCommand(
       entries = await runtime.readDirectory(srcFolderUri);
     } catch (error) {
       if (getErrorMessage(error).includes("FileNotFound")) {
-        void runtime.showInformationMessage(SN_SYNC_MESSAGES.CLEAR_SRC_NOT_FOUND);
+        void runtime.showInformationMessage(
+          SN_SYNC_MESSAGES.CLEAR_SRC_NOT_FOUND,
+        );
         return;
       }
 

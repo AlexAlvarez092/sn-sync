@@ -49,8 +49,7 @@ export const SN_SYNC_MESSAGES = {
   RESET_SELECTIONS_FAILED_PREFIX: "Failed to reset sn-sync selections:",
   PULL_NO_SETTINGS:
     "No sync settings found in extension config. Nothing to pull.",
-  PULL_CLEAR_SRC_PROMPT:
-    "Clear src before pull to avoid stale local files?",
+  PULL_CLEAR_SRC_PROMPT: "Clear src before pull to avoid stale local files?",
   PULL_CLEAR_SRC_SKIP_ACTION: "Keep src",
   PULL_SUCCESS_PREFIX: "sn-sync pull completed.",
   PULL_FAILED_PREFIX: "Failed to pull scripts from ServiceNow:",

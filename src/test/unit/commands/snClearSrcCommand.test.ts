@@ -55,7 +55,8 @@ suite("snClearSrcCommand", () => {
     let readCalled = false;
 
     const runtime: SnClearSrcRuntime = {
-      getWorkspaceFolderUri: () => createTempWorkspaceUri("clear-src-cancelled"),
+      getWorkspaceFolderUri: () =>
+        createTempWorkspaceUri("clear-src-cancelled"),
       showErrorMessage: async () => undefined,
       showInformationMessage: async (message: string) => {
         shownInfos.push(message);
@@ -157,7 +158,8 @@ suite("snClearSrcCommand", () => {
     const shownErrors: string[] = [];
 
     const runtime: SnClearSrcRuntime = {
-      getWorkspaceFolderUri: () => createTempWorkspaceUri("clear-src-read-failure"),
+      getWorkspaceFolderUri: () =>
+        createTempWorkspaceUri("clear-src-read-failure"),
       showErrorMessage: async (message: string) => {
         shownErrors.push(message);
         return undefined;
@@ -213,7 +215,9 @@ suite("snClearSrcCommand", () => {
 
       const remainingEntries = await fs.readdir(srcDir);
       assert.deepStrictEqual(remainingEntries, []);
-      assert.deepStrictEqual(shownWarnings, [SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM]);
+      assert.deepStrictEqual(shownWarnings, [
+        SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM,
+      ]);
       assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.CLEAR_SRC_SUCCESS]);
     });
   });
