@@ -116,15 +116,15 @@ export class SnUpdateSetDataService implements SnUpdateSetDataServiceApi {
         method: "GET",
         headers: {
           Accept: "application/json",
-            Authorization: buildBasicAuthHeader(
-              savedAuth.username,
-              savedAuth.password,
-            ),
+          Authorization: buildBasicAuthHeader(
+            savedAuth.username,
+            savedAuth.password,
+          ),
         },
       },
     );
 
-      handleHttpError(response, SN_SYNC_MESSAGES.SN_REQUEST_HTTP_STATUS_PREFIX);
+    handleHttpError(response, SN_SYNC_MESSAGES.SN_REQUEST_HTTP_STATUS_PREFIX);
 
     const payload = (await response.json()) as SnTableResponse;
     if (!Array.isArray(payload.result)) {

@@ -24,8 +24,7 @@ interface TableQuickPickItem extends vscode.QuickPickItem {
 }
 
 export interface SnPullTableRuntime
-  extends SnBaseCommandRuntime,
-    FolderClearRuntime {
+  extends SnBaseCommandRuntime, FolderClearRuntime {
   showQuickPick<T extends vscode.QuickPickItem>(
     items: readonly T[],
     options: vscode.QuickPickOptions,

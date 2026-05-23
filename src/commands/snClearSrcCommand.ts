@@ -11,8 +11,7 @@ import type { FolderClearRuntime } from "@shared/services/snFolderService.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
 
 export interface SnClearSrcRuntime
-  extends SnBaseCommandRuntime,
-    FolderClearRuntime {
+  extends SnBaseCommandRuntime, FolderClearRuntime {
   showWarningMessage(
     message: string,
     ...items: string[]

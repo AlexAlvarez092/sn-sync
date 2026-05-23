@@ -18,7 +18,8 @@ import {
 } from "@shared/services/snFolderService.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
 
-export interface SnPullRuntime extends SnBaseCommandRuntime, FolderClearRuntime {
+export interface SnPullRuntime
+  extends SnBaseCommandRuntime, FolderClearRuntime {
   showWarningMessage(
     message: string,
     ...items: string[]
@@ -77,7 +78,10 @@ export async function runSnPullCommand(
     );
 
     if (clearSrcChoice === SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION) {
-      await clearDirectory(runtime, vscode.Uri.joinPath(workspaceFolderUri, "src"));
+      await clearDirectory(
+        runtime,
+        vscode.Uri.joinPath(workspaceFolderUri, "src"),
+      );
     }
 
     const summary = await runtime.withProgress(

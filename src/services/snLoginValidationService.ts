@@ -52,5 +52,4 @@ export class SnLoginValidationService implements SnLoginValidationServiceApi {
       SN_SYNC_MESSAGES.AUTH_VALIDATE_HTTP_STATUS_PREFIX,
     );
   }
-
 }
