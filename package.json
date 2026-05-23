@@ -32,6 +32,10 @@
       {
         "command": "sn-sync.reset-selections",
         "title": "sn: reset selections"
+      },
+      {
+        "command": "sn-sync.pull",
+        "title": "sn: pull"
       }
     ]
   },

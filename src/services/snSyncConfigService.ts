@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import {
   type ExtensionConfig,
+  type ExtensionConfigField,
+  type ExtensionConfigSetting,
   type InstanceConfig,
   type ScopeUpdateSetSelection,
 } from "@shared/models/config.js";
@@ -21,7 +23,7 @@ export class SnSyncConfigService {
         scope_update_sets: {},
       } satisfies InstanceConfig),
       ensureJsonFile(extensionConfigUri, {
-        setting: [],
+        settings: [],
       } satisfies ExtensionConfig),
     ]);
   }
@@ -204,6 +206,32 @@ export class SnSyncConfigService {
     return instanceName;
   }
 
+  public async getSyncSettings(
+    workspaceFolderUri: vscode.Uri,
+  ): Promise<ExtensionConfigSetting[]> {
+    await this.initialize(workspaceFolderUri);
+
+    const { extensionConfigUri } = getSnSyncPaths(workspaceFolderUri);
+
+    try {
+      const fileContent =
+        await vscode.workspace.fs.readFile(extensionConfigUri);
+      const parsed = JSON.parse(
+        new TextDecoder().decode(fileContent),
+      ) as ExtensionConfig;
+
+      const rawSettings = Array.isArray(parsed.settings) ? parsed.settings : [];
+
+      return rawSettings
+        .map((setting) => this.normalizeSyncSetting(setting))
+        .filter((setting): setting is ExtensionConfigSetting =>
+          Boolean(setting),
+        );
+    } catch {
+      return [];
+    }
+  }
+
   private async readInstanceConfig(
     instanceConfigUri: vscode.Uri,
   ): Promise<InstanceConfig> {
@@ -260,5 +288,69 @@ export class SnSyncConfigService {
         scope_update_sets: {},
       };
     }
+  }
+
+  private normalizeSyncSetting(
+    setting: ExtensionConfigSetting,
+  ): ExtensionConfigSetting | undefined {
+    const folder = this.normalizeString(setting.folder);
+    const table = this.normalizeString(setting.table);
+    const query = this.normalizeString(setting.query, true);
+    const key = this.normalizeString(setting.key);
+    const fields = this.normalizeSyncFields(setting.fields);
+    const subDirPattern = this.normalizeString(setting.subDirPattern, true);
+
+    if (!folder || !table || key === undefined || fields.length === 0) {
+      return undefined;
+    }
+
+    return {
+      folder,
+      table,
+      query: query ?? "",
+      key,
+      fields,
+      ...(subDirPattern ? { subDirPattern } : {}),
+    };
+  }
+
+  private normalizeSyncFields(
+    fields: ExtensionConfigField[],
+  ): ExtensionConfigField[] {
+    if (!Array.isArray(fields)) {
+      return [];
+    }
+
+    return fields
+      .map((field) => {
+        const extension = this.normalizeString(field.extension);
+        const fieldName = this.normalizeString(field.field_name);
+
+        if (!extension || !fieldName) {
+          return undefined;
+        }
+
+        return {
+          extension,
+          field_name: fieldName,
+        } satisfies ExtensionConfigField;
+      })
+      .filter((field): field is ExtensionConfigField => Boolean(field));
+  }
+
+  private normalizeString(
+    value: string | undefined,
+    allowEmpty = false,
+  ): string | undefined {
+    if (typeof value !== "string") {
+      return undefined;
+    }
+
+    const normalized = value.trim();
+    if (!allowEmpty && !normalized) {
+      return undefined;
+    }
+
+    return normalized;
   }
 }

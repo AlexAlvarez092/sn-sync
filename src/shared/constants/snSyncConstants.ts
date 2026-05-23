@@ -4,6 +4,7 @@ export const SN_SYNC_COMMANDS = {
   AUTH_VALIDATE: "sn-sync.auth-validate",
   ACTIVATE: "sn-sync.activate",
   RESET_SELECTIONS: "sn-sync.reset-selections",
+  PULL: "sn-sync.pull",
   ACTIVATE_SELECT_SCOPE: "sn-sync.activate.select-scope",
   ACTIVATE_SELECT_UPDATE_SET: "sn-sync.activate.select-update-set",
 } as const;
@@ -45,6 +46,10 @@ export const SN_SYNC_MESSAGES = {
   RESET_SELECTIONS_SUCCESS:
     "sn-sync selections reset. Scope/update set configuration has been cleared.",
   RESET_SELECTIONS_FAILED_PREFIX: "Failed to reset sn-sync selections:",
+  PULL_NO_SETTINGS:
+    "No sync settings found in extension config. Nothing to pull.",
+  PULL_SUCCESS_PREFIX: "sn-sync pull completed.",
+  PULL_FAILED_PREFIX: "Failed to pull scripts from ServiceNow:",
 } as const;
 
 export const SN_SYNC_SECRET_KEYS = {

@@ -35,7 +35,7 @@ suite("snSyncConfigService", () => {
         update_set: "",
         scope_update_sets: {},
       });
-      await assertJsonFileEquals(extensionConfigPath, { setting: [] });
+      await assertJsonFileEquals(extensionConfigPath, { settings: [] });
     });
   });
 
@@ -68,7 +68,7 @@ suite("snSyncConfigService", () => {
         },
       });
       await writeJsonFile(extensionConfigPath, {
-        setting: [{ enabled: true }],
+        settings: [{ enabled: true }],
       });
 
       await service.initialize(workspaceFolderUri);
@@ -85,7 +85,7 @@ suite("snSyncConfigService", () => {
         },
       });
       await assertJsonFileEquals(extensionConfigPath, {
-        setting: [{ enabled: true }],
+        settings: [{ enabled: true }],
       });
     });
   });
@@ -576,6 +576,251 @@ suite("snSyncConfigService", () => {
         update_set: "",
         scope_update_sets: {},
       });
+    });
+  });
+
+  test("getSyncSettings parses normalized settings array", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+
+      await fs.mkdir(configDir, { recursive: true });
+
+      const extensionConfigPath = path.join(
+        configDir,
+        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
+      );
+
+      await writeJsonFile(extensionConfigPath, {
+        settings: [
+          {
+            folder: " business_rules ",
+            table: " sys_script ",
+            query: " active=true ",
+            key: " name ",
+            subDirPattern: " <collection>/<when> ",
+            fields: [
+              {
+                extension: " js ",
+                field_name: " script ",
+              },
+            ],
+          },
+        ],
+      });
+
+      const settings = await service.getSyncSettings(workspaceFolderUri);
+
+      assert.deepStrictEqual(settings, [
+        {
+          folder: "business_rules",
+          table: "sys_script",
+          query: "active=true",
+          key: "name",
+          subDirPattern: "<collection>/<when>",
+          fields: [
+            {
+              extension: "js",
+              field_name: "script",
+            },
+          ],
+        },
+      ]);
+    });
+  });
+
+  test("getSyncSettings ignores invalid items in settings", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+
+      await fs.mkdir(configDir, { recursive: true });
+
+      const extensionConfigPath = path.join(
+        configDir,
+        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
+      );
+
+      await writeJsonFile(extensionConfigPath, {
+        settings: [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [
+              {
+                extension: "js",
+                field_name: "script",
+              },
+            ],
+          },
+          {
+            folder: "",
+            table: "sys_script",
+            query: "",
+            key: "name",
+            fields: [],
+          },
+        ],
+      });
+
+      const settings = await service.getSyncSettings(workspaceFolderUri);
+
+      assert.deepStrictEqual(settings, [
+        {
+          folder: "security_rules",
+          table: "sys_security_acl",
+          query: "active=true",
+          key: "name",
+          fields: [
+            {
+              extension: "js",
+              field_name: "script",
+            },
+          ],
+        },
+      ]);
+    });
+  });
+
+  test("getSyncSettings ignores legacy setting key when settings key is absent", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+
+      await fs.mkdir(configDir, { recursive: true });
+
+      const extensionConfigPath = path.join(
+        configDir,
+        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
+      );
+
+      await writeJsonFile(extensionConfigPath, {
+        setting: [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [
+              {
+                extension: "js",
+                field_name: "script",
+              },
+            ],
+          },
+        ],
+      });
+
+      const settings = await service.getSyncSettings(workspaceFolderUri);
+      assert.deepStrictEqual(settings, []);
+    });
+  });
+
+  test("getSyncSettings returns empty array for malformed extension config json", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+
+      await fs.mkdir(configDir, { recursive: true });
+
+      const extensionConfigPath = path.join(
+        configDir,
+        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
+      );
+
+      await fs.writeFile(extensionConfigPath, "not-json", "utf-8");
+
+      const settings = await service.getSyncSettings(workspaceFolderUri);
+      assert.deepStrictEqual(settings, []);
+    });
+  });
+
+  test("getSyncSettings handles invalid setting shape and normalizes query to empty", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+
+      await fs.mkdir(configDir, { recursive: true });
+
+      const extensionConfigPath = path.join(
+        configDir,
+        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
+      );
+
+      await writeJsonFile(extensionConfigPath, {
+        settings: [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: 123,
+            key: "name",
+            fields: "not-array",
+          },
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: 123,
+            key: "name",
+            fields: [
+              {
+                extension: "",
+                field_name: "script",
+              },
+              {
+                extension: "js",
+                field_name: "script",
+              },
+            ],
+          },
+        ],
+      });
+
+      const settings = await service.getSyncSettings(workspaceFolderUri);
+
+      assert.deepStrictEqual(settings, [
+        {
+          folder: "security_rules",
+          table: "sys_security_acl",
+          query: "",
+          key: "name",
+          fields: [
+            {
+              extension: "js",
+              field_name: "script",
+            },
+          ],
+        },
+      ]);
+    });
+  });
+
+  test("getSyncSettings returns empty when settings keys are present but not arrays", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+
+      await fs.mkdir(configDir, { recursive: true });
+
+      const extensionConfigPath = path.join(
+        configDir,
+        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
+      );
+
+      await writeJsonFile(extensionConfigPath, {
+        settings: {},
+        setting: {},
+      });
+
+      const settings = await service.getSyncSettings(workspaceFolderUri);
+      assert.deepStrictEqual(settings, []);
     });
   });
 });
