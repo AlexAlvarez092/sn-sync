@@ -188,12 +188,16 @@ suite("snSyncConfigService", () => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
 
-      await service.setScopeUpdateSetSelection(workspaceFolderUri, "x_company_app", {
-        application: "app-sys-id",
-        application_name: "   ",
-        update_set: "update-set-sys-id",
-        update_set_name: "   ",
-      });
+      await service.setScopeUpdateSetSelection(
+        workspaceFolderUri,
+        "x_company_app",
+        {
+          application: "app-sys-id",
+          application_name: "   ",
+          update_set: "update-set-sys-id",
+          update_set_name: "   ",
+        },
+      );
 
       const rcConfigPath = getRcConfigPath(tempDir);
       await assertJsonFileEquals(rcConfigPath, {
@@ -581,7 +585,8 @@ suite("snSyncConfigService", () => {
       ]);
 
       await fs.writeFile(rcConfigPath, "not-json", "utf-8");
-      const malformedSettings = await service.getSyncSettings(workspaceFolderUri);
+      const malformedSettings =
+        await service.getSyncSettings(workspaceFolderUri);
       assert.deepStrictEqual(malformedSettings, []);
     });
   });

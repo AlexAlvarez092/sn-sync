@@ -68,7 +68,7 @@ export class SnSyncConfigService {
           : {}),
     };
 
-      await this.writeConfig(rcConfigUri, updatedConfig);
+    await this.writeConfig(rcConfigUri, updatedConfig);
   }
 
   public async setScopeUpdateSetSelection(
@@ -202,9 +202,7 @@ export class SnSyncConfigService {
       .filter((setting): setting is ExtensionConfigSetting => Boolean(setting));
   }
 
-  private async readConfig(
-    rcConfigUri: vscode.Uri,
-  ): Promise<SnSyncRcConfig> {
+  private async readConfig(rcConfigUri: vscode.Uri): Promise<SnSyncRcConfig> {
     try {
       const fileContent = await vscode.workspace.fs.readFile(rcConfigUri);
       const parsed = JSON.parse(
@@ -251,8 +249,12 @@ export class SnSyncConfigService {
             : {},
         settings: Array.isArray(parsed.settings)
           ? parsed.settings
-              .map((setting) => this.normalizeSyncSetting(setting as ExtensionConfigSetting))
-              .filter((setting): setting is ExtensionConfigSetting => Boolean(setting))
+              .map((setting) =>
+                this.normalizeSyncSetting(setting as ExtensionConfigSetting),
+              )
+              .filter((setting): setting is ExtensionConfigSetting =>
+                Boolean(setting),
+              )
           : [],
       };
     } catch {
