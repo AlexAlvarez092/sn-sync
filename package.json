@@ -9,7 +9,9 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "workspaceContains:.sn-sync"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -26,8 +28,20 @@
         "title": "sn: auth validate"
       },
       {
-        "command": "sn-sync.activate",
-        "title": "sn: activate"
+        "command": "sn-sync.update-set.reset",
+        "title": "sn: update set reset"
+      },
+      {
+        "command": "sn-sync.pull",
+        "title": "sn: pull"
+      },
+      {
+        "command": "sn-sync.pull-table",
+        "title": "sn: pull table"
+      },
+      {
+        "command": "sn-sync.clear-src",
+        "title": "sn: clear src"
       }
     ]
   },
@@ -49,7 +63,7 @@
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.39.3",
     "tsc-alias": "^1.8.16",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.56.1"
   }
 }

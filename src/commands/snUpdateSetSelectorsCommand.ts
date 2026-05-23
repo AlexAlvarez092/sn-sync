@@ -1,12 +1,8 @@
 import * as vscode from "vscode";
 import {
-  SnActivationDataService,
-  type SnActivationDataServiceApi,
-} from "@services/snActivationDataService.js";
-import {
-  SnLoginValidationService,
-  type SnLoginValidationServiceApi,
-} from "@services/snLoginValidationService.js";
+  SnUpdateSetDataService,
+  type SnUpdateSetDataServiceApi,
+} from "@services/snUpdateSetDataService.js";
 import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 import {
   SN_SYNC_COMMANDS,
@@ -15,7 +11,7 @@ import {
 import type {
   SnScopedApplication,
   SnUpdateSet,
-} from "@shared/models/activation.js";
+} from "@shared/models/updateSet.js";
 import type { ScopeUpdateSetSelection } from "@shared/models/config.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
 
@@ -33,14 +29,14 @@ interface UpdateSetQuickPickItem extends vscode.QuickPickItem {
   updateSet: SnUpdateSet;
 }
 
-export interface ActivateState {
+export interface UpdateSetSelectorState {
   workspaceFolderUri: vscode.Uri;
   scopes: SnScopedApplication[];
   selections: Record<string, ScopeUpdateSetSelection>;
   selectedScope: string;
 }
 
-export interface SnActivateRuntime {
+export interface SnUpdateSetSelectorsRuntime {
   getWorkspaceFolderUri(): vscode.Uri | undefined;
   showErrorMessage(message: string): Thenable<string | undefined>;
   showInformationMessage(message: string): Thenable<string | undefined>;
@@ -54,7 +50,7 @@ export interface SnActivateRuntime {
   ): vscode.StatusBarItem;
 }
 
-export const defaultRuntime: SnActivateRuntime = {
+export const defaultRuntime: SnUpdateSetSelectorsRuntime = {
   getWorkspaceFolderUri: () => vscode.workspace.workspaceFolders?.[0]?.uri,
   showErrorMessage: (message: string) =>
     vscode.window.showErrorMessage(message),
@@ -70,15 +66,15 @@ export const defaultRuntime: SnActivateRuntime = {
   ) => vscode.window.createStatusBarItem(alignment, priority),
 };
 
-export interface SnActivateUiController {
-  updateState(state: ActivateState): Promise<void>;
+export interface SnUpdateSetSelectorsUiController {
+  updateState(state: UpdateSetSelectorState): Promise<void>;
   selectScope(): Promise<void>;
   selectUpdateSet(): Promise<void>;
   dispose(): void;
 }
 
-export class StatusBarActivateUiController implements SnActivateUiController {
-  private state: ActivateState | undefined;
+export class StatusBarUpdateSetSelectorsController implements SnUpdateSetSelectorsUiController {
+  private state: UpdateSetSelectorState | undefined;
 
   private readonly scopeItem: vscode.StatusBarItem;
 
@@ -86,26 +82,26 @@ export class StatusBarActivateUiController implements SnActivateUiController {
 
   public constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly activationDataService: SnActivationDataServiceApi,
+    private readonly activationDataService: SnUpdateSetDataServiceApi,
     private readonly configService: SnSyncConfigService,
-    private readonly runtime: SnActivateRuntime,
+    private readonly runtime: SnUpdateSetSelectorsRuntime,
   ) {
     this.scopeItem = runtime.createStatusBarItem(
       vscode.StatusBarAlignment.Left,
       100,
     );
-    this.scopeItem.command = SN_SYNC_COMMANDS.ACTIVATE_SELECT_SCOPE;
+    this.scopeItem.command = SN_SYNC_COMMANDS.UPDATE_SET_SELECT_SCOPE;
 
     this.updateSetItem = runtime.createStatusBarItem(
       vscode.StatusBarAlignment.Left,
       99,
     );
-    this.updateSetItem.command = SN_SYNC_COMMANDS.ACTIVATE_SELECT_UPDATE_SET;
+    this.updateSetItem.command = SN_SYNC_COMMANDS.UPDATE_SET_SELECT_UPDATE_SET;
 
     this.context.subscriptions.push(this.scopeItem, this.updateSetItem);
   }
 
-  public async updateState(state: ActivateState): Promise<void> {
+  public async updateState(state: UpdateSetSelectorState): Promise<void> {
     if (!state.scopes.some((app) => app.scope === state.selectedScope)) {
       state.selectedScope = state.scopes[0].scope;
     }
@@ -115,12 +111,14 @@ export class StatusBarActivateUiController implements SnActivateUiController {
     this.scopeItem.show();
     this.updateSetItem.show();
 
-    await this.persistCurrentActivationSelection();
+    await this.persistCurrentSelection();
   }
 
   public async selectScope(): Promise<void> {
     if (!this.state) {
-      void this.runtime.showErrorMessage(SN_SYNC_MESSAGES.ACTIVATE_NOT_READY);
+      void this.runtime.showErrorMessage(
+        SN_SYNC_MESSAGES.UPDATE_SET_SELECTORS_NOT_READY,
+      );
       return;
     }
 
@@ -131,7 +129,7 @@ export class StatusBarActivateUiController implements SnActivateUiController {
     }));
 
     const selected = await this.runtime.showQuickPick(items, {
-      placeHolder: SN_SYNC_MESSAGES.ACTIVATE_SCOPE_PROMPT,
+      placeHolder: SN_SYNC_MESSAGES.UPDATE_SET_SCOPE_PROMPT,
       ignoreFocusOut: true,
     });
 
@@ -141,12 +139,14 @@ export class StatusBarActivateUiController implements SnActivateUiController {
 
     this.state.selectedScope = selected.app.scope;
     this.renderStatusBar();
-    await this.persistCurrentActivationSelection();
+    await this.persistCurrentSelection();
   }
 
   public async selectUpdateSet(): Promise<void> {
     if (!this.state) {
-      void this.runtime.showErrorMessage(SN_SYNC_MESSAGES.ACTIVATE_NOT_READY);
+      void this.runtime.showErrorMessage(
+        SN_SYNC_MESSAGES.UPDATE_SET_SELECTORS_NOT_READY,
+      );
       return;
     }
 
@@ -163,7 +163,7 @@ export class StatusBarActivateUiController implements SnActivateUiController {
 
     if (updateSets.length === 0) {
       void this.runtime.showInformationMessage(
-        SN_SYNC_MESSAGES.ACTIVATE_NO_UPDATE_SET_FOUND,
+        SN_SYNC_MESSAGES.UPDATE_SET_NO_IN_PROGRESS_FOUND,
       );
       return;
     }
@@ -179,7 +179,7 @@ export class StatusBarActivateUiController implements SnActivateUiController {
     }));
 
     const selected = await this.runtime.showQuickPick(items, {
-      placeHolder: `${SN_SYNC_MESSAGES.ACTIVATE_UPDATE_SET_PROMPT}: ${currentScopeApp.scope}`,
+      placeHolder: `${SN_SYNC_MESSAGES.UPDATE_SET_PROMPT}: ${currentScopeApp.scope}`,
       ignoreFocusOut: true,
     });
 
@@ -201,7 +201,7 @@ export class StatusBarActivateUiController implements SnActivateUiController {
     );
 
     this.renderStatusBar();
-    await this.persistCurrentActivationSelection();
+    await this.persistCurrentSelection();
   }
 
   public dispose(): void {
@@ -210,7 +210,7 @@ export class StatusBarActivateUiController implements SnActivateUiController {
   }
 
   private renderStatusBar(): void {
-    const state = this.state as ActivateState;
+    const state = this.state as UpdateSetSelectorState;
 
     const selectedApp = this.findAppByScope(
       state.selectedScope,
@@ -218,22 +218,22 @@ export class StatusBarActivateUiController implements SnActivateUiController {
     const selectedScopeLabel = `${selectedApp.name} (${selectedApp.scope})`;
     const selectedScopeSelection = state.selections[state.selectedScope];
 
-    this.scopeItem.text = `$(package) ${SN_SYNC_MESSAGES.ACTIVATE_SCOPE_SELECTOR_LABEL}: ${selectedScopeLabel}`;
+    this.scopeItem.text = `$(package) ${SN_SYNC_MESSAGES.UPDATE_SET_SCOPE_SELECTOR_LABEL}: ${selectedScopeLabel}`;
 
     const updateSetLabel = selectedScopeSelection?.update_set
       ? selectedScopeSelection.update_set_name ||
         selectedScopeSelection.update_set
-      : SN_SYNC_MESSAGES.ACTIVATE_NOT_SELECTED_LABEL;
+      : SN_SYNC_MESSAGES.UPDATE_SET_NOT_SELECTED_LABEL;
 
-    this.updateSetItem.text = `$(versions) ${SN_SYNC_MESSAGES.ACTIVATE_UPDATE_SET_SELECTOR_LABEL}: ${updateSetLabel}`;
+    this.updateSetItem.text = `$(versions) ${SN_SYNC_MESSAGES.UPDATE_SET_SELECTOR_LABEL}: ${updateSetLabel}`;
   }
 
   private describeScopeSelection(scope: string): string {
-    const state = this.state as ActivateState;
+    const state = this.state as UpdateSetSelectorState;
 
     const selection = state.selections[scope];
     if (!selection || !selection.update_set) {
-      return SN_SYNC_MESSAGES.ACTIVATE_NOT_SELECTED_LABEL;
+      return SN_SYNC_MESSAGES.UPDATE_SET_NOT_SELECTED_LABEL;
     }
 
     return selection.update_set_name || selection.update_set;
@@ -243,8 +243,8 @@ export class StatusBarActivateUiController implements SnActivateUiController {
     return this.state?.scopes.find((app) => app.scope === scope);
   }
 
-  private async persistCurrentActivationSelection(): Promise<void> {
-    const state = this.state as ActivateState;
+  private async persistCurrentSelection(): Promise<void> {
+    const state = this.state as UpdateSetSelectorState;
 
     const selectedApp = this.findAppByScope(
       state.selectedScope,
@@ -261,24 +261,20 @@ export class StatusBarActivateUiController implements SnActivateUiController {
   }
 }
 
-export async function runSnActivateCommand(
+export async function initializeUpdateSetSelectors(
   context: vscode.ExtensionContext,
-  validationService: SnLoginValidationServiceApi,
-  activationDataService: SnActivationDataServiceApi,
+  activationDataService: SnUpdateSetDataServiceApi,
   configService: SnSyncConfigService,
-  uiController: SnActivateUiController,
-  runtime: SnActivateRuntime = defaultRuntime,
+  uiController: SnUpdateSetSelectorsUiController,
+  runtime: SnUpdateSetSelectorsRuntime = defaultRuntime,
 ): Promise<void> {
   const workspaceFolderUri = runtime.getWorkspaceFolderUri();
 
   if (!workspaceFolderUri) {
-    void runtime.showErrorMessage(SN_SYNC_MESSAGES.NO_WORKSPACE);
     return;
   }
 
   try {
-    await validationService.validateLogin(context, workspaceFolderUri);
-
     const scopedApps = await activationDataService.listScopedApplications(
       context,
       workspaceFolderUri,
@@ -303,54 +299,61 @@ export async function runSnActivateCommand(
       selections: cleanedSelections,
       selectedScope,
     });
-
-    void runtime.showInformationMessage(SN_SYNC_MESSAGES.ACTIVATE_READY);
   } catch (error) {
-    void runtime.showErrorMessage(
-      `${SN_SYNC_MESSAGES.ACTIVATE_FAILED_PREFIX} ${getErrorMessage(error)}`,
+    const fallbackSelections =
+      await configService.getScopeUpdateSetSelections(workspaceFolderUri);
+    await uiController.updateState({
+      workspaceFolderUri,
+      scopes: [GLOBAL_SCOPED_APP],
+      selections: {
+        global: {
+          application: "global",
+          application_name: "Global",
+          update_set: fallbackSelections.global?.update_set ?? "",
+          update_set_name: fallbackSelections.global?.update_set_name ?? "",
+        },
+      },
+      selectedScope: GLOBAL_SCOPED_APP.scope,
+    });
+
+    void runtime.showInformationMessage(
+      `${SN_SYNC_MESSAGES.UPDATE_SET_SELECTORS_INIT_FAILED_PREFIX} ${getErrorMessage(error)}`,
     );
   }
 }
 
-export function registerSnActivateCommand(
+export function registerUpdateSetSelectors(
   context: vscode.ExtensionContext,
-  validationService: SnLoginValidationServiceApi = new SnLoginValidationService(),
-  activationDataService: SnActivationDataServiceApi = new SnActivationDataService(),
+  activationDataService: SnUpdateSetDataServiceApi = new SnUpdateSetDataService(),
   configService: SnSyncConfigService = new SnSyncConfigService(),
-  runtime: SnActivateRuntime = defaultRuntime,
+  runtime: SnUpdateSetSelectorsRuntime = defaultRuntime,
 ): void {
-  const uiController = new StatusBarActivateUiController(
+  const uiController = new StatusBarUpdateSetSelectorsController(
     context,
     activationDataService,
     configService,
     runtime,
   );
 
-  const activateDisposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.ACTIVATE,
-    () =>
-      runSnActivateCommand(
-        context,
-        validationService,
-        activationDataService,
-        configService,
-        uiController,
-        runtime,
-      ),
-  );
-
   const selectScopeDisposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.ACTIVATE_SELECT_SCOPE,
+    SN_SYNC_COMMANDS.UPDATE_SET_SELECT_SCOPE,
     () => uiController.selectScope(),
   );
 
   const selectUpdateSetDisposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.ACTIVATE_SELECT_UPDATE_SET,
+    SN_SYNC_COMMANDS.UPDATE_SET_SELECT_UPDATE_SET,
     () => uiController.selectUpdateSet(),
   );
 
+  void initializeUpdateSetSelectors(
+    context,
+    activationDataService,
+    configService,
+    uiController,
+    runtime,
+  );
+
   context.subscriptions.push(
-    activateDisposable,
     selectScopeDisposable,
     selectUpdateSetDisposable,
     new vscode.Disposable(() => uiController.dispose()),
@@ -360,7 +363,7 @@ export function registerSnActivateCommand(
 async function cleanUnavailableScopeSelections(
   context: vscode.ExtensionContext,
   workspaceFolderUri: vscode.Uri,
-  activationDataService: SnActivationDataServiceApi,
+  activationDataService: SnUpdateSetDataServiceApi,
   configService: SnSyncConfigService,
   availableScopes: SnScopedApplication[],
 ): Promise<Record<string, ScopeUpdateSetSelection>> {

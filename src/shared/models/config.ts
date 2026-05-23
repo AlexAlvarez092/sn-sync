@@ -5,6 +5,20 @@ export interface ScopeUpdateSetSelection {
   update_set_name?: string;
 }
 
+export interface ExtensionConfigField {
+  extension: string;
+  field_name: string;
+}
+
+export interface ExtensionConfigSetting {
+  folder: string;
+  table: string;
+  query: string;
+  key: string;
+  fields: ExtensionConfigField[];
+  subDirPattern?: string;
+}
+
 export interface InstanceConfig {
   instance: string;
   application: string;
@@ -15,5 +29,5 @@ export interface InstanceConfig {
 }
 
 export interface ExtensionConfig {
-  setting: object[];
+  settings?: ExtensionConfigSetting[];
 }

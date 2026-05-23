@@ -4,7 +4,7 @@ import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 import type {
   SnScopedApplication,
   SnUpdateSet,
-} from "@shared/models/activation.js";
+} from "@shared/models/updateSet.js";
 
 interface SnTableResponseRow {
   sys_id?: string;
@@ -16,7 +16,7 @@ interface SnTableResponse {
   result?: SnTableResponseRow[];
 }
 
-export interface SnActivationDataServiceApi {
+export interface SnUpdateSetDataServiceApi {
   listScopedApplications(
     context: vscode.ExtensionContext,
     workspaceFolderUri: vscode.Uri,
@@ -28,7 +28,7 @@ export interface SnActivationDataServiceApi {
   ): Promise<SnUpdateSet[]>;
 }
 
-export class SnActivationDataService implements SnActivationDataServiceApi {
+export class SnUpdateSetDataService implements SnUpdateSetDataServiceApi {
   public constructor(
     private readonly authService: SnAuthService = new SnAuthService(),
     private readonly fetchApi: typeof fetch = fetch,
@@ -65,10 +65,7 @@ export class SnActivationDataService implements SnActivationDataServiceApi {
     workspaceFolderUri: vscode.Uri,
     applicationSysId: string,
   ): Promise<SnUpdateSet[]> {
-    const query =
-      applicationSysId === "global"
-        ? "state=in progress"
-        : `state=in progress^application=${applicationSysId}`;
+    const query = `state=in progress^application=${applicationSysId}`;
 
     const result = await this.requestTable(
       context,
@@ -128,7 +125,7 @@ export class SnActivationDataService implements SnActivationDataServiceApi {
       }
 
       throw new Error(
-        `${SN_SYNC_MESSAGES.ACTIVATE_STATUS_HTTP_STATUS_PREFIX} ${response.status} ${response.statusText}`.trim(),
+        `${SN_SYNC_MESSAGES.SN_REQUEST_HTTP_STATUS_PREFIX} ${response.status} ${response.statusText}`.trim(),
       );
     }
 
