@@ -16,6 +16,10 @@
       {
         "command": "sn-sync.sn-init",
         "title": "sn: init"
+      },
+      {
+        "command": "sn-sync.auth",
+        "title": "sn: auth"
       }
     ]
   },

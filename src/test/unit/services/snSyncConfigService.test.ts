@@ -63,4 +63,46 @@ suite("snSyncConfigService", () => {
       });
     });
   });
+
+  test("setInstanceName updates existing instance value", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+
+      await service.initialize(workspaceFolderUri);
+      await service.setInstanceName(workspaceFolderUri, "dev-instance");
+
+      const instanceConfigPath = path.join(
+        tempDir,
+        SN_SYNC_PATHS.ROOT_FOLDER,
+        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
+      );
+
+      await assertJsonFileEquals(instanceConfigPath, {
+        instance: "dev-instance",
+      });
+    });
+  });
+
+  test("setInstanceName recovers when instance config json is invalid", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+
+      await fs.mkdir(configDir, { recursive: true });
+
+      const instanceConfigPath = path.join(
+        configDir,
+        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
+      );
+
+      await fs.writeFile(instanceConfigPath, "not-json", "utf-8");
+      await service.setInstanceName(workspaceFolderUri, "recovered-instance");
+
+      await assertJsonFileEquals(instanceConfigPath, {
+        instance: "recovered-instance",
+      });
+    });
+  });
 });

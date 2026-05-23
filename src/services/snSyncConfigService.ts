@@ -21,4 +21,36 @@ export class SnSyncConfigService {
       } satisfies ExtensionConfig),
     ]);
   }
+
+  public async setInstanceName(
+    workspaceFolderUri: vscode.Uri,
+    instanceName: string,
+  ): Promise<void> {
+    await this.initialize(workspaceFolderUri);
+
+    const { instanceConfigUri } = getSnSyncPaths(workspaceFolderUri);
+    const config = await this.readInstanceConfig(instanceConfigUri);
+    const updatedConfig: InstanceConfig = {
+      ...config,
+      instance: instanceName,
+    };
+
+    await vscode.workspace.fs.writeFile(
+      instanceConfigUri,
+      new TextEncoder().encode(JSON.stringify(updatedConfig, null, 2)),
+    );
+  }
+
+  private async readInstanceConfig(
+    instanceConfigUri: vscode.Uri,
+  ): Promise<InstanceConfig> {
+    try {
+      const fileContent = await vscode.workspace.fs.readFile(instanceConfigUri);
+      return JSON.parse(
+        new TextDecoder().decode(fileContent),
+      ) as InstanceConfig;
+    } catch {
+      return { instance: "" };
+    }
+  }
 }
