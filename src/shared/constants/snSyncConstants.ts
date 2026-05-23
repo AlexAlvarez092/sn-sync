@@ -11,9 +11,7 @@ export const SN_SYNC_COMMANDS = {
 } as const;
 
 export const SN_SYNC_PATHS = {
-  ROOT_FOLDER: ".sn-sync",
-  INSTANCE_CONFIG_FILE: "instance-config.json",
-  EXTENSION_CONFIG_FILE: "extension-config.json",
+  RC_FILE: ".snsyncrc",
 } as const;
 
 export const SN_SYNC_MESSAGES = {

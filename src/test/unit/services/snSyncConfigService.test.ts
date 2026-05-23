@@ -11,161 +11,100 @@ import {
 } from "@test/helpers/testRuntime.js";
 
 suite("snSyncConfigService", () => {
-  test("creates the sn-sync config files with defaults", async () => {
+  test("creates .snsyncrc with defaults", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
 
       await service.initialize(workspaceFolderUri);
 
-      const instanceConfigPath = path.join(
-        tempDir,
-        SN_SYNC_PATHS.ROOT_FOLDER,
-        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
-      );
-      const extensionConfigPath = path.join(
-        tempDir,
-        SN_SYNC_PATHS.ROOT_FOLDER,
-        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
-      );
-
-      await assertJsonFileEquals(instanceConfigPath, {
+      const rcConfigPath = getRcConfigPath(tempDir);
+      await assertJsonFileEquals(rcConfigPath, {
         instance: "",
         application: "",
         update_set: "",
         scope_update_sets: {},
+        settings: [],
       });
-      await assertJsonFileEquals(extensionConfigPath, { settings: [] });
     });
   });
 
-  test("does not overwrite existing config values", async () => {
+  test("does not overwrite existing rc values", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
-      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+      const rcConfigPath = getRcConfigPath(tempDir);
 
-      await fs.mkdir(configDir, { recursive: true });
-
-      const instanceConfigPath = path.join(
-        configDir,
-        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
-      );
-      const extensionConfigPath = path.join(
-        configDir,
-        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
-      );
-
-      await writeJsonFile(instanceConfigPath, {
+      await writeJsonFile(rcConfigPath, {
         instance: "prod",
         application: "app-1",
+        application_name: "App One",
         update_set: "us-1",
+        update_set_name: "Update Set One",
         scope_update_sets: {
           x_company_app: {
             application: "app-1",
             update_set: "us-1",
           },
         },
-      });
-      await writeJsonFile(extensionConfigPath, {
-        settings: [{ enabled: true }],
+        settings: [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
       });
 
       await service.initialize(workspaceFolderUri);
 
-      await assertJsonFileEquals(instanceConfigPath, {
+      await assertJsonFileEquals(rcConfigPath, {
         instance: "prod",
         application: "app-1",
+        application_name: "App One",
         update_set: "us-1",
+        update_set_name: "Update Set One",
         scope_update_sets: {
           x_company_app: {
             application: "app-1",
             update_set: "us-1",
           },
         },
-      });
-      await assertJsonFileEquals(extensionConfigPath, {
-        settings: [{ enabled: true }],
-      });
-    });
-  });
-
-  test("setInstanceName updates existing instance value", async () => {
-    await withTempDir("sn-sync-test-", async (tempDir) => {
-      const workspaceFolderUri = vscode.Uri.file(tempDir);
-      const service = new SnSyncConfigService();
-
-      await service.initialize(workspaceFolderUri);
-      await service.setInstanceName(workspaceFolderUri, "dev-instance");
-
-      const instanceConfigPath = path.join(
-        tempDir,
-        SN_SYNC_PATHS.ROOT_FOLDER,
-        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
-      );
-
-      await assertJsonFileEquals(instanceConfigPath, {
-        instance: "dev-instance",
-        application: "",
-        update_set: "",
-        scope_update_sets: {},
+        settings: [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
       });
     });
   });
 
-  test("setInstanceName recovers when instance config json is invalid", async () => {
+  test("setInstanceName recovers from malformed rc json", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
-      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+      const rcConfigPath = getRcConfigPath(tempDir);
 
-      await fs.mkdir(configDir, { recursive: true });
-
-      const instanceConfigPath = path.join(
-        configDir,
-        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
-      );
-
-      await fs.writeFile(instanceConfigPath, "not-json", "utf-8");
+      await fs.writeFile(rcConfigPath, "not-json", "utf-8");
       await service.setInstanceName(workspaceFolderUri, "recovered-instance");
 
-      await assertJsonFileEquals(instanceConfigPath, {
+      await assertJsonFileEquals(rcConfigPath, {
         instance: "recovered-instance",
         application: "",
         update_set: "",
         scope_update_sets: {},
+        settings: [],
       });
     });
   });
 
-  test("setActivationSelection stores application and update_set sys_ids", async () => {
-    await withTempDir("sn-sync-test-", async (tempDir) => {
-      const workspaceFolderUri = vscode.Uri.file(tempDir);
-      const service = new SnSyncConfigService();
-
-      await service.setInstanceName(workspaceFolderUri, "dev-instance");
-      await service.setActivationSelection(
-        workspaceFolderUri,
-        "app-sys-id",
-        "update-set-sys-id",
-      );
-
-      const instanceConfigPath = path.join(
-        tempDir,
-        SN_SYNC_PATHS.ROOT_FOLDER,
-        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
-      );
-
-      await assertJsonFileEquals(instanceConfigPath, {
-        instance: "dev-instance",
-        application: "app-sys-id",
-        update_set: "update-set-sys-id",
-        scope_update_sets: {},
-      });
-    });
-  });
-
-  test("setActivationSelection stores and reuses human-readable names", async () => {
+  test("setActivationSelection stores ids and keeps previous readable names when not provided", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
@@ -184,60 +123,15 @@ suite("snSyncConfigService", () => {
         "update-set-sys-id-2",
       );
 
-      const instanceConfigPath = path.join(
-        tempDir,
-        SN_SYNC_PATHS.ROOT_FOLDER,
-        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
-      );
-
-      await assertJsonFileEquals(instanceConfigPath, {
+      const rcConfigPath = getRcConfigPath(tempDir);
+      await assertJsonFileEquals(rcConfigPath, {
         instance: "",
         application: "app-sys-id",
         application_name: "My App",
         update_set: "update-set-sys-id-2",
         update_set_name: "My Update Set",
         scope_update_sets: {},
-      });
-    });
-  });
-
-  test("setScopeUpdateSetSelection stores selection under scope key", async () => {
-    await withTempDir("sn-sync-test-", async (tempDir) => {
-      const workspaceFolderUri = vscode.Uri.file(tempDir);
-      const service = new SnSyncConfigService();
-
-      await service.setInstanceName(workspaceFolderUri, "dev-instance");
-      await service.setScopeUpdateSetSelection(
-        workspaceFolderUri,
-        "x_company_app",
-        {
-          application: "app-sys-id",
-          application_name: "My App",
-          update_set: "update-set-sys-id",
-          update_set_name: "My Update Set",
-        },
-      );
-
-      const instanceConfigPath = path.join(
-        tempDir,
-        SN_SYNC_PATHS.ROOT_FOLDER,
-        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
-      );
-
-      await assertJsonFileEquals(instanceConfigPath, {
-        instance: "dev-instance",
-        application: "app-sys-id",
-        application_name: "My App",
-        update_set: "update-set-sys-id",
-        update_set_name: "My Update Set",
-        scope_update_sets: {
-          x_company_app: {
-            application: "app-sys-id",
-            application_name: "My App",
-            update_set: "update-set-sys-id",
-            update_set_name: "My Update Set",
-          },
-        },
+        settings: [],
       });
     });
   });
@@ -247,7 +141,6 @@ suite("snSyncConfigService", () => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
 
-      await service.setInstanceName(workspaceFolderUri, "dev-instance");
       await service.setScopeUpdateSetSelection(workspaceFolderUri, "   ", {
         application: "app-sys-id",
         update_set: "update-set-sys-id",
@@ -260,58 +153,65 @@ suite("snSyncConfigService", () => {
     });
   });
 
-  test("getScopeUpdateSetSelections returns stored scope mappings", async () => {
+  test("setScopeUpdateSetSelection stores normalized values by scope", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
 
-      await service.setScopeUpdateSetSelection(workspaceFolderUri, "global", {
-        application: "global",
-        update_set: "global-us",
-      });
-
-      const selections =
-        await service.getScopeUpdateSetSelections(workspaceFolderUri);
-
-      assert.deepStrictEqual(selections, {
-        global: {
-          application: "global",
-          update_set: "global-us",
+      await service.setScopeUpdateSetSelection(
+        workspaceFolderUri,
+        "x_company_app",
+        {
+          application: " app-sys-id ",
+          application_name: " My App ",
+          update_set: " update-set-sys-id ",
+          update_set_name: " My Update Set ",
         },
-      });
-    });
-  });
-
-  test("replaceScopeUpdateSetSelections keeps only provided scope mappings", async () => {
-    await withTempDir("sn-sync-test-", async (tempDir) => {
-      const workspaceFolderUri = vscode.Uri.file(tempDir);
-      const service = new SnSyncConfigService();
-
-      await service.setScopeUpdateSetSelection(workspaceFolderUri, "global", {
-        application: "global",
-        update_set: "old-us",
-      });
-
-      await service.replaceScopeUpdateSetSelections(workspaceFolderUri, {
-        x_company_app: {
-          application: "app-1",
-          update_set: "new-us",
-        },
-      });
+      );
 
       const selections =
         await service.getScopeUpdateSetSelections(workspaceFolderUri);
 
       assert.deepStrictEqual(selections, {
         x_company_app: {
-          application: "app-1",
-          update_set: "new-us",
+          application: "app-sys-id",
+          application_name: "My App",
+          update_set: "update-set-sys-id",
+          update_set_name: "My Update Set",
         },
       });
     });
   });
 
-  test("replaceScopeUpdateSetSelections normalizes scope keys and values", async () => {
+  test("setScopeUpdateSetSelection omits optional names when they are empty", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+
+      await service.setScopeUpdateSetSelection(workspaceFolderUri, "x_company_app", {
+        application: "app-sys-id",
+        application_name: "   ",
+        update_set: "update-set-sys-id",
+        update_set_name: "   ",
+      });
+
+      const rcConfigPath = getRcConfigPath(tempDir);
+      await assertJsonFileEquals(rcConfigPath, {
+        instance: "",
+        application: "app-sys-id",
+        update_set: "update-set-sys-id",
+        scope_update_sets: {
+          x_company_app: {
+            application: "app-sys-id",
+            update_set: "update-set-sys-id",
+          },
+        },
+        settings: [],
+      });
+    });
+  });
+
+  test("replaceScopeUpdateSetSelections trims scope keys and values", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
@@ -339,7 +239,7 @@ suite("snSyncConfigService", () => {
     });
   });
 
-  test("replaceScopeUpdateSetSelections persists optional names when provided", async () => {
+  test("replaceScopeUpdateSetSelections preserves optional names", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
@@ -367,24 +267,18 @@ suite("snSyncConfigService", () => {
     });
   });
 
-  test("getScopeUpdateSetSelections falls back to empty object when config field is invalid", async () => {
+  test("getScopeUpdateSetSelections falls back to empty object when field is invalid", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
-      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+      const rcConfigPath = getRcConfigPath(tempDir);
 
-      await fs.mkdir(configDir, { recursive: true });
-
-      const instanceConfigPath = path.join(
-        configDir,
-        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
-      );
-
-      await writeJsonFile(instanceConfigPath, {
+      await writeJsonFile(rcConfigPath, {
         instance: "dev",
         application: "app",
         update_set: "us",
         scope_update_sets: "invalid",
+        settings: [],
       });
 
       const selections =
@@ -394,20 +288,13 @@ suite("snSyncConfigService", () => {
     });
   });
 
-  test("normalizes missing scalar fields when reading instance config", async () => {
+  test("normalizes missing scalar fields when reading rc config", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
-      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+      const rcConfigPath = getRcConfigPath(tempDir);
 
-      await fs.mkdir(configDir, { recursive: true });
-
-      const instanceConfigPath = path.join(
-        configDir,
-        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
-      );
-
-      await writeJsonFile(instanceConfigPath, {
+      await writeJsonFile(rcConfigPath, {
         scope_update_sets: {
           global: {
             application: "global",
@@ -434,7 +321,7 @@ suite("snSyncConfigService", () => {
         "us-selected",
       );
 
-      await assertJsonFileEquals(instanceConfigPath, {
+      await assertJsonFileEquals(rcConfigPath, {
         instance: "",
         application: "app-selected",
         update_set: "us-selected",
@@ -444,24 +331,18 @@ suite("snSyncConfigService", () => {
             update_set: "us-global",
           },
         },
+        settings: [],
       });
     });
   });
 
-  test("normalizes mixed legacy scope entries and top-level names", async () => {
+  test("normalizes mixed scope entries and top-level names", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
-      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+      const rcConfigPath = getRcConfigPath(tempDir);
 
-      await fs.mkdir(configDir, { recursive: true });
-
-      const instanceConfigPath = path.join(
-        configDir,
-        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
-      );
-
-      await writeJsonFile(instanceConfigPath, {
+      await writeJsonFile(rcConfigPath, {
         instance: "dev",
         application: "app-1",
         application_name: "App One",
@@ -476,6 +357,7 @@ suite("snSyncConfigService", () => {
           },
           x_missing: {},
         },
+        settings: [],
       });
 
       const selections =
@@ -496,7 +378,7 @@ suite("snSyncConfigService", () => {
 
       await service.setActivationSelection(workspaceFolderUri, "app-2", "us-2");
 
-      await assertJsonFileEquals(instanceConfigPath, {
+      await assertJsonFileEquals(rcConfigPath, {
         instance: "dev",
         application: "app-2",
         application_name: "App One",
@@ -514,6 +396,7 @@ suite("snSyncConfigService", () => {
             update_set: "",
           },
         },
+        settings: [],
       });
     });
   });
@@ -542,39 +425,51 @@ suite("snSyncConfigService", () => {
     });
   });
 
-  test("clearActivationSelections clears app/update set and scope mappings while preserving instance", async () => {
+  test("clearActivationSelections preserves instance and settings", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
+      const rcConfigPath = getRcConfigPath(tempDir);
 
-      await service.setInstanceName(workspaceFolderUri, "dev-instance");
-      await service.setActivationSelection(
-        workspaceFolderUri,
-        "app-1",
-        "us-1",
-        "App One",
-        "Update Set One",
-      );
-      await service.setScopeUpdateSetSelection(workspaceFolderUri, "x_app", {
+      await writeJsonFile(rcConfigPath, {
+        instance: "dev-instance",
         application: "app-1",
         application_name: "App One",
         update_set: "us-1",
         update_set_name: "Update Set One",
+        scope_update_sets: {
+          x_app: {
+            application: "app-1",
+            update_set: "us-1",
+          },
+        },
+        settings: [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
       });
 
       await service.clearActivationSelections(workspaceFolderUri);
 
-      const instanceConfigPath = path.join(
-        tempDir,
-        SN_SYNC_PATHS.ROOT_FOLDER,
-        SN_SYNC_PATHS.INSTANCE_CONFIG_FILE,
-      );
-
-      await assertJsonFileEquals(instanceConfigPath, {
+      await assertJsonFileEquals(rcConfigPath, {
         instance: "dev-instance",
         application: "",
         update_set: "",
         scope_update_sets: {},
+        settings: [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
       });
     });
   });
@@ -583,16 +478,13 @@ suite("snSyncConfigService", () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
-      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+      const rcConfigPath = getRcConfigPath(tempDir);
 
-      await fs.mkdir(configDir, { recursive: true });
-
-      const extensionConfigPath = path.join(
-        configDir,
-        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
-      );
-
-      await writeJsonFile(extensionConfigPath, {
+      await writeJsonFile(rcConfigPath, {
+        instance: "",
+        application: "",
+        update_set: "",
+        scope_update_sets: {},
         settings: [
           {
             folder: " business_rules ",
@@ -630,27 +522,31 @@ suite("snSyncConfigService", () => {
     });
   });
 
-  test("getSyncSettings ignores invalid items in settings", async () => {
+  test("getSyncSettings ignores invalid settings and malformed json", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
-      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+      const rcConfigPath = getRcConfigPath(tempDir);
 
-      await fs.mkdir(configDir, { recursive: true });
-
-      const extensionConfigPath = path.join(
-        configDir,
-        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
-      );
-
-      await writeJsonFile(extensionConfigPath, {
+      await writeJsonFile(rcConfigPath, {
         settings: [
           {
             folder: "security_rules",
             table: "sys_security_acl",
             query: "active=true",
             key: "name",
+            fields: "not-array",
+          },
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: 123,
+            key: "name",
             fields: [
+              {
+                extension: "",
+                field_name: "script",
+              },
               {
                 extension: "js",
                 field_name: "script",
@@ -673,121 +569,6 @@ suite("snSyncConfigService", () => {
         {
           folder: "security_rules",
           table: "sys_security_acl",
-          query: "active=true",
-          key: "name",
-          fields: [
-            {
-              extension: "js",
-              field_name: "script",
-            },
-          ],
-        },
-      ]);
-    });
-  });
-
-  test("getSyncSettings ignores legacy setting key when settings key is absent", async () => {
-    await withTempDir("sn-sync-test-", async (tempDir) => {
-      const workspaceFolderUri = vscode.Uri.file(tempDir);
-      const service = new SnSyncConfigService();
-      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
-
-      await fs.mkdir(configDir, { recursive: true });
-
-      const extensionConfigPath = path.join(
-        configDir,
-        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
-      );
-
-      await writeJsonFile(extensionConfigPath, {
-        setting: [
-          {
-            folder: "security_rules",
-            table: "sys_security_acl",
-            query: "active=true",
-            key: "name",
-            fields: [
-              {
-                extension: "js",
-                field_name: "script",
-              },
-            ],
-          },
-        ],
-      });
-
-      const settings = await service.getSyncSettings(workspaceFolderUri);
-      assert.deepStrictEqual(settings, []);
-    });
-  });
-
-  test("getSyncSettings returns empty array for malformed extension config json", async () => {
-    await withTempDir("sn-sync-test-", async (tempDir) => {
-      const workspaceFolderUri = vscode.Uri.file(tempDir);
-      const service = new SnSyncConfigService();
-      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
-
-      await fs.mkdir(configDir, { recursive: true });
-
-      const extensionConfigPath = path.join(
-        configDir,
-        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
-      );
-
-      await fs.writeFile(extensionConfigPath, "not-json", "utf-8");
-
-      const settings = await service.getSyncSettings(workspaceFolderUri);
-      assert.deepStrictEqual(settings, []);
-    });
-  });
-
-  test("getSyncSettings handles invalid setting shape and normalizes query to empty", async () => {
-    await withTempDir("sn-sync-test-", async (tempDir) => {
-      const workspaceFolderUri = vscode.Uri.file(tempDir);
-      const service = new SnSyncConfigService();
-      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
-
-      await fs.mkdir(configDir, { recursive: true });
-
-      const extensionConfigPath = path.join(
-        configDir,
-        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
-      );
-
-      await writeJsonFile(extensionConfigPath, {
-        settings: [
-          {
-            folder: "security_rules",
-            table: "sys_security_acl",
-            query: 123,
-            key: "name",
-            fields: "not-array",
-          },
-          {
-            folder: "security_rules",
-            table: "sys_security_acl",
-            query: 123,
-            key: "name",
-            fields: [
-              {
-                extension: "",
-                field_name: "script",
-              },
-              {
-                extension: "js",
-                field_name: "script",
-              },
-            ],
-          },
-        ],
-      });
-
-      const settings = await service.getSyncSettings(workspaceFolderUri);
-
-      assert.deepStrictEqual(settings, [
-        {
-          folder: "security_rules",
-          table: "sys_security_acl",
           query: "",
           key: "name",
           fields: [
@@ -798,25 +579,25 @@ suite("snSyncConfigService", () => {
           ],
         },
       ]);
+
+      await fs.writeFile(rcConfigPath, "not-json", "utf-8");
+      const malformedSettings = await service.getSyncSettings(workspaceFolderUri);
+      assert.deepStrictEqual(malformedSettings, []);
     });
   });
 
-  test("getSyncSettings returns empty when settings keys are present but not arrays", async () => {
+  test("getSyncSettings returns empty when settings is not an array", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
-      const configDir = path.join(tempDir, SN_SYNC_PATHS.ROOT_FOLDER);
+      const rcConfigPath = getRcConfigPath(tempDir);
 
-      await fs.mkdir(configDir, { recursive: true });
-
-      const extensionConfigPath = path.join(
-        configDir,
-        SN_SYNC_PATHS.EXTENSION_CONFIG_FILE,
-      );
-
-      await writeJsonFile(extensionConfigPath, {
+      await writeJsonFile(rcConfigPath, {
+        instance: "",
+        application: "",
+        update_set: "",
+        scope_update_sets: {},
         settings: {},
-        setting: {},
       });
 
       const settings = await service.getSyncSettings(workspaceFolderUri);
@@ -824,3 +605,7 @@ suite("snSyncConfigService", () => {
     });
   });
 });
+
+function getRcConfigPath(tempDir: string): string {
+  return path.join(tempDir, SN_SYNC_PATHS.RC_FILE);
+}

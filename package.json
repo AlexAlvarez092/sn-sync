@@ -10,7 +10,7 @@
     "Other"
   ],
   "activationEvents": [
-    "workspaceContains:.sn-sync"
+    "workspaceContains:.snsyncrc"
   ],
   "main": "./out/extension.js",
   "contributes": {

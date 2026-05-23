@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import {
-  type ExtensionConfig,
   type ExtensionConfigField,
   type ExtensionConfigSetting,
   type InstanceConfig,
@@ -9,23 +8,21 @@ import {
 import { ensureJsonFile } from "@shared/services/jsonFileService.js";
 import { getSnSyncPaths } from "@shared/services/snSyncPathService.js";
 
+interface SnSyncRcConfig extends InstanceConfig {
+  settings: ExtensionConfigSetting[];
+}
+
 export class SnSyncConfigService {
   public async initialize(workspaceFolderUri: vscode.Uri): Promise<void> {
-    const { snSyncFolderUri, instanceConfigUri, extensionConfigUri } =
-      getSnSyncPaths(workspaceFolderUri);
+    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
 
-    await vscode.workspace.fs.createDirectory(snSyncFolderUri);
-    await Promise.all([
-      ensureJsonFile(instanceConfigUri, {
-        instance: "",
-        application: "",
-        update_set: "",
-        scope_update_sets: {},
-      } satisfies InstanceConfig),
-      ensureJsonFile(extensionConfigUri, {
-        settings: [],
-      } satisfies ExtensionConfig),
-    ]);
+    await ensureJsonFile(rcConfigUri, {
+      instance: "",
+      application: "",
+      update_set: "",
+      scope_update_sets: {},
+      settings: [],
+    } satisfies SnSyncRcConfig);
   }
 
   public async setInstanceName(
@@ -34,17 +31,14 @@ export class SnSyncConfigService {
   ): Promise<void> {
     await this.initialize(workspaceFolderUri);
 
-    const { instanceConfigUri } = getSnSyncPaths(workspaceFolderUri);
-    const config = await this.readInstanceConfig(instanceConfigUri);
-    const updatedConfig: InstanceConfig = {
+    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
+    const config = await this.readConfig(rcConfigUri);
+    const updatedConfig: SnSyncRcConfig = {
       ...config,
       instance: instanceName,
     };
 
-    await vscode.workspace.fs.writeFile(
-      instanceConfigUri,
-      new TextEncoder().encode(JSON.stringify(updatedConfig, null, 2)),
-    );
+    await this.writeConfig(rcConfigUri, updatedConfig);
   }
 
   public async setActivationSelection(
@@ -56,9 +50,9 @@ export class SnSyncConfigService {
   ): Promise<void> {
     await this.initialize(workspaceFolderUri);
 
-    const { instanceConfigUri } = getSnSyncPaths(workspaceFolderUri);
-    const config = await this.readInstanceConfig(instanceConfigUri);
-    const updatedConfig: InstanceConfig = {
+    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
+    const config = await this.readConfig(rcConfigUri);
+    const updatedConfig: SnSyncRcConfig = {
       ...config,
       application: applicationSysId.trim(),
       update_set: updateSetSysId.trim(),
@@ -74,10 +68,7 @@ export class SnSyncConfigService {
           : {}),
     };
 
-    await vscode.workspace.fs.writeFile(
-      instanceConfigUri,
-      new TextEncoder().encode(JSON.stringify(updatedConfig, null, 2)),
-    );
+      await this.writeConfig(rcConfigUri, updatedConfig);
   }
 
   public async setScopeUpdateSetSelection(
@@ -92,9 +83,9 @@ export class SnSyncConfigService {
       return;
     }
 
-    const { instanceConfigUri } = getSnSyncPaths(workspaceFolderUri);
-    const config = await this.readInstanceConfig(instanceConfigUri);
-    const updatedConfig: InstanceConfig = {
+    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
+    const config = await this.readConfig(rcConfigUri);
+    const updatedConfig: SnSyncRcConfig = {
       ...config,
       application: selection.application.trim(),
       update_set: selection.update_set.trim(),
@@ -119,17 +110,14 @@ export class SnSyncConfigService {
       },
     };
 
-    await vscode.workspace.fs.writeFile(
-      instanceConfigUri,
-      new TextEncoder().encode(JSON.stringify(updatedConfig, null, 2)),
-    );
+    await this.writeConfig(rcConfigUri, updatedConfig);
   }
 
   public async getScopeUpdateSetSelections(
     workspaceFolderUri: vscode.Uri,
   ): Promise<Record<string, ScopeUpdateSetSelection>> {
-    const { instanceConfigUri } = getSnSyncPaths(workspaceFolderUri);
-    const config = await this.readInstanceConfig(instanceConfigUri);
+    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
+    const config = await this.readConfig(rcConfigUri);
     return config.scope_update_sets;
   }
 
@@ -139,8 +127,8 @@ export class SnSyncConfigService {
   ): Promise<void> {
     await this.initialize(workspaceFolderUri);
 
-    const { instanceConfigUri } = getSnSyncPaths(workspaceFolderUri);
-    const config = await this.readInstanceConfig(instanceConfigUri);
+    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
+    const config = await this.readConfig(rcConfigUri);
     const normalized: Record<string, ScopeUpdateSetSelection> = {};
 
     for (const [scope, selection] of Object.entries(selections)) {
@@ -161,15 +149,12 @@ export class SnSyncConfigService {
       };
     }
 
-    const updatedConfig: InstanceConfig = {
+    const updatedConfig: SnSyncRcConfig = {
       ...config,
       scope_update_sets: normalized,
     };
 
-    await vscode.workspace.fs.writeFile(
-      instanceConfigUri,
-      new TextEncoder().encode(JSON.stringify(updatedConfig, null, 2)),
-    );
+    await this.writeConfig(rcConfigUri, updatedConfig);
   }
 
   public async clearActivationSelections(
@@ -177,26 +162,24 @@ export class SnSyncConfigService {
   ): Promise<void> {
     await this.initialize(workspaceFolderUri);
 
-    const { instanceConfigUri } = getSnSyncPaths(workspaceFolderUri);
-    const config = await this.readInstanceConfig(instanceConfigUri);
-    const updatedConfig: InstanceConfig = {
+    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
+    const config = await this.readConfig(rcConfigUri);
+    const updatedConfig: SnSyncRcConfig = {
       instance: config.instance,
       application: "",
       update_set: "",
       scope_update_sets: {},
+      settings: config.settings,
     };
 
-    await vscode.workspace.fs.writeFile(
-      instanceConfigUri,
-      new TextEncoder().encode(JSON.stringify(updatedConfig, null, 2)),
-    );
+    await this.writeConfig(rcConfigUri, updatedConfig);
   }
 
   public async getInstanceName(
     workspaceFolderUri: vscode.Uri,
   ): Promise<string | undefined> {
-    const { instanceConfigUri } = getSnSyncPaths(workspaceFolderUri);
-    const config = await this.readInstanceConfig(instanceConfigUri);
+    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
+    const config = await this.readConfig(rcConfigUri);
     const instanceName = config.instance.trim();
 
     if (!instanceName) {
@@ -211,35 +194,22 @@ export class SnSyncConfigService {
   ): Promise<ExtensionConfigSetting[]> {
     await this.initialize(workspaceFolderUri);
 
-    const { extensionConfigUri } = getSnSyncPaths(workspaceFolderUri);
+    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
+    const config = await this.readConfig(rcConfigUri);
 
-    try {
-      const fileContent =
-        await vscode.workspace.fs.readFile(extensionConfigUri);
-      const parsed = JSON.parse(
-        new TextDecoder().decode(fileContent),
-      ) as ExtensionConfig;
-
-      const rawSettings = Array.isArray(parsed.settings) ? parsed.settings : [];
-
-      return rawSettings
-        .map((setting) => this.normalizeSyncSetting(setting))
-        .filter((setting): setting is ExtensionConfigSetting =>
-          Boolean(setting),
-        );
-    } catch {
-      return [];
-    }
+    return config.settings
+      .map((setting) => this.normalizeSyncSetting(setting))
+      .filter((setting): setting is ExtensionConfigSetting => Boolean(setting));
   }
 
-  private async readInstanceConfig(
-    instanceConfigUri: vscode.Uri,
-  ): Promise<InstanceConfig> {
+  private async readConfig(
+    rcConfigUri: vscode.Uri,
+  ): Promise<SnSyncRcConfig> {
     try {
-      const fileContent = await vscode.workspace.fs.readFile(instanceConfigUri);
+      const fileContent = await vscode.workspace.fs.readFile(rcConfigUri);
       const parsed = JSON.parse(
         new TextDecoder().decode(fileContent),
-      ) as InstanceConfig;
+      ) as Partial<SnSyncRcConfig>;
 
       return {
         instance: parsed.instance ?? "",
@@ -279,6 +249,11 @@ export class SnSyncConfigService {
                 ),
               )
             : {},
+        settings: Array.isArray(parsed.settings)
+          ? parsed.settings
+              .map((setting) => this.normalizeSyncSetting(setting as ExtensionConfigSetting))
+              .filter((setting): setting is ExtensionConfigSetting => Boolean(setting))
+          : [],
       };
     } catch {
       return {
@@ -286,8 +261,19 @@ export class SnSyncConfigService {
         application: "",
         update_set: "",
         scope_update_sets: {},
+        settings: [],
       };
     }
+  }
+
+  private async writeConfig(
+    rcConfigUri: vscode.Uri,
+    config: SnSyncRcConfig,
+  ): Promise<void> {
+    await vscode.workspace.fs.writeFile(
+      rcConfigUri,
+      new TextEncoder().encode(JSON.stringify(config, null, 2)),
+    );
   }
 
   private normalizeSyncSetting(

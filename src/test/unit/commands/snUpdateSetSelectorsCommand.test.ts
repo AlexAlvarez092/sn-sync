@@ -314,6 +314,52 @@ suite("snUpdateSetSelectorsCommand", () => {
     assert.deepStrictEqual(shownInfos, []);
   });
 
+  test("initialization returns early with default runtime when no workspace is open", async () => {
+    const originalWorkspaceFolders = vscode.workspace.workspaceFolders;
+    let listScopedApplicationsCalled = false;
+    let updateStateCalled = false;
+
+    Object.defineProperty(vscode.workspace, "workspaceFolders", {
+      configurable: true,
+      value: undefined,
+    });
+
+    try {
+      await initializeUpdateSetSelectors(
+        {} as vscode.ExtensionContext,
+        {
+          listScopedApplications: async () => {
+            listScopedApplicationsCalled = true;
+            return [];
+          },
+          listInProgressUpdateSets: async () => [],
+        },
+        {
+          getScopeUpdateSetSelections: async () => ({}),
+          replaceScopeUpdateSetSelections: async () => undefined,
+          setActivationSelection: async () => undefined,
+          setScopeUpdateSetSelection: async () => undefined,
+        } as unknown as never,
+        {
+          updateState: async () => {
+            updateStateCalled = true;
+          },
+          selectScope: async () => undefined,
+          selectUpdateSet: async () => undefined,
+          dispose: () => undefined,
+        },
+      );
+    } finally {
+      Object.defineProperty(vscode.workspace, "workspaceFolders", {
+        configurable: true,
+        value: originalWorkspaceFolders,
+      });
+    }
+
+    assert.strictEqual(listScopedApplicationsCalled, false);
+    assert.strictEqual(updateStateCalled, false);
+  });
+
   test("initialization cleans stale scope mappings and picks first configured scope", async () => {
     const workspaceUri = createTempWorkspaceUri("selectors-cleanup");
     const replacedSelections: Array<Record<string, unknown>> = [];
