@@ -1,7 +1,11 @@
 import * as vscode from "vscode";
 import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 import { SN_SYNC_SECRET_KEYS } from "@shared/constants/snSyncConstants.js";
-import type { SnAuthInput, SnAuthSecret } from "@shared/models/auth.js";
+import type {
+  SavedSnAuth,
+  SnAuthInput,
+  SnAuthSecret,
+} from "@shared/models/auth.js";
 
 export class SnAuthService {
   public constructor(
@@ -31,10 +35,57 @@ export class SnAuthService {
     await context.secrets.store(secretKey, JSON.stringify(secretValue));
   }
 
+  public async getSavedAuth(
+    context: vscode.ExtensionContext,
+    workspaceFolderUri: vscode.Uri,
+  ): Promise<SavedSnAuth | undefined> {
+    const instanceName =
+      await this.configService.getInstanceName(workspaceFolderUri);
+
+    if (!instanceName) {
+      return undefined;
+    }
+
+    const secretKey = this.getSecretKey(workspaceFolderUri, instanceName);
+    const rawSecret = await context.secrets.get(secretKey);
+
+    if (!rawSecret) {
+      return undefined;
+    }
+
+    try {
+      const parsedSecret = JSON.parse(rawSecret) as unknown;
+
+      if (!this.isSnAuthSecret(parsedSecret)) {
+        return undefined;
+      }
+
+      return {
+        instanceName,
+        ...parsedSecret,
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
   private getSecretKey(
     workspaceFolderUri: vscode.Uri,
     instanceName: string,
   ): string {
     return `${SN_SYNC_SECRET_KEYS.INSTANCE_AUTH_PREFIX}:${workspaceFolderUri.toString()}:${instanceName}`;
+  }
+
+  private isSnAuthSecret(value: unknown): value is SnAuthSecret {
+    if (!value || typeof value !== "object") {
+      return false;
+    }
+
+    const candidate = value as Record<string, unknown>;
+    return (
+      typeof candidate.instanceUrl === "string" &&
+      typeof candidate.username === "string" &&
+      typeof candidate.password === "string"
+    );
   }
 }

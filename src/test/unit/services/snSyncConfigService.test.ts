@@ -1,3 +1,4 @@
+import * as assert from "assert";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
@@ -103,6 +104,30 @@ suite("snSyncConfigService", () => {
       await assertJsonFileEquals(instanceConfigPath, {
         instance: "recovered-instance",
       });
+    });
+  });
+
+  test("getInstanceName returns undefined when instance is empty", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+
+      await service.initialize(workspaceFolderUri);
+
+      const instanceName = await service.getInstanceName(workspaceFolderUri);
+      assert.strictEqual(instanceName, undefined);
+    });
+  });
+
+  test("getInstanceName returns trimmed instance value", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+
+      await service.setInstanceName(workspaceFolderUri, "  dev-instance  ");
+
+      const instanceName = await service.getInstanceName(workspaceFolderUri);
+      assert.strictEqual(instanceName, "dev-instance");
     });
   });
 });

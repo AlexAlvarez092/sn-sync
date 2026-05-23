@@ -41,6 +41,20 @@ export class SnSyncConfigService {
     );
   }
 
+  public async getInstanceName(
+    workspaceFolderUri: vscode.Uri,
+  ): Promise<string | undefined> {
+    const { instanceConfigUri } = getSnSyncPaths(workspaceFolderUri);
+    const config = await this.readInstanceConfig(instanceConfigUri);
+    const instanceName = config.instance.trim();
+
+    if (!instanceName) {
+      return undefined;
+    }
+
+    return instanceName;
+  }
+
   private async readInstanceConfig(
     instanceConfigUri: vscode.Uri,
   ): Promise<InstanceConfig> {

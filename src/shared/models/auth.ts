@@ -10,3 +10,7 @@ export interface SnAuthSecret {
   username: string;
   password: string;
 }
+
+export interface SavedSnAuth extends SnAuthSecret {
+  instanceName: string;
+}

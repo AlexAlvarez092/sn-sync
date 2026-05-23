@@ -55,4 +55,124 @@ suite("snAuthService", () => {
       password: authInput.password,
     });
   });
+
+  test("returns saved auth when instance config and secret exist", async () => {
+    const workspaceFolderUri = vscode.Uri.file("/tmp/workspace");
+    const service = new SnAuthService({
+      getInstanceName: async () => "dev1",
+    } as unknown as never);
+
+    const loadedAuth = await service.getSavedAuth(
+      {
+        secrets: {
+          get: async () =>
+            JSON.stringify({
+              instanceUrl: "https://dev1.service-now.com",
+              username: "admin",
+              password: "secret",
+            }),
+        },
+      } as unknown as vscode.ExtensionContext,
+      workspaceFolderUri,
+    );
+
+    assert.deepStrictEqual(loadedAuth, {
+      instanceName: "dev1",
+      instanceUrl: "https://dev1.service-now.com",
+      username: "admin",
+      password: "secret",
+    });
+  });
+
+  test("returns undefined when secret payload is invalid", async () => {
+    const workspaceFolderUri = vscode.Uri.file("/tmp/workspace");
+    const service = new SnAuthService({
+      getInstanceName: async () => "dev1",
+    } as unknown as never);
+
+    const loadedAuth = await service.getSavedAuth(
+      {
+        secrets: {
+          get: async () => '{"instanceUrl":"https://x"}',
+        },
+      } as unknown as vscode.ExtensionContext,
+      workspaceFolderUri,
+    );
+
+    assert.strictEqual(loadedAuth, undefined);
+  });
+
+  test("returns undefined when no instance name is configured", async () => {
+    const workspaceFolderUri = vscode.Uri.file("/tmp/workspace");
+    const service = new SnAuthService({
+      getInstanceName: async () => undefined,
+    } as unknown as never);
+
+    const loadedAuth = await service.getSavedAuth(
+      {
+        secrets: {
+          get: async () => {
+            throw new Error("must not be called");
+          },
+        },
+      } as unknown as vscode.ExtensionContext,
+      workspaceFolderUri,
+    );
+
+    assert.strictEqual(loadedAuth, undefined);
+  });
+
+  test("returns undefined when secret does not exist", async () => {
+    const workspaceFolderUri = vscode.Uri.file("/tmp/workspace");
+    const service = new SnAuthService({
+      getInstanceName: async () => "dev1",
+    } as unknown as never);
+
+    const loadedAuth = await service.getSavedAuth(
+      {
+        secrets: {
+          get: async () => undefined,
+        },
+      } as unknown as vscode.ExtensionContext,
+      workspaceFolderUri,
+    );
+
+    assert.strictEqual(loadedAuth, undefined);
+  });
+
+  test("returns undefined when secret value is not valid json", async () => {
+    const workspaceFolderUri = vscode.Uri.file("/tmp/workspace");
+    const service = new SnAuthService({
+      getInstanceName: async () => "dev1",
+    } as unknown as never);
+
+    const loadedAuth = await service.getSavedAuth(
+      {
+        secrets: {
+          get: async () => "not-json",
+        },
+      } as unknown as vscode.ExtensionContext,
+      workspaceFolderUri,
+    );
+
+    assert.strictEqual(loadedAuth, undefined);
+  });
+
+  test("returns undefined when secret json is not an object", async () => {
+    const workspaceFolderUri = vscode.Uri.file("/tmp/workspace");
+    const service = new SnAuthService({
+      getInstanceName: async () => "dev1",
+    } as unknown as never);
+
+    const loadedAuth = await service.getSavedAuth(
+      {
+        secrets: {
+          get: async () => '"plain-string"',
+        },
+      } as unknown as vscode.ExtensionContext,
+      workspaceFolderUri,
+    );
+
+    assert.strictEqual(loadedAuth, undefined);
+  });
 });
