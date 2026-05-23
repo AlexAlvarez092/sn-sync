@@ -24,6 +24,10 @@
       {
         "command": "sn-sync.auth-validate",
         "title": "sn: auth validate"
+      },
+      {
+        "command": "sn-sync.activate",
+        "title": "sn: activate"
       }
     ]
   },
