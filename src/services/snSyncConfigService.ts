@@ -197,8 +197,12 @@ export class SnSyncConfigService {
         instance: parsed.instance ?? "",
         application: parsed.application ?? "",
         update_set: parsed.update_set ?? "",
-        ...(parsed.application_name ? { application_name: parsed.application_name } : {}),
-        ...(parsed.update_set_name ? { update_set_name: parsed.update_set_name } : {}),
+        ...(parsed.application_name
+          ? { application_name: parsed.application_name }
+          : {}),
+        ...(parsed.update_set_name
+          ? { update_set_name: parsed.update_set_name }
+          : {}),
         scope_update_sets:
           typeof parsed.scope_update_sets === "object" &&
           parsed.scope_update_sets !== null
@@ -214,7 +218,9 @@ export class SnSyncConfigService {
                         application: typedSelection.application ?? "",
                         update_set: typedSelection.update_set ?? "",
                         ...(typedSelection.application_name
-                          ? { application_name: typedSelection.application_name }
+                          ? {
+                              application_name: typedSelection.application_name,
+                            }
                           : {}),
                         ...(typedSelection.update_set_name
                           ? { update_set_name: typedSelection.update_set_name }

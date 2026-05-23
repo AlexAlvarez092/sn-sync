@@ -558,13 +558,10 @@ suite("snActivateCommand", () => {
     };
 
     try {
-      await defaultRuntime.showQuickPick(
-        [{ label: "Choice A" }],
-        {
-          placeHolder: "Pick one",
-          ignoreFocusOut: true,
-        },
-      );
+      await defaultRuntime.showQuickPick([{ label: "Choice A" }], {
+        placeHolder: "Pick one",
+        ignoreFocusOut: true,
+      });
 
       assert.strictEqual(showQuickPickCalled, true);
     } finally {

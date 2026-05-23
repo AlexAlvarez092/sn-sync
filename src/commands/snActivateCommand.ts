@@ -221,7 +221,8 @@ export class StatusBarActivateUiController implements SnActivateUiController {
     this.scopeItem.text = `$(package) ${SN_SYNC_MESSAGES.ACTIVATE_SCOPE_SELECTOR_LABEL}: ${selectedScopeLabel}`;
 
     const updateSetLabel = selectedScopeSelection?.update_set
-      ? selectedScopeSelection.update_set_name || selectedScopeSelection.update_set
+      ? selectedScopeSelection.update_set_name ||
+        selectedScopeSelection.update_set
       : SN_SYNC_MESSAGES.ACTIVATE_NOT_SELECTED_LABEL;
 
     this.updateSetItem.text = `$(versions) ${SN_SYNC_MESSAGES.ACTIVATE_UPDATE_SET_SELECTOR_LABEL}: ${updateSetLabel}`;
