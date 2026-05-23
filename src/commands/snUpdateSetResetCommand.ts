@@ -1,28 +1,22 @@
 import * as vscode from "vscode";
-import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 import {
   SN_SYNC_COMMANDS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
+import {
+  type SnBaseCommandRuntime,
+  defaultBaseRuntime,
+} from "@shared/services/snCommandRuntime.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
+import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 
 export interface SnUpdateSetResetConfigService {
   clearActivationSelections(workspaceFolderUri: vscode.Uri): Promise<void>;
 }
 
-export interface SnUpdateSetResetRuntime {
-  getWorkspaceFolderUri(): vscode.Uri | undefined;
-  showErrorMessage(message: string): Thenable<string | undefined>;
-  showInformationMessage(message: string): Thenable<string | undefined>;
-}
+export interface SnUpdateSetResetRuntime extends SnBaseCommandRuntime {}
 
-const defaultRuntime: SnUpdateSetResetRuntime = {
-  getWorkspaceFolderUri: () => vscode.workspace.workspaceFolders?.[0]?.uri,
-  showErrorMessage: (message: string) =>
-    vscode.window.showErrorMessage(message),
-  showInformationMessage: (message: string) =>
-    vscode.window.showInformationMessage(message),
-};
+const defaultRuntime: SnUpdateSetResetRuntime = defaultBaseRuntime;
 
 export async function runSnUpdateSetResetCommand(
   configService: SnUpdateSetResetConfigService,

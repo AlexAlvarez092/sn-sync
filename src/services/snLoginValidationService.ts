@@ -1,6 +1,11 @@
 import * as vscode from "vscode";
 import { SnAuthService } from "@services/snAuthService.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
+import {
+  buildBasicAuthHeader,
+  handleHttpError,
+  normalizeInstanceUrl,
+} from "@shared/services/snHttpService.js";
 
 export interface SnLoginValidationServiceApi {
   validateLogin(
@@ -29,33 +34,23 @@ export class SnLoginValidationService implements SnLoginValidationServiceApi {
     }
 
     const response = await this.fetchApi(
-      `${this.normalizeInstanceUrl(savedAuth.instanceUrl)}/api/now/ui/user/current`,
+      `${normalizeInstanceUrl(savedAuth.instanceUrl)}/api/now/ui/user/current`,
       {
         method: "GET",
         headers: {
           Accept: "application/json",
-          Authorization: `Basic ${Buffer.from(
-            `${savedAuth.username}:${savedAuth.password}`,
-            "utf-8",
-          ).toString("base64")}`,
+          Authorization: buildBasicAuthHeader(
+            savedAuth.username,
+            savedAuth.password,
+          ),
         },
       },
     );
 
-    if (response.ok) {
-      return;
-    }
-
-    if (response.status === 401 || response.status === 403) {
-      throw new Error(SN_SYNC_MESSAGES.AUTH_INVALID_CREDENTIALS);
-    }
-
-    throw new Error(
-      `${SN_SYNC_MESSAGES.AUTH_VALIDATE_HTTP_STATUS_PREFIX} ${response.status} ${response.statusText}`.trim(),
+    handleHttpError(
+      response,
+      SN_SYNC_MESSAGES.AUTH_VALIDATE_HTTP_STATUS_PREFIX,
     );
   }
 
-  private normalizeInstanceUrl(instanceUrl: string): string {
-    return instanceUrl.replace(/\/+$/, "");
-  }
 }

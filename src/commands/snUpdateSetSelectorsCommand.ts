@@ -8,6 +8,10 @@ import {
   SN_SYNC_COMMANDS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
+import {
+  type SnBaseCommandRuntime,
+  defaultBaseRuntime,
+} from "@shared/services/snCommandRuntime.js";
 import type {
   SnScopedApplication,
   SnUpdateSet,
@@ -36,10 +40,7 @@ export interface UpdateSetSelectorState {
   selectedScope: string;
 }
 
-export interface SnUpdateSetSelectorsRuntime {
-  getWorkspaceFolderUri(): vscode.Uri | undefined;
-  showErrorMessage(message: string): Thenable<string | undefined>;
-  showInformationMessage(message: string): Thenable<string | undefined>;
+export interface SnUpdateSetSelectorsRuntime extends SnBaseCommandRuntime {
   showQuickPick<T extends vscode.QuickPickItem>(
     items: readonly T[],
     options: vscode.QuickPickOptions,
@@ -51,11 +52,7 @@ export interface SnUpdateSetSelectorsRuntime {
 }
 
 export const defaultRuntime: SnUpdateSetSelectorsRuntime = {
-  getWorkspaceFolderUri: () => vscode.workspace.workspaceFolders?.[0]?.uri,
-  showErrorMessage: (message: string) =>
-    vscode.window.showErrorMessage(message),
-  showInformationMessage: (message: string) =>
-    vscode.window.showInformationMessage(message),
+  ...defaultBaseRuntime,
   showQuickPick: <T extends vscode.QuickPickItem>(
     items: readonly T[],
     options: vscode.QuickPickOptions,

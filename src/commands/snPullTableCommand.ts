@@ -8,6 +8,14 @@ import {
   SN_SYNC_COMMANDS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
+import {
+  type SnBaseCommandRuntime,
+  defaultBaseRuntime,
+} from "@shared/services/snCommandRuntime.js";
+import {
+  type FolderClearRuntime,
+  clearDirectory,
+} from "@shared/services/snFolderService.js";
 import type { ExtensionConfigSetting } from "@shared/models/config.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
 
@@ -15,10 +23,9 @@ interface TableQuickPickItem extends vscode.QuickPickItem {
   setting: ExtensionConfigSetting;
 }
 
-export interface SnPullTableRuntime {
-  getWorkspaceFolderUri(): vscode.Uri | undefined;
-  showErrorMessage(message: string): Thenable<string | undefined>;
-  showInformationMessage(message: string): Thenable<string | undefined>;
+export interface SnPullTableRuntime
+  extends SnBaseCommandRuntime,
+    FolderClearRuntime {
   showQuickPick<T extends vscode.QuickPickItem>(
     items: readonly T[],
     options: vscode.QuickPickOptions,
@@ -27,11 +34,6 @@ export interface SnPullTableRuntime {
     message: string,
     ...items: string[]
   ): Thenable<string | undefined>;
-  readDirectory(uri: vscode.Uri): Thenable<[string, vscode.FileType][]>;
-  delete(
-    uri: vscode.Uri,
-    options: { recursive: boolean; useTrash: boolean },
-  ): Thenable<void>;
   withProgress<T>(
     title: string,
     task: (
@@ -41,11 +43,7 @@ export interface SnPullTableRuntime {
 }
 
 export const defaultRuntime: SnPullTableRuntime = {
-  getWorkspaceFolderUri: () => vscode.workspace.workspaceFolders?.[0]?.uri,
-  showErrorMessage: (message: string) =>
-    vscode.window.showErrorMessage(message),
-  showInformationMessage: (message: string) =>
-    vscode.window.showInformationMessage(message),
+  ...defaultBaseRuntime,
   showQuickPick: <T extends vscode.QuickPickItem>(
     items: readonly T[],
     options: vscode.QuickPickOptions,
@@ -116,7 +114,10 @@ export async function runSnPullTableCommand(
     if (
       clearChoice === SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION
     ) {
-      await clearTableFolder(runtime, workspaceFolderUri, setting.folder);
+      await clearDirectory(
+        runtime,
+        vscode.Uri.joinPath(workspaceFolderUri, "src", setting.folder),
+      );
     }
 
     const summary = await runtime.withProgress(
@@ -151,32 +152,6 @@ export async function runSnPullTableCommand(
     void runtime.showErrorMessage(
       `${SN_SYNC_MESSAGES.PULL_TABLE_FAILED_PREFIX} ${getErrorMessage(error)}`,
     );
-  }
-}
-
-async function clearTableFolder(
-  runtime: SnPullTableRuntime,
-  workspaceFolderUri: vscode.Uri,
-  folder: string,
-): Promise<void> {
-  const tableFolderUri = vscode.Uri.joinPath(workspaceFolderUri, "src", folder);
-
-  let entries: [string, vscode.FileType][];
-  try {
-    entries = await runtime.readDirectory(tableFolderUri);
-  } catch (error) {
-    if (getErrorMessage(error).includes("FileNotFound")) {
-      return;
-    }
-
-    throw error;
-  }
-
-  for (const [entryName] of entries) {
-    await runtime.delete(vscode.Uri.joinPath(tableFolderUri, entryName), {
-      recursive: true,
-      useTrash: false,
-    });
   }
 }
 

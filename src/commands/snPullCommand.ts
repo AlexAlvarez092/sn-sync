@@ -8,21 +8,21 @@ import {
   SN_SYNC_COMMANDS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
+import {
+  type SnBaseCommandRuntime,
+  defaultBaseRuntime,
+} from "@shared/services/snCommandRuntime.js";
+import {
+  type FolderClearRuntime,
+  clearDirectory,
+} from "@shared/services/snFolderService.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
 
-export interface SnPullRuntime {
-  getWorkspaceFolderUri(): vscode.Uri | undefined;
-  showErrorMessage(message: string): Thenable<string | undefined>;
-  showInformationMessage(message: string): Thenable<string | undefined>;
+export interface SnPullRuntime extends SnBaseCommandRuntime, FolderClearRuntime {
   showWarningMessage(
     message: string,
     ...items: string[]
   ): Thenable<string | undefined>;
-  readDirectory(uri: vscode.Uri): Thenable<[string, vscode.FileType][]>;
-  delete(
-    uri: vscode.Uri,
-    options: { recursive: boolean; useTrash: boolean },
-  ): Thenable<void>;
   withProgress<T>(
     title: string,
     task: (
@@ -32,11 +32,7 @@ export interface SnPullRuntime {
 }
 
 const defaultRuntime: SnPullRuntime = {
-  getWorkspaceFolderUri: () => vscode.workspace.workspaceFolders?.[0]?.uri,
-  showErrorMessage: (message: string) =>
-    vscode.window.showErrorMessage(message),
-  showInformationMessage: (message: string) =>
-    vscode.window.showInformationMessage(message),
+  ...defaultBaseRuntime,
   showWarningMessage: (message: string, ...items: string[]) =>
     vscode.window.showWarningMessage(message, ...items),
   readDirectory: (uri: vscode.Uri) => vscode.workspace.fs.readDirectory(uri),
@@ -81,7 +77,7 @@ export async function runSnPullCommand(
     );
 
     if (clearSrcChoice === SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION) {
-      await clearSrcFolder(runtime, workspaceFolderUri);
+      await clearDirectory(runtime, vscode.Uri.joinPath(workspaceFolderUri, "src"));
     }
 
     const summary = await runtime.withProgress(
@@ -130,31 +126,6 @@ export async function runSnPullCommand(
     void runtime.showErrorMessage(
       `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} ${getErrorMessage(error)}`,
     );
-  }
-}
-
-async function clearSrcFolder(
-  runtime: SnPullRuntime,
-  workspaceFolderUri: vscode.Uri,
-): Promise<void> {
-  const srcFolderUri = vscode.Uri.joinPath(workspaceFolderUri, "src");
-
-  let entries: [string, vscode.FileType][];
-  try {
-    entries = await runtime.readDirectory(srcFolderUri);
-  } catch (error) {
-    if (getErrorMessage(error).includes("FileNotFound")) {
-      return;
-    }
-
-    throw error;
-  }
-
-  for (const [entryName] of entries) {
-    await runtime.delete(vscode.Uri.joinPath(srcFolderUri, entryName), {
-      recursive: true,
-      useTrash: false,
-    });
   }
 }
 

@@ -1,6 +1,11 @@
 import * as vscode from "vscode";
 import { SnAuthService } from "@services/snAuthService.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
+import {
+  buildBasicAuthHeader,
+  handleHttpError,
+  normalizeInstanceUrl,
+} from "@shared/services/snHttpService.js";
 import type {
   SnScopedApplication,
   SnUpdateSet,
@@ -101,7 +106,7 @@ export class SnUpdateSetDataService implements SnUpdateSetDataServiceApi {
       throw new Error(SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED);
     }
 
-    const normalizedUrl = savedAuth.instanceUrl.replace(/\/+$/, "");
+    const normalizedUrl = normalizeInstanceUrl(savedAuth.instanceUrl);
     const encodedQuery = encodeURIComponent(query);
     const encodedFields = encodeURIComponent(fields);
 
@@ -111,23 +116,15 @@ export class SnUpdateSetDataService implements SnUpdateSetDataServiceApi {
         method: "GET",
         headers: {
           Accept: "application/json",
-          Authorization: `Basic ${Buffer.from(
-            `${savedAuth.username}:${savedAuth.password}`,
-            "utf-8",
-          ).toString("base64")}`,
+            Authorization: buildBasicAuthHeader(
+              savedAuth.username,
+              savedAuth.password,
+            ),
         },
       },
     );
 
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        throw new Error(SN_SYNC_MESSAGES.AUTH_INVALID_CREDENTIALS);
-      }
-
-      throw new Error(
-        `${SN_SYNC_MESSAGES.SN_REQUEST_HTTP_STATUS_PREFIX} ${response.status} ${response.statusText}`.trim(),
-      );
-    }
+      handleHttpError(response, SN_SYNC_MESSAGES.SN_REQUEST_HTTP_STATUS_PREFIX);
 
     const payload = (await response.json()) as SnTableResponse;
     if (!Array.isArray(payload.result)) {

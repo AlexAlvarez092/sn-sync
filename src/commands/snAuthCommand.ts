@@ -4,24 +4,21 @@ import {
   SN_SYNC_COMMANDS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
+import {
+  type SnBaseCommandRuntime,
+  defaultBaseRuntime,
+} from "@shared/services/snCommandRuntime.js";
 import type { SnAuthInput } from "@shared/models/auth.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
 
-export interface SnAuthRuntime {
-  getWorkspaceFolderUri(): vscode.Uri | undefined;
+export interface SnAuthRuntime extends SnBaseCommandRuntime {
   askInput(options: vscode.InputBoxOptions): Thenable<string | undefined>;
-  showErrorMessage(message: string): Thenable<string | undefined>;
-  showInformationMessage(message: string): Thenable<string | undefined>;
 }
 
 const defaultRuntime: SnAuthRuntime = {
-  getWorkspaceFolderUri: () => vscode.workspace.workspaceFolders?.[0]?.uri,
+  ...defaultBaseRuntime,
   askInput: (options: vscode.InputBoxOptions) =>
     vscode.window.showInputBox(options),
-  showErrorMessage: (message: string) =>
-    vscode.window.showErrorMessage(message),
-  showInformationMessage: (message: string) =>
-    vscode.window.showInformationMessage(message),
 };
 
 export async function runSnAuthCommand(
