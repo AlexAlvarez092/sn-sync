@@ -2,7 +2,8 @@ name: Bug report
 description: Report a reproducible problem in sn-sync.
 title: "bug: "
 labels:
-  - bug
+  - type: bug
+  - status: needs-triage
 body:
   - type: markdown
     attributes:
