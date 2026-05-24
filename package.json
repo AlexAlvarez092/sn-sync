@@ -53,10 +53,6 @@
         "title": "sn: pull"
       },
       {
-        "command": "sn-sync.pull-table",
-        "title": "sn: pull table"
-      },
-      {
         "command": "sn-sync.push-active",
         "title": "sn: push active"
       },

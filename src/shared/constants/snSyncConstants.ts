@@ -8,7 +8,6 @@ export const SN_SYNC_COMMANDS = {
   AUTH: "sn-sync.auth",
   AUTH_VALIDATE: "sn-sync.auth-validate",
   PULL: "sn-sync.pull",
-  PULL_TABLE: "sn-sync.pull-table",
   PUSH_ACTIVE: "sn-sync.push-active",
   PUSH_MODIFIED: "sn-sync.push-modified",
 } as const;
@@ -39,19 +38,10 @@ export const SN_SYNC_MESSAGES = {
   PULL_CLEAR_SRC_SKIP_ACTION: "Keep src",
   PULL_SUCCESS_PREFIX: "sn-sync pull completed.",
   PULL_FAILED_PREFIX: "Failed to pull scripts from ServiceNow:",
-  PULL_TABLE_PROMPT: "Select table to pull",
-  PULL_TABLE_CANCELLED: "sn-sync pull table cancelled.",
-  PULL_TABLE_CLEAR_FOLDER_PROMPT:
-    "Clear folder before pull to avoid stale local files?",
-  PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION: "Clear folder",
-  PULL_TABLE_CLEAR_FOLDER_SKIP_ACTION: "Keep folder",
-  PULL_TABLE_SUCCESS_PREFIX: "sn-sync pull table completed.",
-  PULL_TABLE_FAILED_PREFIX: "Failed to pull table from ServiceNow:",
   PUSH_PROGRESS_TITLE: "Pushing scripts to ServiceNow...",
   PUSH_ACTIVE_NO_EDITOR:
     "No active file found. Open a file from this workspace and try again.",
-  PUSH_ACTIVE_NOT_INDEXED:
-    "Active file is not indexed. Run 'sn: pull' or 'sn: pull table' first.",
+  PUSH_ACTIVE_NOT_INDEXED: "Active file is not indexed. Run 'sn: pull' first.",
   PUSH_ACTIVE_NO_LOCAL_CHANGES:
     "No local changes detected for the active file.",
   PUSH_ACTIVE_CONFLICT_PREFIX:
