@@ -53,6 +53,10 @@
         "title": "sn: pull"
       },
       {
+        "command": "sn-sync.pull-by-sys-id",
+        "title": "sn: pull by sys_id"
+      },
+      {
         "command": "sn-sync.push-active",
         "title": "sn: push active"
       },

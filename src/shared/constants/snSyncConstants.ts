@@ -8,6 +8,7 @@ export const SN_SYNC_COMMANDS = {
   AUTH: "sn-sync.auth",
   AUTH_VALIDATE: "sn-sync.auth-validate",
   PULL: "sn-sync.pull",
+  PULL_BY_SYS_ID: "sn-sync.pull-by-sys-id",
   PUSH_ACTIVE: "sn-sync.push-active",
   PUSH_MODIFIED: "sn-sync.push-modified",
 } as const;
@@ -34,6 +35,12 @@ export const SN_SYNC_MESSAGES = {
   PULL_PROGRESS_TITLE: "Pulling scripts from ServiceNow...",
   PULL_NO_SETTINGS:
     "No sync settings found in extension config. Nothing to pull.",
+  PULL_BY_SYS_ID_TABLE_PROMPT: "Select table to pull by sys_id",
+  PULL_BY_SYS_ID_CANCELLED: "sn-sync pull by sys_id cancelled.",
+  PULL_BY_SYS_ID_INVALID_SYS_ID: "A valid sys_id is required.",
+  PULL_BY_SYS_ID_SUCCESS_PREFIX: "sn-sync pull by sys_id completed.",
+  PULL_BY_SYS_ID_FAILED_PREFIX:
+    "Failed to pull record by sys_id from ServiceNow:",
   PULL_CLEAR_SRC_PROMPT: "Clear src before pull to avoid stale local files?",
   PULL_CLEAR_SRC_SKIP_ACTION: "Keep src",
   PULL_SUCCESS_PREFIX: "sn-sync pull completed.",
@@ -41,7 +48,8 @@ export const SN_SYNC_MESSAGES = {
   PUSH_PROGRESS_TITLE: "Pushing scripts to ServiceNow...",
   PUSH_ACTIVE_NO_EDITOR:
     "No active file found. Open a file from this workspace and try again.",
-  PUSH_ACTIVE_NOT_INDEXED: "Active file is not indexed. Run 'sn: pull' first.",
+  PUSH_ACTIVE_NOT_INDEXED:
+    "Active file is not indexed. Run 'sn: pull' or 'sn: pull by sys_id' first.",
   PUSH_ACTIVE_NO_LOCAL_CHANGES:
     "No local changes detected for the active file.",
   PUSH_ACTIVE_CONFLICT_PREFIX:
@@ -70,6 +78,8 @@ export const SN_SYNC_INPUTS = {
   AUTH_USERNAME_PROMPT: "Username",
   AUTH_USERNAME_PLACEHOLDER: "admin",
   AUTH_PASSWORD_PROMPT: "Password",
+  PULL_BY_SYS_ID_PROMPT: "sys_id",
+  PULL_BY_SYS_ID_PLACEHOLDER: "Paste a ServiceNow sys_id",
 } as const;
 
 export const SN_SYNC_DEFAULTS = {
