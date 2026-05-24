@@ -230,6 +230,7 @@ export class SnPullService implements SnPullServiceApi {
 
     const limit = this.pageSize;
     const allRows: Array<Record<string, unknown>> = [];
+    let previousPageSignature: string | undefined;
 
     for (let offset = 0; ; offset += limit) {
       const response = await this.fetchApi(
@@ -251,12 +252,18 @@ export class SnPullService implements SnPullServiceApi {
       const payload = (await response.json()) as SnTableResponse;
       const rows = Array.isArray(payload.result) ? payload.result : [];
 
-      for (const row of rows) {
-        allRows.push(row);
+      if (rows.length === 0) {
+        break;
       }
 
-      if (rows.length < limit) {
+      const currentPageSignature = JSON.stringify(rows);
+      if (offset > 0 && currentPageSignature === previousPageSignature) {
         break;
+      }
+      previousPageSignature = currentPageSignature;
+
+      for (const row of rows) {
+        allRows.push(row);
       }
     }
 

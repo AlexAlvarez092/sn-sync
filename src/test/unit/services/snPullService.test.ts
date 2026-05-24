@@ -63,7 +63,7 @@ suite("snPullService", () => {
         },
       );
 
-      assert.strictEqual(requestedUrls.length, 1);
+      assert.strictEqual(requestedUrls.length, 2);
       assert.ok(
         requestedUrls[0].includes("sysparm_fields=name%2Cscript%2Csys_id") ||
           requestedUrls[0].includes("sysparm_fields=name%2Csys_id%2Cscript") ||
@@ -453,10 +453,135 @@ suite("snPullService", () => {
             } as Response;
           }
 
+          if (callCount === 2) {
+            return {
+              ok: true,
+              json: async () => ({
+                result: [{ name: "rule-final", script: "script-final" }],
+              }),
+            } as Response;
+          }
+
           return {
             ok: true,
             json: async () => ({
-              result: [{ name: "rule-final", script: "script-final" }],
+              result: [],
+            }),
+          } as Response;
+        }) as typeof fetch,
+        2,
+      );
+
+      const summary = await service.pullConfiguredScripts(
+        {} as vscode.ExtensionContext,
+        workspaceUri,
+        [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      );
+
+      assert.strictEqual(callCount, 3);
+      assert.deepStrictEqual(summary, {
+        settings: 1,
+        records: 3,
+        files: 3,
+      });
+    });
+  });
+
+  test("continues pagination when a non-empty page has fewer rows than limit", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+      let callCount = 0;
+
+      const service = new SnPullService(
+        {
+          getSavedAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (): Promise<Response> => {
+          callCount += 1;
+
+          if (callCount === 1) {
+            return {
+              ok: true,
+              json: async () => ({
+                result: [{ name: "rule-1", script: "script-1" }],
+              }),
+            } as Response;
+          }
+
+          if (callCount === 2) {
+            return {
+              ok: true,
+              json: async () => ({
+                result: [{ name: "rule-2", script: "script-2" }],
+              }),
+            } as Response;
+          }
+
+          return {
+            ok: true,
+            json: async () => ({ result: [] }),
+          } as Response;
+        }) as typeof fetch,
+        2,
+      );
+
+      const summary = await service.pullConfiguredScripts(
+        {} as vscode.ExtensionContext,
+        workspaceUri,
+        [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      );
+
+      assert.strictEqual(callCount, 3);
+      assert.deepStrictEqual(summary, {
+        settings: 1,
+        records: 2,
+        files: 2,
+      });
+    });
+  });
+
+  test("stops pagination when API repeats the same page", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+      let callCount = 0;
+
+      const service = new SnPullService(
+        {
+          getSavedAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (): Promise<Response> => {
+          callCount += 1;
+
+          return {
+            ok: true,
+            json: async () => ({
+              result: [{ name: "rule-1", script: "script-1" }],
             }),
           } as Response;
         }) as typeof fetch,
@@ -480,8 +605,8 @@ suite("snPullService", () => {
       assert.strictEqual(callCount, 2);
       assert.deepStrictEqual(summary, {
         settings: 1,
-        records: 3,
-        files: 3,
+        records: 1,
+        files: 1,
       });
     });
   });
