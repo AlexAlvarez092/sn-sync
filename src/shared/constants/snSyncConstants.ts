@@ -9,8 +9,10 @@ export const SN_SYNC_COMMANDS = {
   AUTH_VALIDATE: "sn-sync.auth-validate",
   PULL: "sn-sync.pull",
   PULL_BY_SYS_ID: "sn-sync.pull-by-sys-id",
+  RESET_INDEX: "sn-sync.reset-index",
   PUSH_ACTIVE: "sn-sync.push-active",
   PUSH_MODIFIED: "sn-sync.push-modified",
+  PUSH_REPORT: "sn-sync.push-report",
 } as const;
 
 export const SN_SYNC_PATHS = {
@@ -41,6 +43,8 @@ export const SN_SYNC_MESSAGES = {
   PULL_BY_SYS_ID_SUCCESS_PREFIX: "sn-sync pull by sys_id completed.",
   PULL_BY_SYS_ID_FAILED_PREFIX:
     "Failed to pull record by sys_id from ServiceNow:",
+  RESET_INDEX_SUCCESS: "sn-sync index reset completed.",
+  RESET_INDEX_FAILED_PREFIX: "Failed to reset sn-sync index:",
   PULL_CLEAR_SRC_PROMPT: "Clear src before pull to avoid stale local files?",
   PULL_CLEAR_SRC_SKIP_ACTION: "Keep src",
   PULL_SUCCESS_PREFIX: "sn-sync pull completed.",
@@ -57,6 +61,10 @@ export const SN_SYNC_MESSAGES = {
   PUSH_ACTIVE_SUCCESS: "sn-sync push active completed.",
   PUSH_ACTIVE_FAILED_PREFIX: "Failed to push active file to ServiceNow:",
   PUSH_MODIFIED_NO_LOCAL_CHANGES: "No modified local files detected to push.",
+  PUSH_REPORT_NO_LOCAL_CHANGES: "No modified local files detected to report.",
+  PUSH_REPORT_TITLE: "Generating push report...",
+  PUSH_REPORT_SUCCESS: "sn-sync push report generated.",
+  PUSH_REPORT_FAILED_PREFIX: "Failed to generate push report:",
   PUSH_MODIFIED_CONFLICTS_PREFIX:
     "Push aborted: remote conflicts detected. No files were uploaded.",
   PUSH_MODIFIED_SUCCESS_PREFIX: "sn-sync push modified completed.",

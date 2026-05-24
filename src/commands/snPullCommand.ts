@@ -164,7 +164,20 @@ export async function runSnPullCommand(
           });
         }
 
-        await indexService.recordPullFiles(workspaceFolderUri, indexUpdates);
+        if (typeof indexService.replacePullSnapshot === "function") {
+          try {
+            await indexService.replacePullSnapshot(
+              workspaceFolderUri,
+              indexUpdates,
+            );
+          } catch (error) {
+            if (indexUpdates.length > 0) {
+              throw error;
+            }
+          }
+        } else if (indexUpdates.length > 0) {
+          await indexService.recordPullFiles(workspaceFolderUri, indexUpdates);
+        }
 
         return {
           settings: settings.length,

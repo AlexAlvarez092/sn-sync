@@ -399,7 +399,7 @@ suite("snPullCommand", () => {
   });
 
   test("records index updates when pull provides file metadata", async () => {
-    const recordedUpdates: Array<{
+    const snapshotUpdates: Array<{
       localPath: string;
       table: string;
       sysId: string;
@@ -468,6 +468,176 @@ suite("snPullCommand", () => {
         toWorkspaceRelativePath: () => "",
         getModifiedCandidates: async () => [],
         updateBaseHashes: async () => undefined,
+        recordPullFiles: async () => {
+          throw new Error("must-not-be-called");
+        },
+        replacePullSnapshot: async (_workspaceUri, updates) => {
+          snapshotUpdates.push(...updates);
+        },
+      },
+    );
+
+    assert.deepStrictEqual(snapshotUpdates, [
+      {
+        localPath: "src/security_rules/acl.js",
+        table: "sys_security_acl",
+        sysId: "acl-1",
+        fieldName: "script",
+        baseHash: "sha256:abc",
+      },
+    ]);
+  });
+
+  test("replaces snapshot with empty updates when pull writes no metadata", async () => {
+    let snapshotCalled = false;
+    const snapshotUpdates: Array<{
+      localPath: string;
+      table: string;
+      sysId: string;
+      fieldName: string;
+      baseHash: string;
+    }> = [];
+
+    await runSnPullCommand(
+      {
+        workspaceState: {
+          get: () => undefined,
+          update: async () => undefined,
+        },
+      } as unknown as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async (
+          _context,
+          _workspaceUri,
+          _settings,
+          options,
+        ) => {
+          options?.onFileWritten?.({
+            settingFolder: "security_rules",
+            fileName: "acl.js",
+          });
+
+          return {
+            settings: 1,
+            records: 1,
+            files: 1,
+          };
+        },
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-index-empty-snapshot"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async () => undefined,
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+        readDirectory: async () => [],
+        delete: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+      },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        updateBaseHashes: async () => undefined,
+        recordPullFiles: async () => {
+          throw new Error("must-not-be-called");
+        },
+        replacePullSnapshot: async (_workspaceUri, updates) => {
+          snapshotCalled = true;
+          snapshotUpdates.push(...updates);
+        },
+      },
+    );
+
+    assert.strictEqual(snapshotCalled, true);
+    assert.deepStrictEqual(snapshotUpdates, []);
+  });
+
+  test("falls back to recordPullFiles when snapshot API is unavailable", async () => {
+    const recordedUpdates: Array<{
+      localPath: string;
+      table: string;
+      sysId: string;
+      fieldName: string;
+      baseHash: string;
+    }> = [];
+
+    await runSnPullCommand(
+      {
+        workspaceState: {
+          get: () => undefined,
+          update: async () => undefined,
+        },
+      } as unknown as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async (
+          _context,
+          _workspaceUri,
+          _settings,
+          options,
+        ) => {
+          options?.onFileWritten?.({
+            settingFolder: "security_rules",
+            fileName: "acl.js",
+            localPath: "src/security_rules/acl.js",
+            table: "sys_security_acl",
+            sysId: "acl-1",
+            fieldName: "script",
+            baseHash: "sha256:abc",
+          });
+
+          return {
+            settings: 1,
+            records: 1,
+            files: 1,
+          };
+        },
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-index-updates-record-only"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async () => undefined,
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+        readDirectory: async () => [],
+        delete: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+      },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        updateBaseHashes: async () => undefined,
         recordPullFiles: async (_workspaceUri, updates) => {
           recordedUpdates.push(...updates);
         },
@@ -482,6 +652,87 @@ suite("snPullCommand", () => {
         fieldName: "script",
         baseHash: "sha256:abc",
       },
+    ]);
+  });
+
+  test("shows error when snapshot persistence fails with index updates", async () => {
+    const shownErrors: string[] = [];
+
+    await runSnPullCommand(
+      {
+        workspaceState: {
+          get: () => undefined,
+          update: async () => undefined,
+        },
+      } as unknown as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async (
+          _context,
+          _workspaceUri,
+          _settings,
+          options,
+        ) => {
+          options?.onFileWritten?.({
+            settingFolder: "security_rules",
+            fileName: "acl.js",
+            localPath: "src/security_rules/acl.js",
+            table: "sys_security_acl",
+            sysId: "acl-1",
+            fieldName: "script",
+            baseHash: "sha256:abc",
+          });
+
+          return {
+            settings: 1,
+            records: 1,
+            files: 1,
+          };
+        },
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-snapshot-failure"),
+        showErrorMessage: async (message: string) => {
+          shownErrors.push(message);
+          return undefined;
+        },
+        showInformationMessage: async () => undefined,
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+        readDirectory: async () => [],
+        delete: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+      },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        updateBaseHashes: async () => undefined,
+        recordPullFiles: async () => {
+          throw new Error("must-not-be-called");
+        },
+        replacePullSnapshot: async () => {
+          throw new Error("snapshot-fail");
+        },
+      },
+    );
+
+    assert.deepStrictEqual(shownErrors, [
+      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} snapshot-fail`,
     ]);
   });
 

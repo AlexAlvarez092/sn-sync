@@ -489,7 +489,9 @@ suite("snPullBySysIdCommand", () => {
   });
 
   test("uses default runtime and shows success when workspace exists", async () => {
-    const workspaceUri = createTempWorkspaceUri("pull-by-sys-id-default-success");
+    const workspaceUri = createTempWorkspaceUri(
+      "pull-by-sys-id-default-success",
+    );
     const shownInfos: string[] = [];
     const progressTitles: string[] = [];
 

@@ -141,6 +141,10 @@ export class SnPullService implements SnPullServiceApi {
         new TextEncoder().encode(content),
       );
 
+      const writtenContent = new TextDecoder().decode(
+        await vscode.workspace.fs.readFile(fileUri),
+      );
+
       const localPath = path
         .relative(workspaceFolderUri.fsPath, fileUri.fsPath)
         .replace(/\\/g, "/");
@@ -152,7 +156,7 @@ export class SnPullService implements SnPullServiceApi {
         table: setting.table,
         sysId,
         fieldName: field.field_name,
-        baseHash: hashText(content),
+        baseHash: hashText(writtenContent),
       });
     }
 

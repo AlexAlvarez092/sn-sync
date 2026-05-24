@@ -19,6 +19,11 @@ export interface SnSyncIndexServiceApi {
     workspaceFolderUri: vscode.Uri,
     updates: SnPullIndexUpdate[],
   ): Promise<void>;
+  clearIndex?(workspaceFolderUri: vscode.Uri): Promise<void>;
+  replacePullSnapshot?(
+    workspaceFolderUri: vscode.Uri,
+    updates: SnPullIndexUpdate[],
+  ): Promise<void>;
   findEntryByLocalPath(
     workspaceFolderUri: vscode.Uri,
     localPath: string,
@@ -46,6 +51,9 @@ export class SnSyncIndexService implements SnSyncIndexServiceApi {
   public constructor(
     private readonly state: vscode.Memento,
     private readonly fsApi: typeof vscode.workspace.fs = vscode.workspace.fs,
+    private readonly caseInsensitivePaths = ["darwin", "win32"].includes(
+      process.platform,
+    ),
   ) {}
 
   public async recordPullFiles(
@@ -57,12 +65,51 @@ export class SnSyncIndexService implements SnSyncIndexServiceApi {
     }
 
     const state = this.getState(workspaceFolderUri);
+    this.applyPullUpdates(state, updates);
+
+    await this.saveState(workspaceFolderUri, state);
+  }
+
+  public async replacePullSnapshot(
+    workspaceFolderUri: vscode.Uri,
+    updates: SnPullIndexUpdate[],
+  ): Promise<void> {
+    const state: SnSyncIndexState = {
+      version: 1,
+      entries: {},
+    };
+
+    this.applyPullUpdates(state, updates);
+
+    await this.saveState(workspaceFolderUri, state);
+  }
+
+  public async clearIndex(workspaceFolderUri: vscode.Uri): Promise<void> {
+    await this.saveState(workspaceFolderUri, {
+      version: 1,
+      entries: {},
+    });
+  }
+
+  private applyPullUpdates(
+    state: SnSyncIndexState,
+    updates: SnPullIndexUpdate[],
+  ): void {
+    if (updates.length === 0) {
+      return;
+    }
+
     const now = new Date().toISOString();
 
     for (const update of updates) {
+      const normalizedLocalPath = this.normalizeLocalPath(update.localPath);
+
+      // Keep only one index entry per physical file path.
+      this.removeEntriesByLocalPath(state, normalizedLocalPath);
+
       const key = this.buildEntryKey(update);
       state.entries[key] = {
-        localPath: update.localPath,
+        localPath: normalizedLocalPath,
         table: update.table,
         sysId: update.sysId,
         fieldName: update.fieldName,
@@ -70,19 +117,18 @@ export class SnSyncIndexService implements SnSyncIndexServiceApi {
         updatedAt: now,
       };
     }
-
-    await this.saveState(workspaceFolderUri, state);
   }
 
   public async findEntryByLocalPath(
     workspaceFolderUri: vscode.Uri,
     localPath: string,
   ): Promise<SnSyncIndexEntry | undefined> {
-    const normalizedPath = this.normalizeLocalPath(localPath);
+    const normalizedPath = this.normalizeComparableLocalPath(localPath);
     const state = this.getState(workspaceFolderUri);
 
     return Object.values(state.entries).find(
-      (entry) => entry.localPath === normalizedPath,
+      (entry) =>
+        this.normalizeComparableLocalPath(entry.localPath) === normalizedPath,
     );
   }
 
@@ -195,7 +241,7 @@ export class SnSyncIndexService implements SnSyncIndexServiceApi {
     fieldName: string;
   }): string {
     return [
-      this.normalizeLocalPath(update.localPath),
+      this.normalizeComparableLocalPath(update.localPath),
       update.table,
       update.sysId,
       update.fieldName,
@@ -204,5 +250,26 @@ export class SnSyncIndexService implements SnSyncIndexServiceApi {
 
   private normalizeLocalPath(localPath: string): string {
     return localPath.replace(/\\/g, "/").trim();
+  }
+
+  private normalizeComparableLocalPath(localPath: string): string {
+    const normalized = this.normalizeLocalPath(localPath);
+    return this.caseInsensitivePaths ? normalized.toLowerCase() : normalized;
+  }
+
+  private removeEntriesByLocalPath(
+    state: SnSyncIndexState,
+    localPath: string,
+  ): void {
+    const comparableLocalPath = this.normalizeComparableLocalPath(localPath);
+
+    for (const key of Object.keys(state.entries)) {
+      if (
+        this.normalizeComparableLocalPath(state.entries[key].localPath) ===
+        comparableLocalPath
+      ) {
+        delete state.entries[key];
+      }
+    }
   }
 }

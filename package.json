@@ -57,8 +57,16 @@
         "title": "sn: pull by sys_id"
       },
       {
+        "command": "sn-sync.reset-index",
+        "title": "sn: reset index"
+      },
+      {
         "command": "sn-sync.push-active",
         "title": "sn: push active"
+      },
+      {
+        "command": "sn-sync.push-report",
+        "title": "sn: push report"
       },
       {
         "command": "sn-sync.push-modified",

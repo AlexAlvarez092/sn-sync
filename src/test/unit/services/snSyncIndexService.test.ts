@@ -205,6 +205,242 @@ suite("snSyncIndexService", () => {
       assert.strictEqual(entry?.baseHash, "sha256:old");
     });
   });
+
+  test("replaces older entry when pull records same local path with different sys_id", async () => {
+    const memento = createMemoryMemento();
+    const service = new SnSyncIndexService(memento);
+
+    await withTempDir("sn-sync-index-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      await service.recordPullFiles(workspaceUri, [
+        {
+          localPath: "src/shared.js",
+          table: "sys_script",
+          sysId: "old",
+          fieldName: "script",
+          baseHash: "sha256:old",
+        },
+      ]);
+
+      await service.recordPullFiles(workspaceUri, [
+        {
+          localPath: "src/shared.js",
+          table: "sys_script",
+          sysId: "new",
+          fieldName: "script",
+          baseHash: "sha256:new",
+        },
+      ]);
+
+      const storageKey = `${SN_SYNC_STORAGE_KEYS.SYNC_INDEX_PREFIX}:${workspaceUri.toString()}`;
+      const persisted = memento.store.get(storageKey) as
+        | { entries?: Record<string, unknown> }
+        | undefined;
+
+      assert.ok(persisted?.entries);
+      assert.strictEqual(Object.keys(persisted?.entries ?? {}).length, 1);
+
+      const entry = await service.findEntryByLocalPath(
+        workspaceUri,
+        "src/shared.js",
+      );
+      assert.ok(entry);
+      assert.strictEqual(entry?.sysId, "new");
+      assert.strictEqual(entry?.baseHash, "sha256:new");
+    });
+  });
+
+  test("replacePullSnapshot clears previous entries and writes new snapshot", async () => {
+    const memento = createMemoryMemento();
+    const service = new SnSyncIndexService(memento);
+
+    await withTempDir("sn-sync-index-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      await service.recordPullFiles(workspaceUri, [
+        {
+          localPath: "src/old.js",
+          table: "sys_script",
+          sysId: "old",
+          fieldName: "script",
+          baseHash: "sha256:old",
+        },
+      ]);
+
+      await service.replacePullSnapshot(workspaceUri, [
+        {
+          localPath: "src/new.js",
+          table: "sys_script",
+          sysId: "new",
+          fieldName: "script",
+          baseHash: "sha256:new",
+        },
+      ]);
+
+      const oldEntry = await service.findEntryByLocalPath(
+        workspaceUri,
+        "src/old.js",
+      );
+      assert.strictEqual(oldEntry, undefined);
+
+      const newEntry = await service.findEntryByLocalPath(
+        workspaceUri,
+        "src/new.js",
+      );
+      assert.ok(newEntry);
+      assert.strictEqual(newEntry?.sysId, "new");
+    });
+  });
+
+  test("replacePullSnapshot with empty updates clears index", async () => {
+    const memento = createMemoryMemento();
+    const service = new SnSyncIndexService(memento);
+
+    await withTempDir("sn-sync-index-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      await service.recordPullFiles(workspaceUri, [
+        {
+          localPath: "src/a.js",
+          table: "sys_script",
+          sysId: "abc",
+          fieldName: "script",
+          baseHash: "sha256:old",
+        },
+      ]);
+
+      await service.replacePullSnapshot(workspaceUri, []);
+
+      const entry = await service.findEntryByLocalPath(
+        workspaceUri,
+        "src/a.js",
+      );
+      assert.strictEqual(entry, undefined);
+    });
+  });
+
+  test("clearIndex removes all entries", async () => {
+    const memento = createMemoryMemento();
+    const service = new SnSyncIndexService(memento);
+
+    await withTempDir("sn-sync-index-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      await service.recordPullFiles(workspaceUri, [
+        {
+          localPath: "src/a.js",
+          table: "sys_script",
+          sysId: "abc",
+          fieldName: "script",
+          baseHash: "sha256:old",
+        },
+      ]);
+
+      await service.clearIndex(workspaceUri);
+
+      const entry = await service.findEntryByLocalPath(
+        workspaceUri,
+        "src/a.js",
+      );
+      assert.strictEqual(entry, undefined);
+    });
+  });
+
+  test("handles path casing collisions consistently", async () => {
+    const memento = createMemoryMemento();
+    const service = new SnSyncIndexService(memento);
+
+    await withTempDir("sn-sync-index-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      await service.recordPullFiles(workspaceUri, [
+        {
+          localPath: "src/Script_Includes/A.js",
+          table: "sys_script_include",
+          sysId: "old",
+          fieldName: "script",
+          baseHash: "sha256:old",
+        },
+      ]);
+
+      await service.recordPullFiles(workspaceUri, [
+        {
+          localPath: "src/script_includes/a.js",
+          table: "sys_script_include",
+          sysId: "new",
+          fieldName: "script",
+          baseHash: "sha256:new",
+        },
+      ]);
+
+      const storageKey = `${SN_SYNC_STORAGE_KEYS.SYNC_INDEX_PREFIX}:${workspaceUri.toString()}`;
+      const persisted = memento.store.get(storageKey) as
+        | { entries?: Record<string, unknown> }
+        | undefined;
+
+      const expectedEntriesCount = process.platform === "linux" ? 2 : 1;
+      assert.strictEqual(
+        Object.keys(persisted?.entries ?? {}).length,
+        expectedEntriesCount,
+      );
+
+      const found = await service.findEntryByLocalPath(
+        workspaceUri,
+        "src/script_includes/a.js",
+      );
+      assert.ok(found);
+    });
+  });
+
+  test("keeps different casing as distinct paths in case-sensitive mode", async () => {
+    const memento = createMemoryMemento();
+    const service = new SnSyncIndexService(memento, undefined, false);
+
+    await withTempDir("sn-sync-index-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      await service.recordPullFiles(workspaceUri, [
+        {
+          localPath: "src/Script_Includes/A.js",
+          table: "sys_script_include",
+          sysId: "old",
+          fieldName: "script",
+          baseHash: "sha256:old",
+        },
+      ]);
+
+      await service.recordPullFiles(workspaceUri, [
+        {
+          localPath: "src/script_includes/a.js",
+          table: "sys_script_include",
+          sysId: "new",
+          fieldName: "script",
+          baseHash: "sha256:new",
+        },
+      ]);
+
+      const storageKey = `${SN_SYNC_STORAGE_KEYS.SYNC_INDEX_PREFIX}:${workspaceUri.toString()}`;
+      const persisted = memento.store.get(storageKey) as
+        | { entries?: Record<string, unknown> }
+        | undefined;
+
+      assert.strictEqual(Object.keys(persisted?.entries ?? {}).length, 2);
+
+      const upperCasePath = await service.findEntryByLocalPath(
+        workspaceUri,
+        "src/Script_Includes/A.js",
+      );
+      const lowerCasePath = await service.findEntryByLocalPath(
+        workspaceUri,
+        "src/script_includes/a.js",
+      );
+
+      assert.ok(upperCasePath);
+      assert.ok(lowerCasePath);
+      assert.notStrictEqual(upperCasePath?.sysId, lowerCasePath?.sysId);
+    });
+  });
 });
 
 function createMemoryMemento(): MemoryMemento {

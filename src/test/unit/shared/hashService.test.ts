@@ -11,4 +11,11 @@ suite("hashService", () => {
     assert.strictEqual(first, second);
     assert.notStrictEqual(first, third);
   });
+
+  test("hashText normalizes line endings", () => {
+    const lf = hashText("line1\nline2\n");
+    const crlf = hashText("line1\r\nline2\r\n");
+
+    assert.strictEqual(lf, crlf);
+  });
 });
