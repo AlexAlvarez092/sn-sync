@@ -14,6 +14,26 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "sn-sync",
+      "properties": {
+        "sn-sync.rootDir": {
+          "type": "string",
+          "default": "src",
+          "description": "Root folder where sn-sync writes pulled files."
+        },
+        "sn-sync.pull.clearBeforePull": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "delete",
+            "keep"
+          ],
+          "default": "ask",
+          "description": "Controls whether sn-sync asks, deletes, or keeps local files before pull commands."
+        }
+      }
+    },
     "commands": [
       {
         "command": "sn-sync.sn-init",

@@ -546,4 +546,59 @@ suite("snPullService", () => {
       );
     });
   });
+
+  test("writes files under a custom rootDir when provided", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      const service = new SnPullService(
+        {
+          getSavedAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (): Promise<Response> => {
+          return {
+            ok: true,
+            json: async () => ({
+              result: [
+                {
+                  name: "Rule One",
+                  script: "answer=true;",
+                },
+              ],
+            }),
+          } as Response;
+        }) as typeof fetch,
+      );
+
+      await service.pullConfiguredScripts(
+        {} as vscode.ExtensionContext,
+        workspaceUri,
+        [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+        {
+          rootDir: "app",
+        },
+      );
+
+      assert.strictEqual(
+        await fs.readFile(
+          path.join(tempDir, "app", "security_rules", "Rule One.js"),
+          "utf-8",
+        ),
+        "answer=true;",
+      );
+    });
+  });
 });

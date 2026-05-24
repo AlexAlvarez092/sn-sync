@@ -148,10 +148,11 @@ suite("snPullTableCommand", () => {
     assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.PULL_TABLE_CANCELLED]);
   });
 
-  test("clears table folder and pulls with progress and shows success summary", async () => {
+  test("deletes configured table folder without prompting when preference is delete", async () => {
     const shownInfos: string[] = [];
     const deletedEntries: string[] = [];
     const pulledSettingFolders: string[] = [];
+    const usedRootDirs: string[] = [];
     const progressMessages: string[] = [];
     const progressIncrements: number[] = [];
     const progressTitles: string[] = [];
@@ -175,6 +176,10 @@ suite("snPullTableCommand", () => {
             fields: [{ extension: "js", field_name: "script" }],
           },
         ],
+        getPreferences: async () => ({
+          rootDir: "app",
+          pull: { clearBeforePull: "delete" },
+        }),
       } as unknown as never,
       {
         pullConfiguredScripts: async (
@@ -184,6 +189,7 @@ suite("snPullTableCommand", () => {
           options,
         ) => {
           pulledSettingFolders.push(settings[0].folder);
+          usedRootDirs.push(options?.rootDir ?? "missing");
           options?.onFileWritten?.({
             settingFolder: settings[0].folder,
             fileName: "rule1.js",
@@ -204,8 +210,9 @@ suite("snPullTableCommand", () => {
           return undefined;
         },
         showQuickPick: async (items) => items[0],
-        showWarningMessage: async () =>
-          SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION,
+        showWarningMessage: async () => {
+          throw new Error("must-not-be-called");
+        },
         readDirectory: async () => [
           ["rule1.js", vscode.FileType.File],
           ["stale.js", vscode.FileType.File],
@@ -228,9 +235,10 @@ suite("snPullTableCommand", () => {
     );
 
     assert.strictEqual(deletedEntries.length, 2);
-    assert.ok(deletedEntries[0].includes("/src/business_rules/rule1.js"));
-    assert.ok(deletedEntries[1].includes("/src/business_rules/stale.js"));
+    assert.ok(deletedEntries[0].includes("/app/business_rules/rule1.js"));
+    assert.ok(deletedEntries[1].includes("/app/business_rules/stale.js"));
     assert.deepStrictEqual(pulledSettingFolders, ["business_rules"]);
+    assert.deepStrictEqual(usedRootDirs, ["app"]);
     assert.deepStrictEqual(progressTitles, [
       "Pulling scripts from ServiceNow...",
     ]);
@@ -245,7 +253,7 @@ suite("snPullTableCommand", () => {
     ]);
   });
 
-  test("keeps folder when skip action selected and still syncs", async () => {
+  test("keeps folder without prompting when preference is keep", async () => {
     let deleteCalled = false;
     const shownInfos: string[] = [];
 
@@ -261,6 +269,10 @@ suite("snPullTableCommand", () => {
             fields: [{ extension: "js", field_name: "script" }],
           },
         ],
+        getPreferences: async () => ({
+          rootDir: "src",
+          pull: { clearBeforePull: "keep" },
+        }),
       } as unknown as never,
       {
         pullConfiguredScripts: async () => ({
@@ -278,8 +290,9 @@ suite("snPullTableCommand", () => {
           return undefined;
         },
         showQuickPick: async (items) => items[0],
-        showWarningMessage: async () =>
-          SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_SKIP_ACTION,
+        showWarningMessage: async () => {
+          throw new Error("must-not-be-called");
+        },
         readDirectory: async () => {
           throw new Error("must-not-be-called");
         },

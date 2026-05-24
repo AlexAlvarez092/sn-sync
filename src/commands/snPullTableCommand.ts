@@ -102,20 +102,27 @@ export async function runSnPullTableCommand(
       return;
     }
 
-    const { setting } = selected;
-
-    const clearChoice = await runtime.showWarningMessage(
-      SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_PROMPT,
-      SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION,
-      SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_SKIP_ACTION,
+    const preferences = await resolvePreferences(
+      configService,
+      workspaceFolderUri,
     );
 
-    if (
-      clearChoice === SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION
-    ) {
+    const { setting } = selected;
+
+    const shouldDeleteBeforePull = await shouldDeleteBeforePullCommand(
+      runtime,
+      preferences.pull.clearBeforePull,
+      `${preferences.rootDir}/${setting.folder}`,
+    );
+
+    if (shouldDeleteBeforePull) {
       await clearDirectory(
         runtime,
-        vscode.Uri.joinPath(workspaceFolderUri, "src", setting.folder),
+        vscode.Uri.joinPath(
+          workspaceFolderUri,
+          preferences.rootDir,
+          setting.folder,
+        ),
       );
     }
 
@@ -129,6 +136,7 @@ export async function runSnPullTableCommand(
           workspaceFolderUri,
           [setting],
           {
+            rootDir: preferences.rootDir,
             onFileWritten: ({ settingFolder, fileName }) => {
               visibleFilesWritten += 1;
               progress.report({
@@ -165,4 +173,47 @@ export function registerSnPullTableCommand(
   );
 
   context.subscriptions.push(disposable);
+}
+
+async function shouldDeleteBeforePullCommand(
+  runtime: Pick<SnPullTableRuntime, "showWarningMessage">,
+  clearBeforePull: "ask" | "delete" | "keep",
+  folderLabel: string,
+): Promise<boolean> {
+  if (clearBeforePull === "delete") {
+    return true;
+  }
+
+  if (clearBeforePull === "keep") {
+    return false;
+  }
+
+  const clearChoice = await runtime.showWarningMessage(
+    `Clear ${folderLabel} before pull to avoid stale local files?`,
+    SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION,
+    SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_SKIP_ACTION,
+  );
+
+  return (
+    clearChoice === SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION
+  );
+}
+
+async function resolvePreferences(
+  configService: SnSyncConfigService,
+  workspaceFolderUri: vscode.Uri,
+): Promise<{
+  rootDir: string;
+  pull: { clearBeforePull: "ask" | "delete" | "keep" };
+}> {
+  if (typeof configService.getPreferences === "function") {
+    return configService.getPreferences(workspaceFolderUri);
+  }
+
+  return {
+    rootDir: "src",
+    pull: {
+      clearBeforePull: "ask",
+    },
+  };
 }

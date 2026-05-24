@@ -24,6 +24,7 @@ suite("snSyncConfigService", () => {
         application: "",
         update_set: "",
         scope_update_sets: {},
+        preferences: {},
         settings: [],
       });
     });
@@ -99,6 +100,7 @@ suite("snSyncConfigService", () => {
         application: "",
         update_set: "",
         scope_update_sets: {},
+        preferences: {},
         settings: [],
       });
     });
@@ -131,6 +133,7 @@ suite("snSyncConfigService", () => {
         update_set: "update-set-sys-id-2",
         update_set_name: "My Update Set",
         scope_update_sets: {},
+        preferences: {},
         settings: [],
       });
     });
@@ -210,6 +213,7 @@ suite("snSyncConfigService", () => {
             update_set: "update-set-sys-id",
           },
         },
+        preferences: {},
         settings: [],
       });
     });
@@ -335,6 +339,7 @@ suite("snSyncConfigService", () => {
             update_set: "us-global",
           },
         },
+        preferences: {},
         settings: [],
       });
     });
@@ -400,6 +405,7 @@ suite("snSyncConfigService", () => {
             update_set: "",
           },
         },
+        preferences: {},
         settings: [],
       });
     });
@@ -465,6 +471,7 @@ suite("snSyncConfigService", () => {
         application: "",
         update_set: "",
         scope_update_sets: {},
+        preferences: {},
         settings: [
           {
             folder: "security_rules",
@@ -607,6 +614,134 @@ suite("snSyncConfigService", () => {
 
       const settings = await service.getSyncSettings(workspaceFolderUri);
       assert.deepStrictEqual(settings, []);
+    });
+  });
+
+  test("getPreferences uses vscode settings defaults when rc does not override them", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+      const originalGetConfiguration = vscode.workspace.getConfiguration;
+
+      (vscode.workspace.getConfiguration as unknown as (
+        section?: string,
+        scope?: vscode.ConfigurationScope | null,
+      ) => vscode.WorkspaceConfiguration) = () =>
+        ({
+          get: <T>(key: string) => {
+            if (key === "rootDir") {
+              return "app" as T;
+            }
+
+            if (key === "pull.clearBeforePull") {
+              return "delete" as T;
+            }
+
+            return undefined as T;
+          },
+        }) as unknown as vscode.WorkspaceConfiguration;
+
+      try {
+        const preferences = await service.getPreferences(workspaceFolderUri);
+
+        assert.deepStrictEqual(preferences, {
+          rootDir: "app",
+          pull: {
+            clearBeforePull: "delete",
+          },
+        });
+      } finally {
+        (vscode.workspace
+          .getConfiguration as unknown as typeof vscode.workspace.getConfiguration) =
+          originalGetConfiguration;
+      }
+    });
+  });
+
+  test("getPreferences lets rc override vscode settings and normalizes invalid values", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+      const rcConfigPath = getRcConfigPath(tempDir);
+      const originalGetConfiguration = vscode.workspace.getConfiguration;
+
+      await writeJsonFile(rcConfigPath, {
+        instance: "",
+        application: "",
+        update_set: "",
+        scope_update_sets: {},
+        preferences: {
+          rootDir: " packages ",
+          pull: {
+            clearBeforePull: "keep",
+          },
+        },
+        settings: [],
+      });
+
+      (vscode.workspace.getConfiguration as unknown as (
+        section?: string,
+        scope?: vscode.ConfigurationScope | null,
+      ) => vscode.WorkspaceConfiguration) = () =>
+        ({
+          get: <T>(key: string) => {
+            if (key === "rootDir") {
+              return "src-global" as T;
+            }
+
+            if (key === "pull.clearBeforePull") {
+              return "invalid" as T;
+            }
+
+            return undefined as T;
+          },
+        }) as unknown as vscode.WorkspaceConfiguration;
+
+      try {
+        const preferences = await service.getPreferences(workspaceFolderUri);
+
+        assert.deepStrictEqual(preferences, {
+          rootDir: "packages",
+          pull: {
+            clearBeforePull: "keep",
+          },
+        });
+      } finally {
+        (vscode.workspace
+          .getConfiguration as unknown as typeof vscode.workspace.getConfiguration) =
+          originalGetConfiguration;
+      }
+    });
+  });
+
+  test("getPreferences falls back to built-in defaults when rc and vscode settings are missing", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+      const originalGetConfiguration = vscode.workspace.getConfiguration;
+
+      (vscode.workspace.getConfiguration as unknown as (
+        section?: string,
+        scope?: vscode.ConfigurationScope | null,
+      ) => vscode.WorkspaceConfiguration) = () =>
+        ({
+          get: <T>() => undefined as T,
+        }) as unknown as vscode.WorkspaceConfiguration;
+
+      try {
+        const preferences = await service.getPreferences(workspaceFolderUri);
+
+        assert.deepStrictEqual(preferences, {
+          rootDir: "src",
+          pull: {
+            clearBeforePull: "ask",
+          },
+        });
+      } finally {
+        (vscode.workspace
+          .getConfiguration as unknown as typeof vscode.workspace.getConfiguration) =
+          originalGetConfiguration;
+      }
     });
   });
 });

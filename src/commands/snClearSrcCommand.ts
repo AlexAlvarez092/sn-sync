@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 import {
   SN_SYNC_COMMANDS,
   SN_SYNC_MESSAGES,
@@ -18,6 +19,13 @@ export interface SnClearSrcRuntime
   ): Thenable<string | undefined>;
 }
 
+export interface SnClearSrcConfigService {
+  getPreferences(workspaceFolderUri: vscode.Uri): Promise<{
+    rootDir: string;
+    pull: { clearBeforePull: "ask" | "delete" | "keep" };
+  }>;
+}
+
 const defaultRuntime: SnClearSrcRuntime = {
   ...defaultBaseRuntime,
   showWarningMessage: (message: string, ...items: string[]) =>
@@ -28,6 +36,7 @@ const defaultRuntime: SnClearSrcRuntime = {
 };
 
 export async function runSnClearSrcCommand(
+  configService: SnClearSrcConfigService = new SnSyncConfigService(),
   runtime: SnClearSrcRuntime = defaultRuntime,
 ): Promise<void> {
   const workspaceFolderUri = runtime.getWorkspaceFolderUri();
@@ -38,8 +47,10 @@ export async function runSnClearSrcCommand(
   }
 
   try {
+    const preferences = await configService.getPreferences(workspaceFolderUri);
+
     const confirmation = await runtime.showWarningMessage(
-      SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM,
+      `This will permanently delete all files and folders inside ${preferences.rootDir}. Continue?`,
       SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
     );
 
@@ -48,7 +59,10 @@ export async function runSnClearSrcCommand(
       return;
     }
 
-    const srcFolderUri = vscode.Uri.joinPath(workspaceFolderUri, "src");
+    const srcFolderUri = vscode.Uri.joinPath(
+      workspaceFolderUri,
+      preferences.rootDir,
+    );
 
     let entries: [string, vscode.FileType][];
     try {
@@ -56,7 +70,7 @@ export async function runSnClearSrcCommand(
     } catch (error) {
       if (getErrorMessage(error).includes("FileNotFound")) {
         void runtime.showInformationMessage(
-          SN_SYNC_MESSAGES.CLEAR_SRC_NOT_FOUND,
+          `Folder ${preferences.rootDir} not found. Nothing to clear.`,
         );
         return;
       }
@@ -71,7 +85,9 @@ export async function runSnClearSrcCommand(
       });
     }
 
-    void runtime.showInformationMessage(SN_SYNC_MESSAGES.CLEAR_SRC_SUCCESS);
+    void runtime.showInformationMessage(
+      `Folder ${preferences.rootDir} cleared.`,
+    );
   } catch (error) {
     void runtime.showErrorMessage(
       `${SN_SYNC_MESSAGES.CLEAR_SRC_FAILED_PREFIX} ${getErrorMessage(error)}`,
@@ -81,10 +97,11 @@ export async function runSnClearSrcCommand(
 
 export function registerSnClearSrcCommand(
   context: vscode.ExtensionContext,
+  configService: SnClearSrcConfigService = new SnSyncConfigService(),
 ): void {
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.CLEAR_SRC,
-    () => runSnClearSrcCommand(),
+    () => runSnClearSrcCommand(configService),
   );
 
   context.subscriptions.push(disposable);

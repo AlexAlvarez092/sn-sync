@@ -100,10 +100,11 @@ suite("snPullCommand", () => {
     assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.PULL_NO_SETTINGS]);
   });
 
-  test("pull clears src when selected and shows granular progress and success summary", async () => {
+  test("pull deletes configured root dir without prompting when preference is delete", async () => {
     const shownInfos: string[] = [];
     const deletedEntries: string[] = [];
     const pulledSettingFolders: string[] = [];
+    const usedRootDirs: string[] = [];
     const progressMessages: string[] = [];
     const progressIncrements: number[] = [];
     const progressTitles: string[] = [];
@@ -127,6 +128,10 @@ suite("snPullCommand", () => {
             fields: [{ extension: "js", field_name: "script" }],
           },
         ],
+        getPreferences: async () => ({
+          rootDir: "app",
+          pull: { clearBeforePull: "delete" },
+        }),
       } as unknown as never,
       {
         pullConfiguredScripts: async (
@@ -136,6 +141,7 @@ suite("snPullCommand", () => {
           options,
         ) => {
           pulledSettingFolders.push(settings[0].folder);
+          usedRootDirs.push(options?.rootDir ?? "missing");
 
           if (settings[0].folder === "business_rules") {
             options?.onFileWritten?.({
@@ -185,8 +191,9 @@ suite("snPullCommand", () => {
           shownInfos.push(message);
           return undefined;
         },
-        showWarningMessage: async () =>
-          SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
+        showWarningMessage: async () => {
+          throw new Error("must-not-be-called");
+        },
         readDirectory: async () => [
           ["business_rules", vscode.FileType.Directory],
           ["old-file.js", vscode.FileType.File],
@@ -209,12 +216,13 @@ suite("snPullCommand", () => {
     );
 
     assert.strictEqual(deletedEntries.length, 2);
-    assert.ok(deletedEntries[0].includes("/src/business_rules"));
-    assert.ok(deletedEntries[1].includes("/src/old-file.js"));
+    assert.ok(deletedEntries[0].includes("/app/business_rules"));
+    assert.ok(deletedEntries[1].includes("/app/old-file.js"));
     assert.deepStrictEqual(pulledSettingFolders, [
       "business_rules",
       "security_rules",
     ]);
+    assert.deepStrictEqual(usedRootDirs, ["app", "app"]);
     assert.deepStrictEqual(progressTitles, [
       "Pulling scripts from ServiceNow...",
     ]);
@@ -234,7 +242,7 @@ suite("snPullCommand", () => {
     ]);
   });
 
-  test("pull keeps src when selected and still syncs", async () => {
+  test("pull keeps files without prompting when preference is keep", async () => {
     let deleteCalled = false;
     const shownInfos: string[] = [];
 
@@ -250,6 +258,10 @@ suite("snPullCommand", () => {
             fields: [{ extension: "js", field_name: "script" }],
           },
         ],
+        getPreferences: async () => ({
+          rootDir: "src",
+          pull: { clearBeforePull: "keep" },
+        }),
       } as unknown as never,
       {
         pullConfiguredScripts: async () => ({
@@ -265,8 +277,9 @@ suite("snPullCommand", () => {
           shownInfos.push(message);
           return undefined;
         },
-        showWarningMessage: async () =>
-          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+        showWarningMessage: async () => {
+          throw new Error("must-not-be-called");
+        },
         readDirectory: async () => {
           throw new Error("must-not-be-called");
         },

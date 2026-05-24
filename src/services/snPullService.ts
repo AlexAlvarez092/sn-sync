@@ -25,6 +25,7 @@ export interface SnPullProgressEvent {
 
 export interface SnPullOptions {
   onFileWritten?: (event: SnPullProgressEvent) => void;
+  rootDir?: string;
 }
 
 export interface SnPullServiceApi {
@@ -104,7 +105,7 @@ export class SnPullService implements SnPullServiceApi {
   ): Promise<number> {
     const safeKeyValue = this.sanitizePathSegment(keyValue);
 
-    const baseParts = ["src", setting.folder];
+    const baseParts = [options?.rootDir ?? "src", setting.folder];
     if (setting.subDirPattern) {
       baseParts.push(...this.resolveSubDirParts(setting.subDirPattern, record));
     } else if (setting.fields.length > 1) {

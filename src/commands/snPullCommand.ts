@@ -71,16 +71,21 @@ export async function runSnPullCommand(
       return;
     }
 
-    const clearSrcChoice = await runtime.showWarningMessage(
-      SN_SYNC_MESSAGES.PULL_CLEAR_SRC_PROMPT,
-      SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
-      SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+    const preferences = await resolvePreferences(
+      configService,
+      workspaceFolderUri,
     );
 
-    if (clearSrcChoice === SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION) {
+    const shouldDeleteBeforePull = await shouldDeleteBeforePullCommand(
+      runtime,
+      preferences.pull.clearBeforePull,
+      preferences.rootDir,
+    );
+
+    if (shouldDeleteBeforePull) {
       await clearDirectory(
         runtime,
-        vscode.Uri.joinPath(workspaceFolderUri, "src"),
+        vscode.Uri.joinPath(workspaceFolderUri, preferences.rootDir),
       );
     }
 
@@ -97,6 +102,7 @@ export async function runSnPullCommand(
             workspaceFolderUri,
             [setting],
             {
+              rootDir: preferences.rootDir,
               onFileWritten: ({ settingFolder, fileName }) => {
                 visibleFilesWritten += 1;
                 progress.report({
@@ -144,4 +150,42 @@ export function registerSnPullCommand(
   );
 
   context.subscriptions.push(disposable);
+}
+
+async function shouldDeleteBeforePullCommand(
+  runtime: Pick<SnPullRuntime, "showWarningMessage">,
+  clearBeforePull: "ask" | "delete" | "keep",
+  rootDir: string,
+): Promise<boolean> {
+  if (clearBeforePull === "delete") {
+    return true;
+  }
+
+  if (clearBeforePull === "keep") {
+    return false;
+  }
+
+  const clearSrcChoice = await runtime.showWarningMessage(
+    `Clear ${rootDir} before pull to avoid stale local files?`,
+    SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
+    SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+  );
+
+  return clearSrcChoice === SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION;
+}
+
+async function resolvePreferences(
+  configService: SnSyncConfigService,
+  workspaceFolderUri: vscode.Uri,
+): Promise<{ rootDir: string; pull: { clearBeforePull: "ask" | "delete" | "keep" } }> {
+  if (typeof configService.getPreferences === "function") {
+    return configService.getPreferences(workspaceFolderUri);
+  }
+
+  return {
+    rootDir: "src",
+    pull: {
+      clearBeforePull: "ask",
+    },
+  };
 }

@@ -46,7 +46,7 @@ suite("snClearSrcCommand", () => {
       delete: async () => undefined,
     };
 
-    await runSnClearSrcCommand(runtime);
+    await runSnClearSrcCommand(createConfigServiceStub(), runtime);
 
     assert.strictEqual(readCalled, false);
     assert.deepStrictEqual(shownErrors, [SN_SYNC_MESSAGES.NO_WORKSPACE]);
@@ -72,13 +72,13 @@ suite("snClearSrcCommand", () => {
       delete: async () => undefined,
     };
 
-    await runSnClearSrcCommand(runtime);
+    await runSnClearSrcCommand(createConfigServiceStub(), runtime);
 
     assert.strictEqual(readCalled, false);
     assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.CLEAR_SRC_CANCELLED]);
   });
 
-  test("shows info when src folder does not exist", async () => {
+  test("shows info when configured root folder does not exist", async () => {
     const shownInfos: string[] = [];
 
     const runtime: SnClearSrcRuntime = {
@@ -95,12 +95,14 @@ suite("snClearSrcCommand", () => {
       delete: async () => undefined,
     };
 
-    await runSnClearSrcCommand(runtime);
+    await runSnClearSrcCommand(createConfigServiceStub("app"), runtime);
 
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.CLEAR_SRC_NOT_FOUND]);
+    assert.deepStrictEqual(shownInfos, [
+      "Folder app not found. Nothing to clear.",
+    ]);
   });
 
-  test("deletes src contents and shows success message", async () => {
+  test("deletes configured root folder contents and shows success message", async () => {
     const shownInfos: string[] = [];
     const deletedUris: string[] = [];
     const workspaceUri = createTempWorkspaceUri("clear-src-success");
@@ -123,13 +125,13 @@ suite("snClearSrcCommand", () => {
       },
     };
 
-    await runSnClearSrcCommand(runtime);
+    await runSnClearSrcCommand(createConfigServiceStub("app"), runtime);
 
     assert.strictEqual(deletedUris.length, 3);
-    assert.ok(deletedUris[0].includes("/src/business_rules"));
-    assert.ok(deletedUris[1].includes("/src/security_rules"));
-    assert.ok(deletedUris[2].includes("/src/note.txt"));
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.CLEAR_SRC_SUCCESS]);
+    assert.ok(deletedUris[0].includes("/app/business_rules"));
+    assert.ok(deletedUris[1].includes("/app/security_rules"));
+    assert.ok(deletedUris[2].includes("/app/note.txt"));
+    assert.deepStrictEqual(shownInfos, ["Folder app cleared."]);
   });
 
   test("shows detailed error when deletion fails", async () => {
@@ -149,14 +151,14 @@ suite("snClearSrcCommand", () => {
       },
     };
 
-    await runSnClearSrcCommand(runtime);
+    await runSnClearSrcCommand(createConfigServiceStub(), runtime);
 
     assert.deepStrictEqual(shownErrors, [
       `${SN_SYNC_MESSAGES.CLEAR_SRC_FAILED_PREFIX} cannot-delete`,
     ]);
   });
 
-  test("shows detailed error when reading src fails for non-FileNotFound error", async () => {
+  test("shows detailed error when reading configured root folder fails for non-FileNotFound error", async () => {
     const shownErrors: string[] = [];
 
     const runtime: SnClearSrcRuntime = {
@@ -174,19 +176,19 @@ suite("snClearSrcCommand", () => {
       delete: async () => undefined,
     };
 
-    await runSnClearSrcCommand(runtime);
+    await runSnClearSrcCommand(createConfigServiceStub(), runtime);
 
     assert.deepStrictEqual(shownErrors, [
       `${SN_SYNC_MESSAGES.CLEAR_SRC_FAILED_PREFIX} permission-denied`,
     ]);
   });
 
-  test("uses default runtime and clears src when workspace exists", async () => {
+  test("uses default runtime and clears configured root folder when workspace exists", async () => {
     await withTempDir("clear-src-default-runtime-", async (tempDir) => {
       const shownInfos: string[] = [];
       const shownWarnings: string[] = [];
       const workspaceUri = vscode.Uri.file(tempDir);
-      const srcDir = path.join(tempDir, "src");
+      const srcDir = path.join(tempDir, "app");
 
       await fs.mkdir(path.join(srcDir, "business_rules"), { recursive: true });
       await fs.writeFile(
@@ -209,7 +211,7 @@ suite("snClearSrcCommand", () => {
               return SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION;
             },
             async () => {
-              await runSnClearSrcCommand();
+              await runSnClearSrcCommand(createConfigServiceStub("app"));
             },
           );
         },
@@ -218,9 +220,9 @@ suite("snClearSrcCommand", () => {
       const remainingEntries = await fs.readdir(srcDir);
       assert.deepStrictEqual(remainingEntries, []);
       assert.deepStrictEqual(shownWarnings, [
-        SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM,
+        "This will permanently delete all files and folders inside app. Continue?",
       ]);
-      assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.CLEAR_SRC_SUCCESS]);
+      assert.deepStrictEqual(shownInfos, ["Folder app cleared."]);
     });
   });
 
@@ -236,7 +238,7 @@ suite("snClearSrcCommand", () => {
         async (_message: string) => undefined,
         async () => undefined,
         async () => {
-          await runSnClearSrcCommand();
+          await runSnClearSrcCommand(createConfigServiceStub());
         },
       );
     });
@@ -264,6 +266,20 @@ function withPatchedRegisterCommand(run: () => void): void {
   } finally {
     commandsObject.registerCommand = originalRegisterCommand;
   }
+}
+
+function createConfigServiceStub(rootDir = "src"): {
+  getPreferences: (workspaceFolderUri: vscode.Uri) => Promise<{
+    rootDir: string;
+    pull: { clearBeforePull: "ask" | "delete" | "keep" };
+  }>;
+} {
+  return {
+    getPreferences: async (_workspaceFolderUri: vscode.Uri) => ({
+      rootDir,
+      pull: { clearBeforePull: "ask" },
+    }),
+  };
 }
 
 async function withPatchedWorkspaceFolders(

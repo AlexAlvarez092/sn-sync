@@ -3,14 +3,21 @@ import {
   type ExtensionConfigField,
   type ExtensionConfigSetting,
   type InstanceConfig,
+  type SnPullClearBeforePull,
+  type SnSyncPreferences,
+  type SnSyncResolvedPreferences,
   type ScopeUpdateSetSelection,
 } from "@shared/models/config.js";
 import { ensureJsonFile } from "@shared/services/jsonFileService.js";
 import { getSnSyncPaths } from "@shared/services/snSyncPathService.js";
 
 interface SnSyncRcConfig extends InstanceConfig {
+  preferences?: SnSyncPreferences;
   settings: ExtensionConfigSetting[];
 }
+
+const DEFAULT_ROOT_DIR = "src";
+const DEFAULT_CLEAR_BEFORE_PULL: SnPullClearBeforePull = "ask";
 
 export class SnSyncConfigService {
   public async initialize(workspaceFolderUri: vscode.Uri): Promise<void> {
@@ -21,8 +28,39 @@ export class SnSyncConfigService {
       application: "",
       update_set: "",
       scope_update_sets: {},
+      preferences: {},
       settings: [],
     } satisfies SnSyncRcConfig);
+  }
+
+  public async getPreferences(
+    workspaceFolderUri: vscode.Uri,
+  ): Promise<SnSyncResolvedPreferences> {
+    await this.initialize(workspaceFolderUri);
+
+    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
+    const config = await this.readConfig(rcConfigUri);
+    const vscodeConfig = vscode.workspace.getConfiguration(
+      "sn-sync",
+      workspaceFolderUri,
+    );
+
+    return {
+      rootDir:
+        this.normalizeString(config.preferences?.rootDir) ??
+        this.normalizeString(vscodeConfig.get<string>("rootDir")) ??
+        DEFAULT_ROOT_DIR,
+      pull: {
+        clearBeforePull:
+          this.normalizePullClearBeforePull(
+            config.preferences?.pull?.clearBeforePull,
+          ) ??
+          this.normalizePullClearBeforePull(
+            vscodeConfig.get<string>("pull.clearBeforePull"),
+          ) ??
+          DEFAULT_CLEAR_BEFORE_PULL,
+      },
+    };
   }
 
   public async setInstanceName(
@@ -169,6 +207,7 @@ export class SnSyncConfigService {
       application: "",
       update_set: "",
       scope_update_sets: {},
+      preferences: config.preferences,
       settings: config.settings,
     };
 
@@ -247,6 +286,7 @@ export class SnSyncConfigService {
                 ),
               )
             : {},
+        preferences: this.normalizePreferences(parsed.preferences),
         settings: Array.isArray(parsed.settings)
           ? parsed.settings
               .map((setting) =>
@@ -263,6 +303,7 @@ export class SnSyncConfigService {
         application: "",
         update_set: "",
         scope_update_sets: {},
+        preferences: {},
         settings: [],
       };
     }
@@ -324,6 +365,34 @@ export class SnSyncConfigService {
         } satisfies ExtensionConfigField;
       })
       .filter((field): field is ExtensionConfigField => Boolean(field));
+  }
+
+  private normalizePreferences(
+    preferences: SnSyncPreferences | undefined,
+  ): SnSyncPreferences {
+    if (!preferences || typeof preferences !== "object") {
+      return {};
+    }
+
+    const rootDir = this.normalizeString(preferences.rootDir);
+    const clearBeforePull = this.normalizePullClearBeforePull(
+      preferences.pull?.clearBeforePull,
+    );
+
+    return {
+      ...(rootDir ? { rootDir } : {}),
+      ...(clearBeforePull ? { pull: { clearBeforePull } } : {}),
+    };
+  }
+
+  private normalizePullClearBeforePull(
+    value: string | undefined,
+  ): SnPullClearBeforePull | undefined {
+    if (value === "ask" || value === "delete" || value === "keep") {
+      return value;
+    }
+
+    return undefined;
   }
 
   private normalizeString(
