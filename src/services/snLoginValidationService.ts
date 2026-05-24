@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
 import { SnAuthService } from "@services/snAuthService.js";
-import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
+import {
+  SN_SYNC_MESSAGES,
+  SN_SYNC_SERVICENOW,
+} from "@shared/constants/snSyncConstants.js";
 import {
   buildBasicAuthHeader,
   handleHttpError,
@@ -34,11 +37,11 @@ export class SnLoginValidationService implements SnLoginValidationServiceApi {
     }
 
     const response = await this.fetchApi(
-      `${normalizeInstanceUrl(savedAuth.instanceUrl)}/api/now/ui/user/current`,
+      `${normalizeInstanceUrl(savedAuth.instanceUrl)}${SN_SYNC_SERVICENOW.CURRENT_USER_API_PATH}`,
       {
         method: "GET",
         headers: {
-          Accept: "application/json",
+          Accept: SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
           Authorization: buildBasicAuthHeader(
             savedAuth.username,
             savedAuth.password,

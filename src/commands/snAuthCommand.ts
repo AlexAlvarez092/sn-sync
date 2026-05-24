@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { SnAuthService } from "@services/snAuthService.js";
 import {
   SN_SYNC_COMMANDS,
+  SN_SYNC_INPUTS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
 import {
@@ -65,8 +66,8 @@ async function collectAuthInput(
   runtime: SnAuthRuntime,
 ): Promise<SnAuthInput | undefined> {
   const instanceName = await askRequiredInput(runtime, {
-    prompt: "Instance name",
-    placeHolder: "my-dev-instance",
+    prompt: SN_SYNC_INPUTS.AUTH_INSTANCE_NAME_PROMPT,
+    placeHolder: SN_SYNC_INPUTS.AUTH_INSTANCE_NAME_PLACEHOLDER,
     ignoreFocusOut: true,
   });
   if (!instanceName) {
@@ -74,8 +75,8 @@ async function collectAuthInput(
   }
 
   const instanceUrl = await askRequiredInput(runtime, {
-    prompt: "Instance URL",
-    placeHolder: "https://my-dev-instance.service-now.com",
+    prompt: SN_SYNC_INPUTS.AUTH_INSTANCE_URL_PROMPT,
+    placeHolder: SN_SYNC_INPUTS.AUTH_INSTANCE_URL_PLACEHOLDER,
     ignoreFocusOut: true,
   });
   if (!instanceUrl) {
@@ -83,8 +84,8 @@ async function collectAuthInput(
   }
 
   const username = await askRequiredInput(runtime, {
-    prompt: "Username",
-    placeHolder: "admin",
+    prompt: SN_SYNC_INPUTS.AUTH_USERNAME_PROMPT,
+    placeHolder: SN_SYNC_INPUTS.AUTH_USERNAME_PLACEHOLDER,
     ignoreFocusOut: true,
   });
   if (!username) {
@@ -92,7 +93,7 @@ async function collectAuthInput(
   }
 
   const password = await askRequiredInput(runtime, {
-    prompt: "Password",
+    prompt: SN_SYNC_INPUTS.AUTH_PASSWORD_PROMPT,
     password: true,
     ignoreFocusOut: true,
   });

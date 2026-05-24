@@ -1,6 +1,10 @@
 import * as vscode from "vscode";
 import { SnAuthService } from "@services/snAuthService.js";
-import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
+import {
+  SN_SYNC_DEFAULTS,
+  SN_SYNC_MESSAGES,
+  SN_SYNC_SERVICENOW,
+} from "@shared/constants/snSyncConstants.js";
 import {
   buildBasicAuthHeader,
   handleHttpError,
@@ -105,7 +109,10 @@ export class SnPullService implements SnPullServiceApi {
   ): Promise<number> {
     const safeKeyValue = this.sanitizePathSegment(keyValue);
 
-    const baseParts = [options?.rootDir ?? "src", setting.folder];
+    const baseParts = [
+      options?.rootDir ?? SN_SYNC_DEFAULTS.ROOT_DIR,
+      setting.folder,
+    ];
     if (setting.subDirPattern) {
       baseParts.push(...this.resolveSubDirParts(setting.subDirPattern, record));
     } else if (setting.fields.length > 1) {
@@ -209,11 +216,11 @@ export class SnPullService implements SnPullServiceApi {
 
     for (let offset = 0; ; offset += limit) {
       const response = await this.fetchApi(
-        `${normalizedUrl}/api/now/table/${tableName}?sysparm_query=${encodedQuery}&sysparm_fields=${encodedFields}&sysparm_limit=${limit}&sysparm_offset=${offset}`,
+        `${normalizedUrl}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${tableName}?sysparm_query=${encodedQuery}&sysparm_fields=${encodedFields}&sysparm_limit=${limit}&sysparm_offset=${offset}`,
         {
           method: "GET",
           headers: {
-            Accept: "application/json",
+            Accept: SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
             Authorization: buildBasicAuthHeader(
               savedAuth.username,
               savedAuth.password,

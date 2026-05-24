@@ -6,6 +6,7 @@ import {
 import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 import {
   SN_SYNC_COMMANDS,
+  SN_SYNC_DEFAULTS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
 import {
@@ -135,7 +136,7 @@ export async function runSnPullTableCommand(
     }
 
     const summary = await runtime.withProgress(
-      "Pulling scripts from ServiceNow...",
+      SN_SYNC_MESSAGES.PULL_PROGRESS_TITLE,
       async (progress) => {
         let visibleFilesWritten = 0;
 
@@ -219,9 +220,9 @@ async function resolvePreferences(
   }
 
   return {
-    rootDir: "src",
+    rootDir: SN_SYNC_DEFAULTS.ROOT_DIR,
     pull: {
-      clearBeforePull: "ask",
+      clearBeforePull: SN_SYNC_DEFAULTS.CLEAR_BEFORE_PULL,
     },
   };
 }

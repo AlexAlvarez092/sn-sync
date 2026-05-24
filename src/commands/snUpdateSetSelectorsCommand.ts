@@ -7,6 +7,7 @@ import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 import {
   SN_SYNC_COMMANDS,
   SN_SYNC_MESSAGES,
+  SN_SYNC_UPDATE_SET,
 } from "@shared/constants/snSyncConstants.js";
 import {
   type SnBaseCommandRuntime,
@@ -18,12 +19,6 @@ import type {
 } from "@shared/models/updateSet.js";
 import type { ScopeUpdateSetSelection } from "@shared/models/config.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
-
-const GLOBAL_SCOPED_APP: SnScopedApplication = {
-  sys_id: "global",
-  name: "Global",
-  scope: "global",
-};
 
 interface ScopeQuickPickItem extends vscode.QuickPickItem {
   app: SnScopedApplication;
@@ -276,7 +271,7 @@ export async function initializeUpdateSetSelectors(
       context,
       workspaceFolderUri,
     );
-    const availableScopes = [GLOBAL_SCOPED_APP, ...scopedApps];
+    const availableScopes = [SN_SYNC_UPDATE_SET.GLOBAL_SCOPED_APP, ...scopedApps];
 
     const cleanedSelections = await cleanUnavailableScopeSelections(
       context,
@@ -288,7 +283,7 @@ export async function initializeUpdateSetSelectors(
 
     const selectedScope =
       findFirstConfiguredScope(cleanedSelections, availableScopes) ??
-      GLOBAL_SCOPED_APP.scope;
+      SN_SYNC_UPDATE_SET.GLOBAL_SCOPED_APP.scope;
 
     await uiController.updateState({
       workspaceFolderUri,
@@ -303,16 +298,16 @@ export async function initializeUpdateSetSelectors(
       await configService.getScopeUpdateSetSelections(workspaceFolderUri);
     await uiController.updateState({
       workspaceFolderUri,
-      scopes: [GLOBAL_SCOPED_APP],
+      scopes: [SN_SYNC_UPDATE_SET.GLOBAL_SCOPED_APP],
       selections: {
         global: {
-          application: "global",
-          application_name: "Global",
+          application: SN_SYNC_UPDATE_SET.GLOBAL_SCOPED_APP.sys_id,
+          application_name: SN_SYNC_UPDATE_SET.GLOBAL_SCOPED_APP.name,
           update_set: fallbackSelections.global?.update_set ?? "",
           update_set_name: fallbackSelections.global?.update_set_name ?? "",
         },
       },
-      selectedScope: GLOBAL_SCOPED_APP.scope,
+      selectedScope: SN_SYNC_UPDATE_SET.GLOBAL_SCOPED_APP.scope,
     });
 
     if (errorMessage !== SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED) {

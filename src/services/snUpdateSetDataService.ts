@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
 import { SnAuthService } from "@services/snAuthService.js";
-import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
+import {
+  SN_SYNC_MESSAGES,
+  SN_SYNC_SERVICENOW,
+} from "@shared/constants/snSyncConstants.js";
 import {
   buildBasicAuthHeader,
   handleHttpError,
@@ -46,9 +49,9 @@ export class SnUpdateSetDataService implements SnUpdateSetDataServiceApi {
     const result = await this.requestTable(
       context,
       workspaceFolderUri,
-      "sys_scope",
-      "scopeISNOTEMPTY",
-      "sys_id,name,scope",
+      SN_SYNC_SERVICENOW.TABLES.SCOPE,
+      SN_SYNC_SERVICENOW.QUERIES.NON_EMPTY_SCOPE,
+      SN_SYNC_SERVICENOW.FIELDS.SCOPED_APPLICATION,
     );
 
     return result
@@ -70,14 +73,15 @@ export class SnUpdateSetDataService implements SnUpdateSetDataServiceApi {
     workspaceFolderUri: vscode.Uri,
     applicationSysId: string,
   ): Promise<SnUpdateSet[]> {
-    const query = `state=in progress^application=${applicationSysId}`;
+    const query =
+      SN_SYNC_SERVICENOW.QUERIES.inProgressUpdateSets(applicationSysId);
 
     const result = await this.requestTable(
       context,
       workspaceFolderUri,
-      "sys_update_set",
+      SN_SYNC_SERVICENOW.TABLES.UPDATE_SET,
       query,
-      "sys_id,name",
+      SN_SYNC_SERVICENOW.FIELDS.UPDATE_SET,
     );
 
     return result
@@ -111,11 +115,11 @@ export class SnUpdateSetDataService implements SnUpdateSetDataServiceApi {
     const encodedFields = encodeURIComponent(fields);
 
     const response = await this.fetchApi(
-      `${normalizedUrl}/api/now/table/${tableName}?sysparm_query=${encodedQuery}&sysparm_fields=${encodedFields}`,
+      `${normalizedUrl}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${tableName}?sysparm_query=${encodedQuery}&sysparm_fields=${encodedFields}`,
       {
         method: "GET",
         headers: {
-          Accept: "application/json",
+          Accept: SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
           Authorization: buildBasicAuthHeader(
             savedAuth.username,
             savedAuth.password,

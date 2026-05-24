@@ -7,44 +7,13 @@ import {
   type SnSyncResolvedPreferences,
   type ScopeUpdateSetSelection,
 } from "@shared/models/config.js";
+import { SN_SYNC_DEFAULTS } from "@shared/constants/snSyncConstants.js";
 import { ensureJsonFile } from "@shared/services/jsonFileService.js";
 import { getSnSyncPaths } from "@shared/services/snSyncPathService.js";
 
 interface SnSyncRcConfig extends InstanceConfig {
   settings: ExtensionConfigSetting[];
 }
-
-const DEFAULT_ROOT_DIR = "src";
-const DEFAULT_CLEAR_BEFORE_PULL: SnPullClearBeforePull = "ask";
-const DEFAULT_SETTINGS: ExtensionConfigSetting[] = [
-  {
-    folder: "business_rules",
-    table: "sys_script",
-    query: "active=true",
-    key: "name",
-    subDirPattern: "<collection>/<when>",
-    fields: [{ extension: "js", field_name: "script" }],
-  },
-  {
-    folder: "script_includes",
-    table: "sys_script_include",
-    query: "active=true",
-    key: "apu_name",
-    fields: [{ extension: "js", field_name: "script" }],
-  },
-  {
-    folder: "widgets",
-    table: "sp_widget",
-    query: "active=true",
-    key: "id",
-    fields: [
-      { extension: "server.js", field_name: "script" },
-      { extension: "client.js", field_name: "client_script" },
-      { extension: "html", field_name: "template" },
-      { extension: "s css", field_name: "css" },
-    ],
-  },
-];
 
 export class SnSyncConfigService {
   public async initialize(workspaceFolderUri: vscode.Uri): Promise<void> {
@@ -55,7 +24,7 @@ export class SnSyncConfigService {
       application: "",
       update_set: "",
       scope_update_sets: {},
-      settings: DEFAULT_SETTINGS,
+      settings: SN_SYNC_DEFAULTS.SETTINGS,
     } satisfies SnSyncRcConfig);
   }
 
@@ -74,12 +43,12 @@ export class SnSyncConfigService {
     return {
       rootDir:
         this.normalizeString(vscodeConfig.get<string>("rootDir")) ??
-        DEFAULT_ROOT_DIR,
+        SN_SYNC_DEFAULTS.ROOT_DIR,
       pull: {
         clearBeforePull:
           this.normalizePullClearBeforePull(
             vscodeConfig.get<string>("pull.clearBeforePull"),
-          ) ?? DEFAULT_CLEAR_BEFORE_PULL,
+          ) ?? SN_SYNC_DEFAULTS.CLEAR_BEFORE_PULL,
       },
     };
   }
