@@ -10,6 +10,36 @@ import {
   writeJsonFile,
 } from "@test/helpers/testRuntime.js";
 
+const DEFAULT_SETTINGS = [
+  {
+    folder: "business_rules",
+    table: "sys_script",
+    query: "active=true",
+    key: "name",
+    subDirPattern: "<collection>/<when>",
+    fields: [{ extension: "js", field_name: "script" }],
+  },
+  {
+    folder: "script_includes",
+    table: "sys_script_include",
+    query: "active=true",
+    key: "apu_name",
+    fields: [{ extension: "js", field_name: "script" }],
+  },
+  {
+    folder: "widgets",
+    table: "sp_widget",
+    query: "active=true",
+    key: "id",
+    fields: [
+      { extension: "server.js", field_name: "script" },
+      { extension: "client.js", field_name: "client_script" },
+      { extension: "html", field_name: "template" },
+      { extension: "s css", field_name: "css" },
+    ],
+  },
+];
+
 suite("snSyncConfigService", () => {
   test("creates .snsyncrc with defaults", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
@@ -24,8 +54,7 @@ suite("snSyncConfigService", () => {
         application: "",
         update_set: "",
         scope_update_sets: {},
-        preferences: {},
-        settings: [],
+        settings: DEFAULT_SETTINGS,
       });
     });
   });
@@ -100,7 +129,6 @@ suite("snSyncConfigService", () => {
         application: "",
         update_set: "",
         scope_update_sets: {},
-        preferences: {},
         settings: [],
       });
     });
@@ -133,8 +161,7 @@ suite("snSyncConfigService", () => {
         update_set: "update-set-sys-id-2",
         update_set_name: "My Update Set",
         scope_update_sets: {},
-        preferences: {},
-        settings: [],
+        settings: DEFAULT_SETTINGS,
       });
     });
   });
@@ -213,8 +240,7 @@ suite("snSyncConfigService", () => {
             update_set: "update-set-sys-id",
           },
         },
-        preferences: {},
-        settings: [],
+        settings: DEFAULT_SETTINGS,
       });
     });
   });
@@ -339,7 +365,6 @@ suite("snSyncConfigService", () => {
             update_set: "us-global",
           },
         },
-        preferences: {},
         settings: [],
       });
     });
@@ -405,7 +430,6 @@ suite("snSyncConfigService", () => {
             update_set: "",
           },
         },
-        preferences: {},
         settings: [],
       });
     });
@@ -471,7 +495,6 @@ suite("snSyncConfigService", () => {
         application: "",
         update_set: "",
         scope_update_sets: {},
-        preferences: {},
         settings: [
           {
             folder: "security_rules",
@@ -621,7 +644,16 @@ suite("snSyncConfigService", () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
+      const rcConfigPath = getRcConfigPath(tempDir);
       const originalGetConfiguration = vscode.workspace.getConfiguration;
+
+      await writeJsonFile(rcConfigPath, {
+        instance: "",
+        application: "",
+        update_set: "",
+        scope_update_sets: {},
+        settings: [],
+      });
 
       (vscode.workspace.getConfiguration as unknown as (
         section?: string,
@@ -658,7 +690,7 @@ suite("snSyncConfigService", () => {
     });
   });
 
-  test("getPreferences lets rc override vscode settings and normalizes invalid values", async () => {
+  test("getPreferences ignores rc preferences and uses vscode settings", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
@@ -701,9 +733,9 @@ suite("snSyncConfigService", () => {
         const preferences = await service.getPreferences(workspaceFolderUri);
 
         assert.deepStrictEqual(preferences, {
-          rootDir: "packages",
+          rootDir: "src-global",
           pull: {
-            clearBeforePull: "keep",
+            clearBeforePull: "ask",
           },
         });
       } finally {
@@ -718,7 +750,16 @@ suite("snSyncConfigService", () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);
       const service = new SnSyncConfigService();
+      const rcConfigPath = getRcConfigPath(tempDir);
       const originalGetConfiguration = vscode.workspace.getConfiguration;
+
+      await writeJsonFile(rcConfigPath, {
+        instance: "",
+        application: "",
+        update_set: "",
+        scope_update_sets: {},
+        settings: [],
+      });
 
       (vscode.workspace.getConfiguration as unknown as (
         section?: string,

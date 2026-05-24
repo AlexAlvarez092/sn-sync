@@ -559,6 +559,62 @@ suite("snPullTableCommand", () => {
     });
   });
 
+  test("uses default runtime and creates src when it does not exist", async () => {
+    await withTempDir(
+      "pull-table-default-runtime-create-src-",
+      async (tempDir) => {
+        const shownInfos: string[] = [];
+        const workspaceUri = vscode.Uri.file(tempDir);
+        const srcDir = path.join(tempDir, "src");
+
+        await withPatchedWorkspaceFolders(
+          [{ uri: workspaceUri, name: "tmp", index: 0 }],
+          async () => {
+            await withPatchedWindowMessages(
+              async (_message: string) => undefined,
+              async (message: string) => {
+                shownInfos.push(message);
+                return undefined;
+              },
+              async (items) => items[0],
+              async () => SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_SKIP_ACTION,
+              async (_options, task) => task({ report: () => undefined }),
+              async () => {
+                await runSnPullTableCommand(
+                  {} as vscode.ExtensionContext,
+                  {
+                    getSyncSettings: async () => [
+                      {
+                        folder: "business_rules",
+                        table: "sys_script",
+                        query: "active=true",
+                        key: "name",
+                        fields: [{ extension: "js", field_name: "script" }],
+                      },
+                    ],
+                  } as unknown as never,
+                  {
+                    pullConfiguredScripts: async () => ({
+                      settings: 1,
+                      records: 1,
+                      files: 1,
+                    }),
+                  },
+                );
+              },
+            );
+          },
+        );
+
+        const srcStats = await fs.stat(srcDir);
+        assert.strictEqual(srcStats.isDirectory(), true);
+        assert.deepStrictEqual(shownInfos, [
+          `${SN_SYNC_MESSAGES.PULL_TABLE_SUCCESS_PREFIX} 1 files from 1 records (business_rules).`,
+        ]);
+      },
+    );
+  });
+
   test("uses default runtime and shows no-workspace error when workspace is missing", async () => {
     const shownErrors: string[] = [];
 

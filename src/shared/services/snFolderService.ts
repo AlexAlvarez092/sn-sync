@@ -7,6 +7,19 @@ export interface FolderClearRuntime {
     uri: vscode.Uri,
     options: { recursive: boolean; useTrash: boolean },
   ): Thenable<void>;
+  createDirectory?(uri: vscode.Uri): Thenable<void>;
+}
+
+export async function ensureDirectoryExists(
+  runtime: Pick<FolderClearRuntime, "createDirectory">,
+  directoryUri: vscode.Uri,
+): Promise<void> {
+  if (runtime.createDirectory) {
+    await runtime.createDirectory(directoryUri);
+    return;
+  }
+
+  await vscode.workspace.fs.createDirectory(directoryUri);
 }
 
 export async function clearDirectory(

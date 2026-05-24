@@ -7,15 +7,6 @@ export interface ScopeUpdateSetSelection {
 
 export type SnPullClearBeforePull = "ask" | "delete" | "keep";
 
-export interface SnSyncPullPreferences {
-  clearBeforePull?: SnPullClearBeforePull;
-}
-
-export interface SnSyncPreferences {
-  rootDir?: string;
-  pull?: SnSyncPullPreferences;
-}
-
 export interface SnSyncResolvedPreferences {
   rootDir: string;
   pull: {

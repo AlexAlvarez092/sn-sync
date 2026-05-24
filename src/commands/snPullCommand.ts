@@ -15,6 +15,7 @@ import {
 import {
   type FolderClearRuntime,
   clearDirectory,
+  ensureDirectoryExists,
 } from "@shared/services/snFolderService.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
 
@@ -39,6 +40,8 @@ const defaultRuntime: SnPullRuntime = {
   readDirectory: (uri: vscode.Uri) => vscode.workspace.fs.readDirectory(uri),
   delete: (uri: vscode.Uri, options) =>
     vscode.workspace.fs.delete(uri, options),
+  createDirectory: (uri: vscode.Uri) =>
+    vscode.workspace.fs.createDirectory(uri),
   withProgress: (title, task) =>
     vscode.window.withProgress(
       {
@@ -74,6 +77,11 @@ export async function runSnPullCommand(
     const preferences = await resolvePreferences(
       configService,
       workspaceFolderUri,
+    );
+
+    await ensureDirectoryExists(
+      runtime,
+      vscode.Uri.joinPath(workspaceFolderUri, preferences.rootDir),
     );
 
     const shouldDeleteBeforePull = await shouldDeleteBeforePullCommand(
@@ -177,7 +185,10 @@ async function shouldDeleteBeforePullCommand(
 async function resolvePreferences(
   configService: SnSyncConfigService,
   workspaceFolderUri: vscode.Uri,
-): Promise<{ rootDir: string; pull: { clearBeforePull: "ask" | "delete" | "keep" } }> {
+): Promise<{
+  rootDir: string;
+  pull: { clearBeforePull: "ask" | "delete" | "keep" };
+}> {
   if (typeof configService.getPreferences === "function") {
     return configService.getPreferences(workspaceFolderUri);
   }

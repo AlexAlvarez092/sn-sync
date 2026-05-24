@@ -15,6 +15,7 @@ import {
 import {
   type FolderClearRuntime,
   clearDirectory,
+  ensureDirectoryExists,
 } from "@shared/services/snFolderService.js";
 import type { ExtensionConfigSetting } from "@shared/models/config.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
@@ -52,6 +53,8 @@ export const defaultRuntime: SnPullTableRuntime = {
   readDirectory: (uri: vscode.Uri) => vscode.workspace.fs.readDirectory(uri),
   delete: (uri: vscode.Uri, options) =>
     vscode.workspace.fs.delete(uri, options),
+  createDirectory: (uri: vscode.Uri) =>
+    vscode.workspace.fs.createDirectory(uri),
   withProgress: (title, task) =>
     vscode.window.withProgress(
       {
@@ -105,6 +108,11 @@ export async function runSnPullTableCommand(
     const preferences = await resolvePreferences(
       configService,
       workspaceFolderUri,
+    );
+
+    await ensureDirectoryExists(
+      runtime,
+      vscode.Uri.joinPath(workspaceFolderUri, preferences.rootDir),
     );
 
     const { setting } = selected;

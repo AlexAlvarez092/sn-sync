@@ -552,6 +552,61 @@ suite("snPullCommand", () => {
     });
   });
 
+  test("uses default runtime and creates src when it does not exist", async () => {
+    await withTempDir("pull-default-runtime-create-src-", async (tempDir) => {
+      const shownInfos: string[] = [];
+      const workspaceUri = vscode.Uri.file(tempDir);
+      const srcDir = path.join(tempDir, "src");
+
+      await withPatchedWorkspaceFolders(
+        [{ uri: workspaceUri, name: "tmp", index: 0 }],
+        async () => {
+          await withPatchedWindowMessages(
+            async (_message: string) => undefined,
+            async (message: string) => {
+              shownInfos.push(message);
+              return undefined;
+            },
+            async () => SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+            async (_options, task) =>
+              task({
+                report: () => undefined,
+              }),
+            async () => {
+              await runSnPullCommand(
+                {} as vscode.ExtensionContext,
+                {
+                  getSyncSettings: async () => [
+                    {
+                      folder: "security_rules",
+                      table: "sys_security_acl",
+                      query: "active=true",
+                      key: "name",
+                      fields: [{ extension: "js", field_name: "script" }],
+                    },
+                  ],
+                } as unknown as never,
+                {
+                  pullConfiguredScripts: async () => ({
+                    settings: 1,
+                    records: 1,
+                    files: 1,
+                  }),
+                },
+              );
+            },
+          );
+        },
+      );
+
+      const srcStats = await fs.stat(srcDir);
+      assert.strictEqual(srcStats.isDirectory(), true);
+      assert.deepStrictEqual(shownInfos, [
+        `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
+      ]);
+    });
+  });
+
   test("uses default runtime and shows no-workspace error when workspace is missing", async () => {
     const shownErrors: string[] = [];
 

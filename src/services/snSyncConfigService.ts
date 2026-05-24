@@ -4,7 +4,6 @@ import {
   type ExtensionConfigSetting,
   type InstanceConfig,
   type SnPullClearBeforePull,
-  type SnSyncPreferences,
   type SnSyncResolvedPreferences,
   type ScopeUpdateSetSelection,
 } from "@shared/models/config.js";
@@ -12,12 +11,40 @@ import { ensureJsonFile } from "@shared/services/jsonFileService.js";
 import { getSnSyncPaths } from "@shared/services/snSyncPathService.js";
 
 interface SnSyncRcConfig extends InstanceConfig {
-  preferences?: SnSyncPreferences;
   settings: ExtensionConfigSetting[];
 }
 
 const DEFAULT_ROOT_DIR = "src";
 const DEFAULT_CLEAR_BEFORE_PULL: SnPullClearBeforePull = "ask";
+const DEFAULT_SETTINGS: ExtensionConfigSetting[] = [
+  {
+    folder: "business_rules",
+    table: "sys_script",
+    query: "active=true",
+    key: "name",
+    subDirPattern: "<collection>/<when>",
+    fields: [{ extension: "js", field_name: "script" }],
+  },
+  {
+    folder: "script_includes",
+    table: "sys_script_include",
+    query: "active=true",
+    key: "apu_name",
+    fields: [{ extension: "js", field_name: "script" }],
+  },
+  {
+    folder: "widgets",
+    table: "sp_widget",
+    query: "active=true",
+    key: "id",
+    fields: [
+      { extension: "server.js", field_name: "script" },
+      { extension: "client.js", field_name: "client_script" },
+      { extension: "html", field_name: "template" },
+      { extension: "s css", field_name: "css" },
+    ],
+  },
+];
 
 export class SnSyncConfigService {
   public async initialize(workspaceFolderUri: vscode.Uri): Promise<void> {
@@ -28,8 +55,7 @@ export class SnSyncConfigService {
       application: "",
       update_set: "",
       scope_update_sets: {},
-      preferences: {},
-      settings: [],
+      settings: DEFAULT_SETTINGS,
     } satisfies SnSyncRcConfig);
   }
 
@@ -47,18 +73,13 @@ export class SnSyncConfigService {
 
     return {
       rootDir:
-        this.normalizeString(config.preferences?.rootDir) ??
         this.normalizeString(vscodeConfig.get<string>("rootDir")) ??
         DEFAULT_ROOT_DIR,
       pull: {
         clearBeforePull:
           this.normalizePullClearBeforePull(
-            config.preferences?.pull?.clearBeforePull,
-          ) ??
-          this.normalizePullClearBeforePull(
             vscodeConfig.get<string>("pull.clearBeforePull"),
-          ) ??
-          DEFAULT_CLEAR_BEFORE_PULL,
+          ) ?? DEFAULT_CLEAR_BEFORE_PULL,
       },
     };
   }
@@ -207,7 +228,6 @@ export class SnSyncConfigService {
       application: "",
       update_set: "",
       scope_update_sets: {},
-      preferences: config.preferences,
       settings: config.settings,
     };
 
@@ -286,7 +306,6 @@ export class SnSyncConfigService {
                 ),
               )
             : {},
-        preferences: this.normalizePreferences(parsed.preferences),
         settings: Array.isArray(parsed.settings)
           ? parsed.settings
               .map((setting) =>
@@ -303,7 +322,6 @@ export class SnSyncConfigService {
         application: "",
         update_set: "",
         scope_update_sets: {},
-        preferences: {},
         settings: [],
       };
     }
@@ -365,24 +383,6 @@ export class SnSyncConfigService {
         } satisfies ExtensionConfigField;
       })
       .filter((field): field is ExtensionConfigField => Boolean(field));
-  }
-
-  private normalizePreferences(
-    preferences: SnSyncPreferences | undefined,
-  ): SnSyncPreferences {
-    if (!preferences || typeof preferences !== "object") {
-      return {};
-    }
-
-    const rootDir = this.normalizeString(preferences.rootDir);
-    const clearBeforePull = this.normalizePullClearBeforePull(
-      preferences.pull?.clearBeforePull,
-    );
-
-    return {
-      ...(rootDir ? { rootDir } : {}),
-      ...(clearBeforePull ? { pull: { clearBeforePull } } : {}),
-    };
   }
 
   private normalizePullClearBeforePull(
