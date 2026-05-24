@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { registerSnAuthCommand } from "@commands/snAuthCommand.js";
-import { registerSnClearSrcCommand } from "@commands/snClearSrcCommand.js";
 import { registerSnInitCommand } from "@commands/snInitCommand.js";
 import { registerSnPullCommand } from "@commands/snPullCommand.js";
 import { registerSnPullTableCommand } from "@commands/snPullTableCommand.js";
@@ -20,7 +19,6 @@ export function activate(context: vscode.ExtensionContext) {
   registerSnPullTableCommand(context);
   registerSnPushActiveCommand(context);
   registerSnPushModifiedCommand(context);
-  registerSnClearSrcCommand(context);
 }
 
 export function deactivate() {}

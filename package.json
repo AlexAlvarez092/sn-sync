@@ -67,10 +67,6 @@
       {
         "command": "sn-sync.push-modified",
         "title": "sn: push modified"
-      },
-      {
-        "command": "sn-sync.clear-src",
-        "title": "sn: clear src"
       }
     ]
   },
