@@ -5,7 +5,6 @@ import {
   type InstanceConfig,
   type SnPullClearBeforePull,
   type SnSyncResolvedPreferences,
-  type ScopeUpdateSetSelection,
 } from "@shared/models/config.js";
 import { SN_SYNC_DEFAULTS } from "@shared/constants/snSyncConstants.js";
 import { ensureJsonFile } from "@shared/services/jsonFileService.js";
@@ -21,9 +20,6 @@ export class SnSyncConfigService {
 
     await ensureJsonFile(rcConfigUri, {
       instance: "",
-      application: "",
-      update_set: "",
-      scope_update_sets: {},
       settings: SN_SYNC_DEFAULTS.SETTINGS,
     } satisfies SnSyncRcConfig);
   }
@@ -69,140 +65,6 @@ export class SnSyncConfigService {
     await this.writeConfig(rcConfigUri, updatedConfig);
   }
 
-  public async setActivationSelection(
-    workspaceFolderUri: vscode.Uri,
-    applicationSysId: string,
-    updateSetSysId: string,
-    applicationName?: string,
-    updateSetName?: string,
-  ): Promise<void> {
-    await this.initialize(workspaceFolderUri);
-
-    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
-    const config = await this.readConfig(rcConfigUri);
-    const updatedConfig: SnSyncRcConfig = {
-      ...config,
-      application: applicationSysId.trim(),
-      update_set: updateSetSysId.trim(),
-      ...(applicationName?.trim()
-        ? { application_name: applicationName.trim() }
-        : config.application_name
-          ? { application_name: config.application_name }
-          : {}),
-      ...(updateSetName?.trim()
-        ? { update_set_name: updateSetName.trim() }
-        : updateSetSysId.trim() && config.update_set_name
-          ? { update_set_name: config.update_set_name }
-          : {}),
-    };
-
-    await this.writeConfig(rcConfigUri, updatedConfig);
-  }
-
-  public async setScopeUpdateSetSelection(
-    workspaceFolderUri: vscode.Uri,
-    scope: string,
-    selection: ScopeUpdateSetSelection,
-  ): Promise<void> {
-    await this.initialize(workspaceFolderUri);
-
-    const normalizedScope = scope.trim();
-    if (!normalizedScope) {
-      return;
-    }
-
-    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
-    const config = await this.readConfig(rcConfigUri);
-    const updatedConfig: SnSyncRcConfig = {
-      ...config,
-      application: selection.application.trim(),
-      update_set: selection.update_set.trim(),
-      ...(selection.application_name?.trim()
-        ? { application_name: selection.application_name.trim() }
-        : {}),
-      ...(selection.update_set_name?.trim()
-        ? { update_set_name: selection.update_set_name.trim() }
-        : {}),
-      scope_update_sets: {
-        ...config.scope_update_sets,
-        [normalizedScope]: {
-          application: selection.application.trim(),
-          update_set: selection.update_set.trim(),
-          ...(selection.application_name?.trim()
-            ? { application_name: selection.application_name.trim() }
-            : {}),
-          ...(selection.update_set_name?.trim()
-            ? { update_set_name: selection.update_set_name.trim() }
-            : {}),
-        },
-      },
-    };
-
-    await this.writeConfig(rcConfigUri, updatedConfig);
-  }
-
-  public async getScopeUpdateSetSelections(
-    workspaceFolderUri: vscode.Uri,
-  ): Promise<Record<string, ScopeUpdateSetSelection>> {
-    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
-    const config = await this.readConfig(rcConfigUri);
-    return config.scope_update_sets;
-  }
-
-  public async replaceScopeUpdateSetSelections(
-    workspaceFolderUri: vscode.Uri,
-    selections: Record<string, ScopeUpdateSetSelection>,
-  ): Promise<void> {
-    await this.initialize(workspaceFolderUri);
-
-    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
-    const config = await this.readConfig(rcConfigUri);
-    const normalized: Record<string, ScopeUpdateSetSelection> = {};
-
-    for (const [scope, selection] of Object.entries(selections)) {
-      const normalizedScope = scope.trim();
-      if (!normalizedScope) {
-        continue;
-      }
-
-      normalized[normalizedScope] = {
-        application: selection.application.trim(),
-        update_set: selection.update_set.trim(),
-        ...(selection.application_name?.trim()
-          ? { application_name: selection.application_name.trim() }
-          : {}),
-        ...(selection.update_set_name?.trim()
-          ? { update_set_name: selection.update_set_name.trim() }
-          : {}),
-      };
-    }
-
-    const updatedConfig: SnSyncRcConfig = {
-      ...config,
-      scope_update_sets: normalized,
-    };
-
-    await this.writeConfig(rcConfigUri, updatedConfig);
-  }
-
-  public async clearActivationSelections(
-    workspaceFolderUri: vscode.Uri,
-  ): Promise<void> {
-    await this.initialize(workspaceFolderUri);
-
-    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
-    const config = await this.readConfig(rcConfigUri);
-    const updatedConfig: SnSyncRcConfig = {
-      instance: config.instance,
-      application: "",
-      update_set: "",
-      scope_update_sets: {},
-      settings: config.settings,
-    };
-
-    await this.writeConfig(rcConfigUri, updatedConfig);
-  }
-
   public async getInstanceName(
     workspaceFolderUri: vscode.Uri,
   ): Promise<string | undefined> {
@@ -239,42 +101,6 @@ export class SnSyncConfigService {
 
       return {
         instance: parsed.instance ?? "",
-        application: parsed.application ?? "",
-        update_set: parsed.update_set ?? "",
-        ...(parsed.application_name
-          ? { application_name: parsed.application_name }
-          : {}),
-        ...(parsed.update_set_name
-          ? { update_set_name: parsed.update_set_name }
-          : {}),
-        scope_update_sets:
-          typeof parsed.scope_update_sets === "object" &&
-          parsed.scope_update_sets !== null
-            ? Object.fromEntries(
-                Object.entries(parsed.scope_update_sets).map(
-                  ([scope, selection]) => {
-                    const typedSelection =
-                      selection as Partial<ScopeUpdateSetSelection>;
-
-                    return [
-                      scope,
-                      {
-                        application: typedSelection.application ?? "",
-                        update_set: typedSelection.update_set ?? "",
-                        ...(typedSelection.application_name
-                          ? {
-                              application_name: typedSelection.application_name,
-                            }
-                          : {}),
-                        ...(typedSelection.update_set_name
-                          ? { update_set_name: typedSelection.update_set_name }
-                          : {}),
-                      } satisfies ScopeUpdateSetSelection,
-                    ] as const;
-                  },
-                ),
-              )
-            : {},
         settings: Array.isArray(parsed.settings)
           ? parsed.settings
               .map((setting) =>
@@ -288,9 +114,6 @@ export class SnSyncConfigService {
     } catch {
       return {
         instance: "",
-        application: "",
-        update_set: "",
-        scope_update_sets: {},
         settings: [],
       };
     }

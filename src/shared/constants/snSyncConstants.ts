@@ -2,7 +2,6 @@ import type {
   ExtensionConfigSetting,
   SnPullClearBeforePull,
 } from "@shared/models/config.js";
-import type { SnScopedApplication } from "@shared/models/updateSet.js";
 
 export const SN_SYNC_COMMANDS = {
   INIT: "sn-sync.sn-init",
@@ -12,10 +11,6 @@ export const SN_SYNC_COMMANDS = {
   PULL_TABLE: "sn-sync.pull-table",
   PUSH_ACTIVE: "sn-sync.push-active",
   PUSH_MODIFIED: "sn-sync.push-modified",
-  CLEAR_SRC: "sn-sync.clear-src",
-  UPDATE_SET_RESET: "sn-sync.update-set.reset",
-  UPDATE_SET_SELECT_SCOPE: "sn-sync.update-set.select-scope",
-  UPDATE_SET_SELECT_UPDATE_SET: "sn-sync.update-set.select-update-set",
 } as const;
 
 export const SN_SYNC_PATHS = {
@@ -36,21 +31,7 @@ export const SN_SYNC_MESSAGES = {
   AUTH_VALIDATE_FAILED_PREFIX: "Failed to validate ServiceNow login:",
   AUTH_VALIDATE_HTTP_STATUS_PREFIX:
     "ServiceNow login validation failed with status:",
-  UPDATE_SET_NO_IN_PROGRESS_FOUND:
-    "No in-progress update sets found for the selected scope.",
-  UPDATE_SET_SELECTORS_NOT_READY:
-    "Scope and update set selectors are still initializing.",
-  UPDATE_SET_SCOPE_PROMPT: "Select scope",
-  UPDATE_SET_PROMPT: "Select in-progress update set",
-  UPDATE_SET_SCOPE_SELECTOR_LABEL: "SN Scope",
-  UPDATE_SET_SELECTOR_LABEL: "SN Update Set",
-  UPDATE_SET_NOT_SELECTED_LABEL: "Not selected",
-  UPDATE_SET_SELECTORS_INIT_FAILED_PREFIX:
-    "Failed to initialize scope selectors:",
   SN_REQUEST_HTTP_STATUS_PREFIX: "ServiceNow data request failed with status:",
-  UPDATE_SET_RESET_SUCCESS:
-    "sn-sync selections reset. Scope/update set configuration has been cleared.",
-  UPDATE_SET_RESET_FAILED_PREFIX: "Failed to reset sn-sync selections:",
   PULL_PROGRESS_TITLE: "Pulling scripts from ServiceNow...",
   PULL_NO_SETTINGS:
     "No sync settings found in extension config. Nothing to pull.",
@@ -139,28 +120,6 @@ export const SN_SYNC_SERVICENOW = {
   CONTENT_TYPE_JSON: "application/json",
   TABLE_API_PATH: "/api/now/table",
   CURRENT_USER_API_PATH: "/api/now/ui/user/current",
-  TABLES: {
-    SCOPE: "sys_scope",
-    UPDATE_SET: "sys_update_set",
-  },
-  QUERIES: {
-    NON_EMPTY_SCOPE: "scopeISNOTEMPTY",
-    ACTIVE_TRUE: "active=true",
-    inProgressUpdateSets: (applicationSysId: string) =>
-      `state=in progress^application=${applicationSysId}`,
-  },
-  FIELDS: {
-    SCOPED_APPLICATION: "sys_id,name,scope",
-    UPDATE_SET: "sys_id,name",
-  },
-} as const;
-
-export const SN_SYNC_UPDATE_SET = {
-  GLOBAL_SCOPED_APP: {
-    sys_id: "global",
-    name: "Global",
-    scope: "global",
-  } satisfies SnScopedApplication,
 } as const;
 
 export const SN_SYNC_SECRET_KEYS = {

@@ -49,10 +49,6 @@
         "title": "sn: auth validate"
       },
       {
-        "command": "sn-sync.update-set.reset",
-        "title": "sn: update set reset"
-      },
-      {
         "command": "sn-sync.pull",
         "title": "sn: pull"
       },
