@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as path from "node:path";
 import { SnAuthService } from "@services/snAuthService.js";
 import {
   SN_SYNC_DEFAULTS,
@@ -11,6 +12,7 @@ import {
   normalizeInstanceUrl,
 } from "@shared/services/snHttpService.js";
 import type { ExtensionConfigSetting } from "@shared/models/config.js";
+import { hashText } from "@shared/services/hashService.js";
 
 interface SnTableResponse {
   result?: Array<Record<string, unknown>>;
@@ -25,10 +27,15 @@ export interface SnPullSummary {
 export interface SnPullProgressEvent {
   settingFolder: string;
   fileName: string;
+  localPath?: string;
+  table?: string;
+  sysId?: string;
+  fieldName?: string;
+  baseHash?: string;
 }
 
 export interface SnPullOptions {
-  onFileWritten?: (event: SnPullProgressEvent) => void;
+  onFileWritten?: (event: SnPullProgressEvent) => void | Promise<void>;
   rootDir?: string;
 }
 
@@ -58,7 +65,7 @@ export class SnPullService implements SnPullServiceApi {
     let writtenFiles = 0;
 
     for (const setting of settings) {
-      const fieldNames = new Set<string>([setting.key]);
+      const fieldNames = new Set<string>([setting.key, "sys_id"]);
 
       for (const field of setting.fields) {
         fieldNames.add(field.field_name);
@@ -108,6 +115,7 @@ export class SnPullService implements SnPullServiceApi {
     options?: SnPullOptions,
   ): Promise<number> {
     const safeKeyValue = this.sanitizePathSegment(keyValue);
+    const sysId = this.normalizeRecordValue(record.sys_id);
 
     const baseParts = [
       options?.rootDir ?? SN_SYNC_DEFAULTS.ROOT_DIR,
@@ -133,9 +141,18 @@ export class SnPullService implements SnPullServiceApi {
         new TextEncoder().encode(content),
       );
 
-      options?.onFileWritten?.({
+      const localPath = path
+        .relative(workspaceFolderUri.fsPath, fileUri.fsPath)
+        .replace(/\\/g, "/");
+
+      await options?.onFileWritten?.({
         settingFolder: setting.folder,
         fileName,
+        localPath,
+        table: setting.table,
+        sysId,
+        fieldName: field.field_name,
+        baseHash: hashText(content),
       });
     }
 

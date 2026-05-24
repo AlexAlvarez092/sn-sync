@@ -5,6 +5,10 @@ import {
 } from "@services/snPullService.js";
 import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 import {
+  SnSyncIndexService,
+  type SnSyncIndexServiceApi,
+} from "@services/snSyncIndexService.js";
+import {
   SN_SYNC_COMMANDS,
   SN_SYNC_DEFAULTS,
   SN_SYNC_MESSAGES,
@@ -59,6 +63,9 @@ export async function runSnPullCommand(
   configService: SnSyncConfigService,
   pullService: SnPullServiceApi,
   runtime: SnPullRuntime = defaultRuntime,
+  indexService: SnSyncIndexServiceApi = new SnSyncIndexService(
+    context.workspaceState,
+  ),
 ): Promise<void> {
   const workspaceFolderUri = runtime.getWorkspaceFolderUri();
 
@@ -104,6 +111,13 @@ export async function runSnPullCommand(
         let totalRecords = 0;
         let totalFiles = 0;
         let visibleFilesWritten = 0;
+        const indexUpdates: Array<{
+          localPath: string;
+          table: string;
+          sysId: string;
+          fieldName: string;
+          baseHash: string;
+        }> = [];
 
         for (const setting of settings) {
           const settingSummary = await pullService.pullConfiguredScripts(
@@ -112,10 +126,30 @@ export async function runSnPullCommand(
             [setting],
             {
               rootDir: preferences.rootDir,
-              onFileWritten: ({ settingFolder, fileName }) => {
+              onFileWritten: ({
+                settingFolder,
+                fileName,
+                localPath,
+                table,
+                sysId,
+                fieldName,
+                baseHash,
+              }) => {
                 visibleFilesWritten += 1;
                 progress.report({
                   message: `Writing ${visibleFilesWritten} files... (${settingFolder}/${fileName})`,
+                });
+
+                if (!sysId || !localPath || !table || !fieldName || !baseHash) {
+                  return;
+                }
+
+                indexUpdates.push({
+                  localPath,
+                  table,
+                  sysId,
+                  fieldName,
+                  baseHash,
                 });
               },
             },
@@ -129,6 +163,8 @@ export async function runSnPullCommand(
             message: `${setting.folder} complete (${settingSummary.files} files)`,
           });
         }
+
+        await indexService.recordPullFiles(workspaceFolderUri, indexUpdates);
 
         return {
           settings: settings.length,
@@ -155,7 +191,14 @@ export function registerSnPullCommand(
 ): void {
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.PULL,
-    () => runSnPullCommand(context, configService, pullService),
+    () =>
+      runSnPullCommand(
+        context,
+        configService,
+        pullService,
+        defaultRuntime,
+        new SnSyncIndexService(context.workspaceState),
+      ),
   );
 
   context.subscriptions.push(disposable);

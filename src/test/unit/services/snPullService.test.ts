@@ -8,6 +8,79 @@ import type { ExtensionConfigSetting } from "@shared/models/config.js";
 import { withTempDir } from "@test/helpers/testRuntime.js";
 
 suite("snPullService", () => {
+  test("always requests sys_id and emits it for index metadata", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+      const requestedUrls: string[] = [];
+      const writtenEvents: Array<{ sysId?: string; localPath?: string }> = [];
+
+      const service = new SnPullService(
+        {
+          getSavedAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (url: string | URL | Request): Promise<Response> => {
+          requestedUrls.push(url.toString());
+
+          return {
+            ok: true,
+            json: async () => ({
+              result: [
+                {
+                  sys_id: "abc123",
+                  name: "Can Read",
+                  script: "answer=true;",
+                },
+              ],
+            }),
+          } as Response;
+        }) as typeof fetch,
+      );
+
+      await service.pullConfiguredScripts(
+        {} as vscode.ExtensionContext,
+        workspaceUri,
+        [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+        {
+          onFileWritten: (event) => {
+            writtenEvents.push({
+              sysId: event.sysId,
+              localPath: event.localPath,
+            });
+          },
+        },
+      );
+
+      assert.strictEqual(requestedUrls.length, 1);
+      assert.ok(
+        requestedUrls[0].includes("sysparm_fields=name%2Cscript%2Csys_id") ||
+          requestedUrls[0].includes("sysparm_fields=name%2Csys_id%2Cscript") ||
+          requestedUrls[0].includes("sysparm_fields=script%2Cname%2Csys_id") ||
+          requestedUrls[0].includes("sysparm_fields=script%2Csys_id%2Cname") ||
+          requestedUrls[0].includes("sysparm_fields=sys_id%2Cname%2Cscript") ||
+          requestedUrls[0].includes("sysparm_fields=sys_id%2Cscript%2Cname"),
+      );
+      assert.deepStrictEqual(writtenEvents, [
+        {
+          sysId: "abc123",
+          localPath: "src/security_rules/Can Read.js",
+        },
+      ]);
+    });
+  });
+
   test("pulls files using subdir, multi-field, and single-field patterns", async () => {
     await withTempDir("sn-sync-pull-", async (tempDir) => {
       const workspaceUri = vscode.Uri.file(tempDir);

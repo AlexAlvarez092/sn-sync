@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS = [
     folder: "script_includes",
     table: "sys_script_include",
     query: "active=true",
-    key: "apu_name",
+    key: "api_name",
     fields: [{ extension: "js", field_name: "script" }],
   },
   {
@@ -35,7 +35,7 @@ const DEFAULT_SETTINGS = [
       { extension: "server.js", field_name: "script" },
       { extension: "client.js", field_name: "client_script" },
       { extension: "html", field_name: "template" },
-      { extension: "s css", field_name: "css" },
+      { extension: "scss", field_name: "css" },
     ],
   },
 ];

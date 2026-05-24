@@ -10,6 +10,8 @@ export const SN_SYNC_COMMANDS = {
   AUTH_VALIDATE: "sn-sync.auth-validate",
   PULL: "sn-sync.pull",
   PULL_TABLE: "sn-sync.pull-table",
+  PUSH_ACTIVE: "sn-sync.push-active",
+  PUSH_MODIFIED: "sn-sync.push-modified",
   CLEAR_SRC: "sn-sync.clear-src",
   UPDATE_SET_RESET: "sn-sync.update-set.reset",
   UPDATE_SET_SELECT_SCOPE: "sn-sync.update-set.select-scope",
@@ -64,6 +66,22 @@ export const SN_SYNC_MESSAGES = {
   PULL_TABLE_CLEAR_FOLDER_SKIP_ACTION: "Keep folder",
   PULL_TABLE_SUCCESS_PREFIX: "sn-sync pull table completed.",
   PULL_TABLE_FAILED_PREFIX: "Failed to pull table from ServiceNow:",
+  PUSH_PROGRESS_TITLE: "Pushing scripts to ServiceNow...",
+  PUSH_ACTIVE_NO_EDITOR:
+    "No active file found. Open a file from this workspace and try again.",
+  PUSH_ACTIVE_NOT_INDEXED:
+    "Active file is not indexed. Run 'sn: pull' or 'sn: pull table' first.",
+  PUSH_ACTIVE_NO_LOCAL_CHANGES:
+    "No local changes detected for the active file.",
+  PUSH_ACTIVE_CONFLICT_PREFIX:
+    "Push aborted: remote changes detected for active file:",
+  PUSH_ACTIVE_SUCCESS: "sn-sync push active completed.",
+  PUSH_ACTIVE_FAILED_PREFIX: "Failed to push active file to ServiceNow:",
+  PUSH_MODIFIED_NO_LOCAL_CHANGES: "No modified local files detected to push.",
+  PUSH_MODIFIED_CONFLICTS_PREFIX:
+    "Push aborted: remote conflicts detected. No files were uploaded.",
+  PUSH_MODIFIED_SUCCESS_PREFIX: "sn-sync push modified completed.",
+  PUSH_MODIFIED_FAILED_PREFIX: "Failed to push modified files to ServiceNow:",
   CLEAR_SRC_CONFIRM:
     "This will permanently delete all files and folders inside src. Continue?",
   CLEAR_SRC_CONFIRM_ACTION: "Clear src",
@@ -99,7 +117,7 @@ export const SN_SYNC_DEFAULTS = {
       folder: "script_includes",
       table: "sys_script_include",
       query: "active=true",
-      key: "apu_name",
+      key: "api_name",
       fields: [{ extension: "js", field_name: "script" }],
     },
     {
@@ -111,7 +129,7 @@ export const SN_SYNC_DEFAULTS = {
         { extension: "server.js", field_name: "script" },
         { extension: "client.js", field_name: "client_script" },
         { extension: "html", field_name: "template" },
-        { extension: "s css", field_name: "css" },
+        { extension: "scss", field_name: "css" },
       ],
     },
   ] satisfies ExtensionConfigSetting[],
@@ -147,4 +165,8 @@ export const SN_SYNC_UPDATE_SET = {
 
 export const SN_SYNC_SECRET_KEYS = {
   INSTANCE_AUTH_PREFIX: "sn-sync.instance-auth",
+} as const;
+
+export const SN_SYNC_STORAGE_KEYS = {
+  SYNC_INDEX_PREFIX: "sn-sync.sync-index",
 } as const;

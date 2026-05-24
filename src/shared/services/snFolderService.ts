@@ -30,7 +30,12 @@ export async function clearDirectory(
   try {
     entries = await runtime.readDirectory(directoryUri);
   } catch (error) {
-    if (getErrorMessage(error).includes("FileNotFound")) {
+    const errorMessage = getErrorMessage(error).toLowerCase();
+    if (
+      errorMessage.includes("filenotfound") ||
+      errorMessage.includes("enoent") ||
+      errorMessage.includes("no such file or directory")
+    ) {
       return;
     }
 

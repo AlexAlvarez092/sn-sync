@@ -27,6 +27,53 @@ suite("snPullTableCommand", () => {
     });
   });
 
+  test("register callback executes pull-table command", async () => {
+    const shownErrors: string[] = [];
+    const context = {
+      subscriptions: [] as vscode.Disposable[],
+      workspaceState: {
+        get: () => undefined,
+        update: async () => undefined,
+      },
+    } as unknown as vscode.ExtensionContext;
+
+    await withCapturedRegisterCommand(async (invokeRegistered) => {
+      registerSnPullTableCommand(
+        context,
+        {
+          getSyncSettings: async () => {
+            throw new Error("must-not-be-called");
+          },
+        } as unknown as never,
+        {
+          pullConfiguredScripts: async () => ({
+            settings: 0,
+            records: 0,
+            files: 0,
+          }),
+        },
+      );
+
+      await withPatchedWorkspaceFolders(undefined, async () => {
+        await withPatchedWindowMessages(
+          async (message: string) => {
+            shownErrors.push(message);
+            return undefined;
+          },
+          async (_message: string) => undefined,
+          async () => undefined,
+          async () => undefined,
+          async (_options, task) => task({ report: () => undefined }),
+          async () => {
+            await invokeRegistered();
+          },
+        );
+      });
+    });
+
+    assert.deepStrictEqual(shownErrors, [SN_SYNC_MESSAGES.NO_WORKSPACE]);
+  });
+
   test("shows error when no workspace folder is open", async () => {
     const shownErrors: string[] = [];
 
@@ -358,6 +405,142 @@ suite("snPullTableCommand", () => {
     ]);
   });
 
+  test("clears table folder ignores missing folder (ENOENT)", async () => {
+    const shownInfos: string[] = [];
+
+    await runSnPullTableCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "business_rules",
+            table: "sys_script",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async () => ({
+          settings: 1,
+          records: 0,
+          files: 0,
+        }),
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-table-folder-missing-enoent"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async (message: string) => {
+          shownInfos.push(message);
+          return undefined;
+        },
+        showQuickPick: async (items) => items[0],
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_CONFIRM_ACTION,
+        readDirectory: async () => {
+          throw new Error(
+            "ENOENT: no such file or directory, scandir '/tmp/ws/src/business_rules'",
+          );
+        },
+        delete: async () => {
+          throw new Error("must-not-be-called");
+        },
+        withProgress: async (_title, task) => task({ report: () => undefined }),
+      },
+    );
+
+    assert.deepStrictEqual(shownInfos, [
+      `${SN_SYNC_MESSAGES.PULL_TABLE_SUCCESS_PREFIX} 0 files from 0 records (business_rules).`,
+    ]);
+  });
+
+  test("records index updates when selected table pull provides metadata", async () => {
+    const recordedUpdates: Array<{
+      localPath: string;
+      table: string;
+      sysId: string;
+      fieldName: string;
+      baseHash: string;
+    }> = [];
+
+    await runSnPullTableCommand(
+      {
+        workspaceState: {
+          get: () => undefined,
+          update: async () => undefined,
+        },
+      } as unknown as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "business_rules",
+            table: "sys_script",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async (
+          _context,
+          _workspaceUri,
+          _settings,
+          options,
+        ) => {
+          options?.onFileWritten?.({
+            settingFolder: "business_rules",
+            fileName: "rule.js",
+            localPath: "src/business_rules/rule.js",
+            table: "sys_script",
+            sysId: "rule-1",
+            fieldName: "script",
+            baseHash: "sha256:def",
+          });
+
+          return {
+            settings: 1,
+            records: 1,
+            files: 1,
+          };
+        },
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-table-index-updates"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async () => undefined,
+        showQuickPick: async (items) => items[0],
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.PULL_TABLE_CLEAR_FOLDER_SKIP_ACTION,
+        readDirectory: async () => [],
+        delete: async () => undefined,
+        withProgress: async (_title, task) => task({ report: () => undefined }),
+      },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        updateBaseHashes: async () => undefined,
+        recordPullFiles: async (_workspaceUri, updates) => {
+          recordedUpdates.push(...updates);
+        },
+      },
+    );
+
+    assert.deepStrictEqual(recordedUpdates, [
+      {
+        localPath: "src/business_rules/rule.js",
+        table: "sys_script",
+        sysId: "rule-1",
+        fieldName: "script",
+        baseHash: "sha256:def",
+      },
+    ]);
+  });
+
   test("shows detailed error when pull fails", async () => {
     const shownErrors: string[] = [];
 
@@ -666,6 +849,36 @@ function withPatchedRegisterCommand(run: () => void): void {
 
   try {
     run();
+  } finally {
+    commandsObject.registerCommand = originalRegisterCommand;
+  }
+}
+
+async function withCapturedRegisterCommand(
+  run: (invokeRegistered: () => Promise<unknown>) => Promise<void>,
+): Promise<void> {
+  const commandsObject = vscode.commands as unknown as {
+    registerCommand: (
+      command: string,
+      callback: (...args: unknown[]) => unknown,
+    ) => vscode.Disposable;
+  };
+  const originalRegisterCommand = commandsObject.registerCommand;
+  let callback: ((...args: unknown[]) => unknown) | undefined;
+
+  commandsObject.registerCommand = (
+    _command: string,
+    commandCallback: (...args: unknown[]) => unknown,
+  ) => {
+    callback = commandCallback;
+    return new vscode.Disposable(() => undefined);
+  };
+
+  try {
+    await run(async () => {
+      assert.ok(callback);
+      return callback!();
+    });
   } finally {
     commandsObject.registerCommand = originalRegisterCommand;
   }

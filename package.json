@@ -61,6 +61,14 @@
         "title": "sn: pull table"
       },
       {
+        "command": "sn-sync.push-active",
+        "title": "sn: push active"
+      },
+      {
+        "command": "sn-sync.push-modified",
+        "title": "sn: push modified"
+      },
+      {
         "command": "sn-sync.clear-src",
         "title": "sn: clear src"
       }
