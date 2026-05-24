@@ -1,28 +1,22 @@
 import * as vscode from "vscode";
-import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 import {
   SN_SYNC_COMMANDS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
+import {
+  type SnBaseCommandRuntime,
+  defaultBaseRuntime,
+} from "@shared/services/snCommandRuntime.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
+import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 
 export interface SnSyncInitializer {
   initialize(workspaceFolderUri: vscode.Uri): Promise<void>;
 }
 
-export interface SnInitCommandRuntime {
-  getWorkspaceFolderUri(): vscode.Uri | undefined;
-  showErrorMessage(message: string): Thenable<string | undefined>;
-  showInformationMessage(message: string): Thenable<string | undefined>;
-}
+export interface SnInitCommandRuntime extends SnBaseCommandRuntime {}
 
-const defaultRuntime: SnInitCommandRuntime = {
-  getWorkspaceFolderUri: () => vscode.workspace.workspaceFolders?.[0]?.uri,
-  showErrorMessage: (message: string) =>
-    vscode.window.showErrorMessage(message),
-  showInformationMessage: (message: string) =>
-    vscode.window.showInformationMessage(message),
-};
+const defaultRuntime: SnInitCommandRuntime = defaultBaseRuntime;
 
 export async function runSnInitCommand(
   configService: SnSyncInitializer,

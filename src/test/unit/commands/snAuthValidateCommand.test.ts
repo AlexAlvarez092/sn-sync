@@ -1,20 +1,20 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
 import {
-  registerSnValidateAuthCommand,
-  runSnValidateAuthCommand,
-  type SnValidateAuthRuntime,
-} from "@commands/snValidateAuthCommand.js";
+  registerSnAuthValidateCommand,
+  runSnAuthValidateCommand,
+  type SnAuthValidateRuntime,
+} from "@commands/snAuthValidateCommand.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 import { createTempWorkspaceUri } from "@test/helpers/testRuntime.js";
 
-suite("snValidateAuthCommand", () => {
+suite("snAuthValidateCommand", () => {
   test("registers command and stores disposable in context subscriptions", () => {
     const context = {
       subscriptions: [] as vscode.Disposable[],
     } as unknown as vscode.ExtensionContext;
 
-    registerSnValidateAuthCommand(context);
+    registerSnAuthValidateCommand(context);
 
     assert.strictEqual(context.subscriptions.length, 1);
     context.subscriptions[0].dispose();
@@ -23,10 +23,10 @@ suite("snValidateAuthCommand", () => {
   test("shows error when no workspace folder is open", async () => {
     const shownErrors: string[] = [];
 
-    await runSnValidateAuthCommand(
+    await runSnAuthValidateCommand(
       {} as vscode.ExtensionContext,
       {
-        validateLogin: async (): Promise<void> => {
+        validateAuth: async (): Promise<void> => {
           throw new Error("must not be called");
         },
       },
@@ -48,10 +48,10 @@ suite("snValidateAuthCommand", () => {
     const workspaceUri = createTempWorkspaceUri("validate-auth-success");
     let receivedWorkspaceUri: vscode.Uri | undefined;
 
-    await runSnValidateAuthCommand(
+    await runSnAuthValidateCommand(
       {} as vscode.ExtensionContext,
       {
-        validateLogin: async (
+        validateAuth: async (
           _context: vscode.ExtensionContext,
           currentWorkspaceUri: vscode.Uri,
         ): Promise<void> => {
@@ -80,10 +80,10 @@ suite("snValidateAuthCommand", () => {
   test("shows detailed error when validation fails", async () => {
     const shownErrors: string[] = [];
 
-    await runSnValidateAuthCommand(
+    await runSnAuthValidateCommand(
       {} as vscode.ExtensionContext,
       {
-        validateLogin: async (): Promise<void> => {
+        validateAuth: async (): Promise<void> => {
           throw new Error("auth-invalid");
         },
       },
@@ -118,8 +118,8 @@ suite("snValidateAuthCommand", () => {
             return undefined;
           },
           async () => {
-            await runSnValidateAuthCommand({} as vscode.ExtensionContext, {
-              validateLogin: async (): Promise<void> => {
+            await runSnAuthValidateCommand({} as vscode.ExtensionContext, {
+              validateAuth: async (): Promise<void> => {
                 validateCalled = true;
               },
             });
@@ -145,8 +145,8 @@ suite("snValidateAuthCommand", () => {
         },
         async () => undefined,
         async () => {
-          await runSnValidateAuthCommand({} as vscode.ExtensionContext, {
-            validateLogin: async (): Promise<void> => {
+          await runSnAuthValidateCommand({} as vscode.ExtensionContext, {
+            validateAuth: async (): Promise<void> => {
               throw new Error("must not be called");
             },
           });

@@ -1,7 +1,18 @@
 import * as vscode from "vscode";
+import * as path from "node:path";
 import { SnAuthService } from "@services/snAuthService.js";
-import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
+import {
+  SN_SYNC_DEFAULTS,
+  SN_SYNC_MESSAGES,
+  SN_SYNC_SERVICENOW,
+} from "@shared/constants/snSyncConstants.js";
+import {
+  buildBasicAuthHeader,
+  handleHttpError,
+  normalizeInstanceUrl,
+} from "@shared/services/snHttpService.js";
 import type { ExtensionConfigSetting } from "@shared/models/config.js";
+import { hashText } from "@shared/services/hashService.js";
 
 interface SnTableResponse {
   result?: Array<Record<string, unknown>>;
@@ -16,10 +27,16 @@ export interface SnPullSummary {
 export interface SnPullProgressEvent {
   settingFolder: string;
   fileName: string;
+  localPath?: string;
+  table?: string;
+  sysId?: string;
+  fieldName?: string;
+  baseHash?: string;
 }
 
 export interface SnPullOptions {
-  onFileWritten?: (event: SnPullProgressEvent) => void;
+  onFileWritten?: (event: SnPullProgressEvent) => void | Promise<void>;
+  rootDir?: string;
 }
 
 export interface SnPullServiceApi {
@@ -48,7 +65,7 @@ export class SnPullService implements SnPullServiceApi {
     let writtenFiles = 0;
 
     for (const setting of settings) {
-      const fieldNames = new Set<string>([setting.key]);
+      const fieldNames = new Set<string>([setting.key, "sys_id"]);
 
       for (const field of setting.fields) {
         fieldNames.add(field.field_name);
@@ -98,8 +115,12 @@ export class SnPullService implements SnPullServiceApi {
     options?: SnPullOptions,
   ): Promise<number> {
     const safeKeyValue = this.sanitizePathSegment(keyValue);
+    const sysId = this.normalizeRecordValue(record.sys_id);
 
-    const baseParts = ["src", setting.folder];
+    const baseParts = [
+      options?.rootDir ?? SN_SYNC_DEFAULTS.ROOT_DIR,
+      setting.folder,
+    ];
     if (setting.subDirPattern) {
       baseParts.push(...this.resolveSubDirParts(setting.subDirPattern, record));
     } else if (setting.fields.length > 1) {
@@ -120,9 +141,22 @@ export class SnPullService implements SnPullServiceApi {
         new TextEncoder().encode(content),
       );
 
-      options?.onFileWritten?.({
+      const writtenContent = new TextDecoder().decode(
+        await vscode.workspace.fs.readFile(fileUri),
+      );
+
+      const localPath = path
+        .relative(workspaceFolderUri.fsPath, fileUri.fsPath)
+        .replace(/\\/g, "/");
+
+      await options?.onFileWritten?.({
         settingFolder: setting.folder,
         fileName,
+        localPath,
+        table: setting.table,
+        sysId,
+        fieldName: field.field_name,
+        baseHash: hashText(writtenContent),
       });
     }
 
@@ -194,47 +228,46 @@ export class SnPullService implements SnPullServiceApi {
       throw new Error(SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED);
     }
 
-    const normalizedUrl = savedAuth.instanceUrl.replace(/\/+$/, "");
+    const normalizedUrl = normalizeInstanceUrl(savedAuth.instanceUrl);
     const encodedQuery = encodeURIComponent(query);
     const encodedFields = encodeURIComponent(fields);
 
     const limit = this.pageSize;
     const allRows: Array<Record<string, unknown>> = [];
+    let previousPageSignature: string | undefined;
 
     for (let offset = 0; ; offset += limit) {
       const response = await this.fetchApi(
-        `${normalizedUrl}/api/now/table/${tableName}?sysparm_query=${encodedQuery}&sysparm_fields=${encodedFields}&sysparm_limit=${limit}&sysparm_offset=${offset}`,
+        `${normalizedUrl}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${tableName}?sysparm_query=${encodedQuery}&sysparm_fields=${encodedFields}&sysparm_limit=${limit}&sysparm_offset=${offset}`,
         {
           method: "GET",
           headers: {
-            Accept: "application/json",
-            Authorization: `Basic ${Buffer.from(
-              `${savedAuth.username}:${savedAuth.password}`,
-              "utf-8",
-            ).toString("base64")}`,
+            Accept: SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
+            Authorization: buildBasicAuthHeader(
+              savedAuth.username,
+              savedAuth.password,
+            ),
           },
         },
       );
 
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          throw new Error(SN_SYNC_MESSAGES.AUTH_INVALID_CREDENTIALS);
-        }
-
-        throw new Error(
-          `${SN_SYNC_MESSAGES.SN_REQUEST_HTTP_STATUS_PREFIX} ${response.status} ${response.statusText}`.trim(),
-        );
-      }
+      handleHttpError(response, SN_SYNC_MESSAGES.SN_REQUEST_HTTP_STATUS_PREFIX);
 
       const payload = (await response.json()) as SnTableResponse;
       const rows = Array.isArray(payload.result) ? payload.result : [];
 
-      for (const row of rows) {
-        allRows.push(row);
+      if (rows.length === 0) {
+        break;
       }
 
-      if (rows.length < limit) {
+      const currentPageSignature = JSON.stringify(rows);
+      if (offset > 0 && currentPageSignature === previousPageSignature) {
         break;
+      }
+      previousPageSignature = currentPageSignature;
+
+      for (const row of rows) {
+        allRows.push(row);
       }
     }
 

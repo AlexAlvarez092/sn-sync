@@ -26,6 +26,55 @@ suite("snPullCommand", () => {
     });
   });
 
+  test("register callback executes pull command", async () => {
+    const shownErrors: string[] = [];
+    const context = {
+      subscriptions: [] as vscode.Disposable[],
+      workspaceState: {
+        get: () => undefined,
+        update: async () => undefined,
+      },
+    } as unknown as vscode.ExtensionContext;
+
+    await withCapturedRegisterCommand(async (invokeRegistered) => {
+      registerSnPullCommand(
+        context,
+        {
+          getSyncSettings: async () => {
+            throw new Error("must-not-be-called");
+          },
+        } as unknown as never,
+        {
+          pullConfiguredScripts: async () => ({
+            settings: 0,
+            records: 0,
+            files: 0,
+          }),
+        },
+      );
+
+      await withPatchedWorkspaceFolders(undefined, async () => {
+        await withPatchedWindowMessages(
+          async (message: string) => {
+            shownErrors.push(message);
+            return undefined;
+          },
+          async (_message: string) => undefined,
+          async () => undefined,
+          async (_options, task) =>
+            task({
+              report: () => undefined,
+            }),
+          async () => {
+            await invokeRegistered();
+          },
+        );
+      });
+    });
+
+    assert.deepStrictEqual(shownErrors, [SN_SYNC_MESSAGES.NO_WORKSPACE]);
+  });
+
   test("shows error when no workspace folder is open", async () => {
     const shownErrors: string[] = [];
 
@@ -100,10 +149,11 @@ suite("snPullCommand", () => {
     assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.PULL_NO_SETTINGS]);
   });
 
-  test("pull clears src when selected and shows granular progress and success summary", async () => {
+  test("pull deletes configured root dir without prompting when preference is delete", async () => {
     const shownInfos: string[] = [];
     const deletedEntries: string[] = [];
     const pulledSettingFolders: string[] = [];
+    const usedRootDirs: string[] = [];
     const progressMessages: string[] = [];
     const progressIncrements: number[] = [];
     const progressTitles: string[] = [];
@@ -127,6 +177,10 @@ suite("snPullCommand", () => {
             fields: [{ extension: "js", field_name: "script" }],
           },
         ],
+        getPreferences: async () => ({
+          rootDir: "app",
+          pull: { clearBeforePull: "delete" },
+        }),
       } as unknown as never,
       {
         pullConfiguredScripts: async (
@@ -136,6 +190,7 @@ suite("snPullCommand", () => {
           options,
         ) => {
           pulledSettingFolders.push(settings[0].folder);
+          usedRootDirs.push(options?.rootDir ?? "missing");
 
           if (settings[0].folder === "business_rules") {
             options?.onFileWritten?.({
@@ -185,8 +240,9 @@ suite("snPullCommand", () => {
           shownInfos.push(message);
           return undefined;
         },
-        showWarningMessage: async () =>
-          SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
+        showWarningMessage: async () => {
+          throw new Error("must-not-be-called");
+        },
         readDirectory: async () => [
           ["business_rules", vscode.FileType.Directory],
           ["old-file.js", vscode.FileType.File],
@@ -206,15 +262,25 @@ suite("snPullCommand", () => {
           });
         },
       },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+        clearIndex: async () => undefined,
+        replacePullSnapshot: async () => undefined,
+      },
     );
 
     assert.strictEqual(deletedEntries.length, 2);
-    assert.ok(deletedEntries[0].includes("/src/business_rules"));
-    assert.ok(deletedEntries[1].includes("/src/old-file.js"));
+    assert.ok(deletedEntries[0].includes("/app/business_rules"));
+    assert.ok(deletedEntries[1].includes("/app/old-file.js"));
     assert.deepStrictEqual(pulledSettingFolders, [
       "business_rules",
       "security_rules",
     ]);
+    assert.deepStrictEqual(usedRootDirs, ["app", "app"]);
     assert.deepStrictEqual(progressTitles, [
       "Pulling scripts from ServiceNow...",
     ]);
@@ -234,7 +300,7 @@ suite("snPullCommand", () => {
     ]);
   });
 
-  test("pull keeps src when selected and still syncs", async () => {
+  test("pull keeps files without prompting when preference is keep", async () => {
     let deleteCalled = false;
     const shownInfos: string[] = [];
 
@@ -250,6 +316,10 @@ suite("snPullCommand", () => {
             fields: [{ extension: "js", field_name: "script" }],
           },
         ],
+        getPreferences: async () => ({
+          rootDir: "src",
+          pull: { clearBeforePull: "keep" },
+        }),
       } as unknown as never,
       {
         pullConfiguredScripts: async () => ({
@@ -265,8 +335,9 @@ suite("snPullCommand", () => {
           shownInfos.push(message);
           return undefined;
         },
-        showWarningMessage: async () =>
-          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+        showWarningMessage: async () => {
+          throw new Error("must-not-be-called");
+        },
         readDirectory: async () => {
           throw new Error("must-not-be-called");
         },
@@ -277,6 +348,15 @@ suite("snPullCommand", () => {
           task({
             report: () => undefined,
           }),
+      },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+        clearIndex: async () => undefined,
+        replacePullSnapshot: async () => undefined,
       },
     );
 
@@ -329,10 +409,270 @@ suite("snPullCommand", () => {
             report: () => undefined,
           }),
       },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+        clearIndex: async () => undefined,
+        replacePullSnapshot: async () => undefined,
+      },
     );
 
     assert.deepStrictEqual(shownInfos, [
       `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
+    ]);
+  });
+
+  test("records index updates when pull provides file metadata", async () => {
+    const snapshotUpdates: Array<{
+      localPath: string;
+      table: string;
+      sysId: string;
+      fieldName: string;
+      baseHash: string;
+    }> = [];
+
+    await runSnPullCommand(
+      {
+        workspaceState: {
+          get: () => undefined,
+          update: async () => undefined,
+        },
+      } as unknown as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async (
+          _context,
+          _workspaceUri,
+          _settings,
+          options,
+        ) => {
+          options?.onFileWritten?.({
+            settingFolder: "security_rules",
+            fileName: "acl.js",
+            localPath: "src/security_rules/acl.js",
+            table: "sys_security_acl",
+            sysId: "acl-1",
+            fieldName: "script",
+            baseHash: "sha256:abc",
+          });
+
+          return {
+            settings: 1,
+            records: 1,
+            files: 1,
+          };
+        },
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-index-updates"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async () => undefined,
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+        readDirectory: async () => [],
+        delete: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+      },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        updateBaseHashes: async () => undefined,
+        recordPullFiles: async () => {
+          throw new Error("must-not-be-called");
+        },
+        replacePullSnapshot: async (_workspaceUri, updates) => {
+          snapshotUpdates.push(...updates);
+        },
+      },
+    );
+
+    assert.deepStrictEqual(snapshotUpdates, [
+      {
+        localPath: "src/security_rules/acl.js",
+        table: "sys_security_acl",
+        sysId: "acl-1",
+        fieldName: "script",
+        baseHash: "sha256:abc",
+      },
+    ]);
+  });
+
+  test("replaces snapshot with empty updates when pull writes no metadata", async () => {
+    let snapshotCalled = false;
+    const snapshotUpdates: Array<{
+      localPath: string;
+      table: string;
+      sysId: string;
+      fieldName: string;
+      baseHash: string;
+    }> = [];
+
+    await runSnPullCommand(
+      {
+        workspaceState: {
+          get: () => undefined,
+          update: async () => undefined,
+        },
+      } as unknown as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async (
+          _context,
+          _workspaceUri,
+          _settings,
+          options,
+        ) => {
+          options?.onFileWritten?.({
+            settingFolder: "security_rules",
+            fileName: "acl.js",
+          });
+
+          return {
+            settings: 1,
+            records: 1,
+            files: 1,
+          };
+        },
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-index-empty-snapshot"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async () => undefined,
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+        readDirectory: async () => [],
+        delete: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+      },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        updateBaseHashes: async () => undefined,
+        recordPullFiles: async () => {
+          throw new Error("must-not-be-called");
+        },
+        replacePullSnapshot: async (_workspaceUri, updates) => {
+          snapshotCalled = true;
+          snapshotUpdates.push(...updates);
+        },
+      },
+    );
+
+    assert.strictEqual(snapshotCalled, true);
+    assert.deepStrictEqual(snapshotUpdates, []);
+  });
+
+  test("shows error when snapshot persistence fails with index updates", async () => {
+    const shownErrors: string[] = [];
+
+    await runSnPullCommand(
+      {
+        workspaceState: {
+          get: () => undefined,
+          update: async () => undefined,
+        },
+      } as unknown as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async (
+          _context,
+          _workspaceUri,
+          _settings,
+          options,
+        ) => {
+          options?.onFileWritten?.({
+            settingFolder: "security_rules",
+            fileName: "acl.js",
+            localPath: "src/security_rules/acl.js",
+            table: "sys_security_acl",
+            sysId: "acl-1",
+            fieldName: "script",
+            baseHash: "sha256:abc",
+          });
+
+          return {
+            settings: 1,
+            records: 1,
+            files: 1,
+          };
+        },
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-snapshot-failure"),
+        showErrorMessage: async (message: string) => {
+          shownErrors.push(message);
+          return undefined;
+        },
+        showInformationMessage: async () => undefined,
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+        readDirectory: async () => [],
+        delete: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+      },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        updateBaseHashes: async () => undefined,
+        recordPullFiles: async () => {
+          throw new Error("must-not-be-called");
+        },
+        replacePullSnapshot: async () => {
+          throw new Error("snapshot-fail");
+        },
+      },
+    );
+
+    assert.deepStrictEqual(shownErrors, [
+      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} snapshot-fail`,
     ]);
   });
 
@@ -466,6 +806,16 @@ suite("snPullCommand", () => {
                   files: 1,
                 }),
               },
+              undefined,
+              {
+                findEntryByLocalPath: async () => undefined,
+                toWorkspaceRelativePath: () => "",
+                getModifiedCandidates: async () => [],
+                recordPullFiles: async () => undefined,
+                updateBaseHashes: async () => undefined,
+                clearIndex: async () => undefined,
+                replacePullSnapshot: async () => undefined,
+              },
             );
           },
         );
@@ -525,6 +875,16 @@ suite("snPullCommand", () => {
                     files: 1,
                   }),
                 },
+                undefined,
+                {
+                  findEntryByLocalPath: async () => undefined,
+                  toWorkspaceRelativePath: () => "",
+                  getModifiedCandidates: async () => [],
+                  recordPullFiles: async () => undefined,
+                  updateBaseHashes: async () => undefined,
+                  clearIndex: async () => undefined,
+                  replacePullSnapshot: async () => undefined,
+                },
               );
             },
           );
@@ -533,6 +893,71 @@ suite("snPullCommand", () => {
 
       const remainingEntries = await fs.readdir(srcDir);
       assert.deepStrictEqual(remainingEntries, []);
+      assert.deepStrictEqual(shownInfos, [
+        `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
+      ]);
+    });
+  });
+
+  test("uses default runtime and creates src when it does not exist", async () => {
+    await withTempDir("pull-default-runtime-create-src-", async (tempDir) => {
+      const shownInfos: string[] = [];
+      const workspaceUri = vscode.Uri.file(tempDir);
+      const srcDir = path.join(tempDir, "src");
+
+      await withPatchedWorkspaceFolders(
+        [{ uri: workspaceUri, name: "tmp", index: 0 }],
+        async () => {
+          await withPatchedWindowMessages(
+            async (_message: string) => undefined,
+            async (message: string) => {
+              shownInfos.push(message);
+              return undefined;
+            },
+            async () => SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+            async (_options, task) =>
+              task({
+                report: () => undefined,
+              }),
+            async () => {
+              await runSnPullCommand(
+                {} as vscode.ExtensionContext,
+                {
+                  getSyncSettings: async () => [
+                    {
+                      folder: "security_rules",
+                      table: "sys_security_acl",
+                      query: "active=true",
+                      key: "name",
+                      fields: [{ extension: "js", field_name: "script" }],
+                    },
+                  ],
+                } as unknown as never,
+                {
+                  pullConfiguredScripts: async () => ({
+                    settings: 1,
+                    records: 1,
+                    files: 1,
+                  }),
+                },
+                undefined,
+                {
+                  findEntryByLocalPath: async () => undefined,
+                  toWorkspaceRelativePath: () => "",
+                  getModifiedCandidates: async () => [],
+                  recordPullFiles: async () => undefined,
+                  updateBaseHashes: async () => undefined,
+                  clearIndex: async () => undefined,
+                  replacePullSnapshot: async () => undefined,
+                },
+              );
+            },
+          );
+        },
+      );
+
+      const srcStats = await fs.stat(srcDir);
+      assert.strictEqual(srcStats.isDirectory(), true);
       assert.deepStrictEqual(shownInfos, [
         `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
       ]);
@@ -592,6 +1017,36 @@ function withPatchedRegisterCommand(run: () => void): void {
 
   try {
     run();
+  } finally {
+    commandsObject.registerCommand = originalRegisterCommand;
+  }
+}
+
+async function withCapturedRegisterCommand(
+  run: (invokeRegistered: () => Promise<unknown>) => Promise<void>,
+): Promise<void> {
+  const commandsObject = vscode.commands as unknown as {
+    registerCommand: (
+      command: string,
+      callback: (...args: unknown[]) => unknown,
+    ) => vscode.Disposable;
+  };
+  const originalRegisterCommand = commandsObject.registerCommand;
+  let callback: ((...args: unknown[]) => unknown) | undefined;
+
+  commandsObject.registerCommand = (
+    _command: string,
+    commandCallback: (...args: unknown[]) => unknown,
+  ) => {
+    callback = commandCallback;
+    return new vscode.Disposable(() => undefined);
+  };
+
+  try {
+    await run(async () => {
+      assert.ok(callback);
+      return callback!();
+    });
   } finally {
     commandsObject.registerCommand = originalRegisterCommand;
   }

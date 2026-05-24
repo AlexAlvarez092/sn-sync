@@ -8,6 +8,79 @@ import type { ExtensionConfigSetting } from "@shared/models/config.js";
 import { withTempDir } from "@test/helpers/testRuntime.js";
 
 suite("snPullService", () => {
+  test("always requests sys_id and emits it for index metadata", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+      const requestedUrls: string[] = [];
+      const writtenEvents: Array<{ sysId?: string; localPath?: string }> = [];
+
+      const service = new SnPullService(
+        {
+          getSavedAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (url: string | URL | Request): Promise<Response> => {
+          requestedUrls.push(url.toString());
+
+          return {
+            ok: true,
+            json: async () => ({
+              result: [
+                {
+                  sys_id: "abc123",
+                  name: "Can Read",
+                  script: "answer=true;",
+                },
+              ],
+            }),
+          } as Response;
+        }) as typeof fetch,
+      );
+
+      await service.pullConfiguredScripts(
+        {} as vscode.ExtensionContext,
+        workspaceUri,
+        [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+        {
+          onFileWritten: (event) => {
+            writtenEvents.push({
+              sysId: event.sysId,
+              localPath: event.localPath,
+            });
+          },
+        },
+      );
+
+      assert.strictEqual(requestedUrls.length, 2);
+      assert.ok(
+        requestedUrls[0].includes("sysparm_fields=name%2Cscript%2Csys_id") ||
+          requestedUrls[0].includes("sysparm_fields=name%2Csys_id%2Cscript") ||
+          requestedUrls[0].includes("sysparm_fields=script%2Cname%2Csys_id") ||
+          requestedUrls[0].includes("sysparm_fields=script%2Csys_id%2Cname") ||
+          requestedUrls[0].includes("sysparm_fields=sys_id%2Cname%2Cscript") ||
+          requestedUrls[0].includes("sysparm_fields=sys_id%2Cscript%2Cname"),
+      );
+      assert.deepStrictEqual(writtenEvents, [
+        {
+          sysId: "abc123",
+          localPath: "src/security_rules/Can Read.js",
+        },
+      ]);
+    });
+  });
+
   test("pulls files using subdir, multi-field, and single-field patterns", async () => {
     await withTempDir("sn-sync-pull-", async (tempDir) => {
       const workspaceUri = vscode.Uri.file(tempDir);
@@ -380,10 +453,135 @@ suite("snPullService", () => {
             } as Response;
           }
 
+          if (callCount === 2) {
+            return {
+              ok: true,
+              json: async () => ({
+                result: [{ name: "rule-final", script: "script-final" }],
+              }),
+            } as Response;
+          }
+
           return {
             ok: true,
             json: async () => ({
-              result: [{ name: "rule-final", script: "script-final" }],
+              result: [],
+            }),
+          } as Response;
+        }) as typeof fetch,
+        2,
+      );
+
+      const summary = await service.pullConfiguredScripts(
+        {} as vscode.ExtensionContext,
+        workspaceUri,
+        [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      );
+
+      assert.strictEqual(callCount, 3);
+      assert.deepStrictEqual(summary, {
+        settings: 1,
+        records: 3,
+        files: 3,
+      });
+    });
+  });
+
+  test("continues pagination when a non-empty page has fewer rows than limit", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+      let callCount = 0;
+
+      const service = new SnPullService(
+        {
+          getSavedAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (): Promise<Response> => {
+          callCount += 1;
+
+          if (callCount === 1) {
+            return {
+              ok: true,
+              json: async () => ({
+                result: [{ name: "rule-1", script: "script-1" }],
+              }),
+            } as Response;
+          }
+
+          if (callCount === 2) {
+            return {
+              ok: true,
+              json: async () => ({
+                result: [{ name: "rule-2", script: "script-2" }],
+              }),
+            } as Response;
+          }
+
+          return {
+            ok: true,
+            json: async () => ({ result: [] }),
+          } as Response;
+        }) as typeof fetch,
+        2,
+      );
+
+      const summary = await service.pullConfiguredScripts(
+        {} as vscode.ExtensionContext,
+        workspaceUri,
+        [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      );
+
+      assert.strictEqual(callCount, 3);
+      assert.deepStrictEqual(summary, {
+        settings: 1,
+        records: 2,
+        files: 2,
+      });
+    });
+  });
+
+  test("stops pagination when API repeats the same page", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+      let callCount = 0;
+
+      const service = new SnPullService(
+        {
+          getSavedAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (): Promise<Response> => {
+          callCount += 1;
+
+          return {
+            ok: true,
+            json: async () => ({
+              result: [{ name: "rule-1", script: "script-1" }],
             }),
           } as Response;
         }) as typeof fetch,
@@ -407,8 +605,8 @@ suite("snPullService", () => {
       assert.strictEqual(callCount, 2);
       assert.deepStrictEqual(summary, {
         settings: 1,
-        records: 3,
-        files: 3,
+        records: 1,
+        files: 1,
       });
     });
   });
@@ -540,6 +738,61 @@ suite("snPullService", () => {
             "unknown",
             "Rule One.js",
           ),
+          "utf-8",
+        ),
+        "answer=true;",
+      );
+    });
+  });
+
+  test("writes files under a custom rootDir when provided", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      const service = new SnPullService(
+        {
+          getSavedAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (): Promise<Response> => {
+          return {
+            ok: true,
+            json: async () => ({
+              result: [
+                {
+                  name: "Rule One",
+                  script: "answer=true;",
+                },
+              ],
+            }),
+          } as Response;
+        }) as typeof fetch,
+      );
+
+      await service.pullConfiguredScripts(
+        {} as vscode.ExtensionContext,
+        workspaceUri,
+        [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+        {
+          rootDir: "app",
+        },
+      );
+
+      assert.strictEqual(
+        await fs.readFile(
+          path.join(tempDir, "app", "security_rules", "Rule One.js"),
           "utf-8",
         ),
         "answer=true;",

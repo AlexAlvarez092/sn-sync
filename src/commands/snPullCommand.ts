@@ -5,24 +5,32 @@ import {
 } from "@services/snPullService.js";
 import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 import {
+  SnSyncIndexService,
+  type SnSyncIndexServiceApi,
+} from "@services/snSyncIndexService.js";
+import {
   SN_SYNC_COMMANDS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
+import type { SnPullClearBeforePull } from "@shared/models/config.js";
+import {
+  type SnBaseCommandRuntime,
+  defaultBaseRuntime,
+} from "@shared/services/snCommandRuntime.js";
+import {
+  type FolderClearRuntime,
+  clearDirectory,
+  ensureDirectoryExists,
+} from "@shared/services/snFolderService.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
+import { resolvePreferences } from "@shared/services/snPreferencesService.js";
 
-export interface SnPullRuntime {
-  getWorkspaceFolderUri(): vscode.Uri | undefined;
-  showErrorMessage(message: string): Thenable<string | undefined>;
-  showInformationMessage(message: string): Thenable<string | undefined>;
+export interface SnPullRuntime
+  extends SnBaseCommandRuntime, FolderClearRuntime {
   showWarningMessage(
     message: string,
     ...items: string[]
   ): Thenable<string | undefined>;
-  readDirectory(uri: vscode.Uri): Thenable<[string, vscode.FileType][]>;
-  delete(
-    uri: vscode.Uri,
-    options: { recursive: boolean; useTrash: boolean },
-  ): Thenable<void>;
   withProgress<T>(
     title: string,
     task: (
@@ -32,16 +40,14 @@ export interface SnPullRuntime {
 }
 
 const defaultRuntime: SnPullRuntime = {
-  getWorkspaceFolderUri: () => vscode.workspace.workspaceFolders?.[0]?.uri,
-  showErrorMessage: (message: string) =>
-    vscode.window.showErrorMessage(message),
-  showInformationMessage: (message: string) =>
-    vscode.window.showInformationMessage(message),
+  ...defaultBaseRuntime,
   showWarningMessage: (message: string, ...items: string[]) =>
     vscode.window.showWarningMessage(message, ...items),
   readDirectory: (uri: vscode.Uri) => vscode.workspace.fs.readDirectory(uri),
   delete: (uri: vscode.Uri, options) =>
     vscode.workspace.fs.delete(uri, options),
+  createDirectory: (uri: vscode.Uri) =>
+    vscode.workspace.fs.createDirectory(uri),
   withProgress: (title, task) =>
     vscode.window.withProgress(
       {
@@ -58,6 +64,9 @@ export async function runSnPullCommand(
   configService: SnSyncConfigService,
   pullService: SnPullServiceApi,
   runtime: SnPullRuntime = defaultRuntime,
+  indexService: SnSyncIndexServiceApi = new SnSyncIndexService(
+    context.workspaceState,
+  ),
 ): Promise<void> {
   const workspaceFolderUri = runtime.getWorkspaceFolderUri();
 
@@ -74,22 +83,42 @@ export async function runSnPullCommand(
       return;
     }
 
-    const clearSrcChoice = await runtime.showWarningMessage(
-      SN_SYNC_MESSAGES.PULL_CLEAR_SRC_PROMPT,
-      SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
-      SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+    const preferences = await resolvePreferences(
+      configService,
+      workspaceFolderUri,
     );
 
-    if (clearSrcChoice === SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION) {
-      await clearSrcFolder(runtime, workspaceFolderUri);
+    await ensureDirectoryExists(
+      runtime,
+      vscode.Uri.joinPath(workspaceFolderUri, preferences.rootDir),
+    );
+
+    const shouldDeleteBeforePull = await shouldDeleteBeforePullCommand(
+      runtime,
+      preferences.pull.clearBeforePull,
+      preferences.rootDir,
+    );
+
+    if (shouldDeleteBeforePull) {
+      await clearDirectory(
+        runtime,
+        vscode.Uri.joinPath(workspaceFolderUri, preferences.rootDir),
+      );
     }
 
     const summary = await runtime.withProgress(
-      "Pulling scripts from ServiceNow...",
+      SN_SYNC_MESSAGES.PULL_PROGRESS_TITLE,
       async (progress) => {
         let totalRecords = 0;
         let totalFiles = 0;
         let visibleFilesWritten = 0;
+        const indexUpdates: Array<{
+          localPath: string;
+          table: string;
+          sysId: string;
+          fieldName: string;
+          baseHash: string;
+        }> = [];
 
         for (const setting of settings) {
           const settingSummary = await pullService.pullConfiguredScripts(
@@ -97,10 +126,31 @@ export async function runSnPullCommand(
             workspaceFolderUri,
             [setting],
             {
-              onFileWritten: ({ settingFolder, fileName }) => {
+              rootDir: preferences.rootDir,
+              onFileWritten: ({
+                settingFolder,
+                fileName,
+                localPath,
+                table,
+                sysId,
+                fieldName,
+                baseHash,
+              }) => {
                 visibleFilesWritten += 1;
                 progress.report({
                   message: `Writing ${visibleFilesWritten} files... (${settingFolder}/${fileName})`,
+                });
+
+                if (!sysId || !localPath || !table || !fieldName || !baseHash) {
+                  return;
+                }
+
+                indexUpdates.push({
+                  localPath,
+                  table,
+                  sysId,
+                  fieldName,
+                  baseHash,
                 });
               },
             },
@@ -114,6 +164,8 @@ export async function runSnPullCommand(
             message: `${setting.folder} complete (${settingSummary.files} files)`,
           });
         }
+
+        await indexService.replacePullSnapshot!(workspaceFolderUri, indexUpdates);
 
         return {
           settings: settings.length,
@@ -133,31 +185,6 @@ export async function runSnPullCommand(
   }
 }
 
-async function clearSrcFolder(
-  runtime: SnPullRuntime,
-  workspaceFolderUri: vscode.Uri,
-): Promise<void> {
-  const srcFolderUri = vscode.Uri.joinPath(workspaceFolderUri, "src");
-
-  let entries: [string, vscode.FileType][];
-  try {
-    entries = await runtime.readDirectory(srcFolderUri);
-  } catch (error) {
-    if (getErrorMessage(error).includes("FileNotFound")) {
-      return;
-    }
-
-    throw error;
-  }
-
-  for (const [entryName] of entries) {
-    await runtime.delete(vscode.Uri.joinPath(srcFolderUri, entryName), {
-      recursive: true,
-      useTrash: false,
-    });
-  }
-}
-
 export function registerSnPullCommand(
   context: vscode.ExtensionContext,
   configService: SnSyncConfigService = new SnSyncConfigService(),
@@ -165,8 +192,37 @@ export function registerSnPullCommand(
 ): void {
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.PULL,
-    () => runSnPullCommand(context, configService, pullService),
+    () =>
+      runSnPullCommand(
+        context,
+        configService,
+        pullService,
+        defaultRuntime,
+        new SnSyncIndexService(context.workspaceState),
+      ),
   );
 
   context.subscriptions.push(disposable);
+}
+
+async function shouldDeleteBeforePullCommand(
+  runtime: Pick<SnPullRuntime, "showWarningMessage">,
+  clearBeforePull: SnPullClearBeforePull,
+  rootDir: string,
+): Promise<boolean> {
+  if (clearBeforePull === "delete") {
+    return true;
+  }
+
+  if (clearBeforePull === "keep") {
+    return false;
+  }
+
+  const clearSrcChoice = await runtime.showWarningMessage(
+    SN_SYNC_MESSAGES.PULL_CLEAR_SRC_PROMPT.replace("src", rootDir),
+    SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
+    SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+  );
+
+  return clearSrcChoice === SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION;
 }

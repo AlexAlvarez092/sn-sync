@@ -2,26 +2,24 @@ import * as vscode from "vscode";
 import { SnAuthService } from "@services/snAuthService.js";
 import {
   SN_SYNC_COMMANDS,
+  SN_SYNC_INPUTS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
+import {
+  type SnBaseCommandRuntime,
+  defaultBaseRuntime,
+} from "@shared/services/snCommandRuntime.js";
 import type { SnAuthInput } from "@shared/models/auth.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
 
-export interface SnAuthRuntime {
-  getWorkspaceFolderUri(): vscode.Uri | undefined;
+export interface SnAuthRuntime extends SnBaseCommandRuntime {
   askInput(options: vscode.InputBoxOptions): Thenable<string | undefined>;
-  showErrorMessage(message: string): Thenable<string | undefined>;
-  showInformationMessage(message: string): Thenable<string | undefined>;
 }
 
 const defaultRuntime: SnAuthRuntime = {
-  getWorkspaceFolderUri: () => vscode.workspace.workspaceFolders?.[0]?.uri,
+  ...defaultBaseRuntime,
   askInput: (options: vscode.InputBoxOptions) =>
     vscode.window.showInputBox(options),
-  showErrorMessage: (message: string) =>
-    vscode.window.showErrorMessage(message),
-  showInformationMessage: (message: string) =>
-    vscode.window.showInformationMessage(message),
 };
 
 export async function runSnAuthCommand(
@@ -68,8 +66,8 @@ async function collectAuthInput(
   runtime: SnAuthRuntime,
 ): Promise<SnAuthInput | undefined> {
   const instanceName = await askRequiredInput(runtime, {
-    prompt: "Instance name",
-    placeHolder: "my-dev-instance",
+    prompt: SN_SYNC_INPUTS.AUTH_INSTANCE_NAME_PROMPT,
+    placeHolder: SN_SYNC_INPUTS.AUTH_INSTANCE_NAME_PLACEHOLDER,
     ignoreFocusOut: true,
   });
   if (!instanceName) {
@@ -77,8 +75,8 @@ async function collectAuthInput(
   }
 
   const instanceUrl = await askRequiredInput(runtime, {
-    prompt: "Instance URL",
-    placeHolder: "https://my-dev-instance.service-now.com",
+    prompt: SN_SYNC_INPUTS.AUTH_INSTANCE_URL_PROMPT,
+    placeHolder: SN_SYNC_INPUTS.AUTH_INSTANCE_URL_PLACEHOLDER,
     ignoreFocusOut: true,
   });
   if (!instanceUrl) {
@@ -86,8 +84,8 @@ async function collectAuthInput(
   }
 
   const username = await askRequiredInput(runtime, {
-    prompt: "Username",
-    placeHolder: "admin",
+    prompt: SN_SYNC_INPUTS.AUTH_USERNAME_PROMPT,
+    placeHolder: SN_SYNC_INPUTS.AUTH_USERNAME_PLACEHOLDER,
     ignoreFocusOut: true,
   });
   if (!username) {
@@ -95,7 +93,7 @@ async function collectAuthInput(
   }
 
   const password = await askRequiredInput(runtime, {
-    prompt: "Password",
+    prompt: SN_SYNC_INPUTS.AUTH_PASSWORD_PROMPT,
     password: true,
     ignoreFocusOut: true,
   });

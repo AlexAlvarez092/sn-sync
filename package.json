@@ -1,8 +1,10 @@
 {
   "name": "sn-sync",
+  "publisher": "Alex Alvarez",
   "displayName": "sn-sync",
-  "description": "",
+  "description": "A VS Code extension for syncing ServiceNow script records to local files and safely pushing local changes back",
   "version": "0.0.1",
+  "license": "AGPL-3.0-or-later",
   "engines": {
     "vscode": "^1.120.0"
   },
@@ -10,10 +12,30 @@
     "Other"
   ],
   "activationEvents": [
-    "workspaceContains:.sn-sync"
+    "workspaceContains:.snsyncrc"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "sn-sync",
+      "properties": {
+        "sn-sync.rootDir": {
+          "type": "string",
+          "default": "src",
+          "description": "Root folder where sn-sync writes pulled files."
+        },
+        "sn-sync.pull.clearBeforePull": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "delete",
+            "keep"
+          ],
+          "default": "ask",
+          "description": "Controls whether sn-sync asks, deletes, or keeps local files before pull commands."
+        }
+      }
+    },
     "commands": [
       {
         "command": "sn-sync.sn-init",
@@ -28,20 +50,28 @@
         "title": "sn: auth validate"
       },
       {
-        "command": "sn-sync.update-set.reset",
-        "title": "sn: update set reset"
-      },
-      {
         "command": "sn-sync.pull",
         "title": "sn: pull"
       },
       {
-        "command": "sn-sync.pull-table",
-        "title": "sn: pull table"
+        "command": "sn-sync.pull-by-sys-id",
+        "title": "sn: pull by sys_id"
       },
       {
-        "command": "sn-sync.clear-src",
-        "title": "sn: clear src"
+        "command": "sn-sync.reset-index",
+        "title": "sn: reset index"
+      },
+      {
+        "command": "sn-sync.push-active",
+        "title": "sn: push active"
+      },
+      {
+        "command": "sn-sync.push-report",
+        "title": "sn: push report"
+      },
+      {
+        "command": "sn-sync.push-modified",
+        "title": "sn: push modified"
       }
     ]
   },
