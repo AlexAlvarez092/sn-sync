@@ -1,8 +1,5 @@
 import * as vscode from "vscode";
-import {
-  SnLoginValidationService,
-  type SnLoginValidationServiceApi,
-} from "@services/snLoginValidationService.js";
+import { SnAuthService } from "@services/snAuthService.js";
 import {
   SN_SYNC_COMMANDS,
   SN_SYNC_MESSAGES,
@@ -13,14 +10,21 @@ import {
 } from "@shared/services/snCommandRuntime.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
 
-export interface SnValidateAuthRuntime extends SnBaseCommandRuntime {}
+export interface SnAuthValidateServiceApi {
+  validateAuth(
+    context: vscode.ExtensionContext,
+    workspaceFolderUri: vscode.Uri,
+  ): Promise<void>;
+}
 
-const defaultRuntime: SnValidateAuthRuntime = defaultBaseRuntime;
+export interface SnAuthValidateRuntime extends SnBaseCommandRuntime {}
 
-export async function runSnValidateAuthCommand(
+const defaultRuntime: SnAuthValidateRuntime = defaultBaseRuntime;
+
+export async function runSnAuthValidateCommand(
   context: vscode.ExtensionContext,
-  validationService: SnLoginValidationServiceApi,
-  runtime: SnValidateAuthRuntime = defaultRuntime,
+  authService: SnAuthValidateServiceApi,
+  runtime: SnAuthValidateRuntime = defaultRuntime,
 ): Promise<void> {
   const workspaceFolderUri = runtime.getWorkspaceFolderUri();
 
@@ -30,7 +34,7 @@ export async function runSnValidateAuthCommand(
   }
 
   try {
-    await validationService.validateLogin(context, workspaceFolderUri);
+    await authService.validateAuth(context, workspaceFolderUri);
     void runtime.showInformationMessage(SN_SYNC_MESSAGES.AUTH_VALIDATE_SUCCESS);
   } catch (error) {
     void runtime.showErrorMessage(
@@ -39,13 +43,13 @@ export async function runSnValidateAuthCommand(
   }
 }
 
-export function registerSnValidateAuthCommand(
+export function registerSnAuthValidateCommand(
   context: vscode.ExtensionContext,
-  validationService: SnLoginValidationServiceApi = new SnLoginValidationService(),
+  authService: SnAuthValidateServiceApi = new SnAuthService(),
 ): void {
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.AUTH_VALIDATE,
-    () => runSnValidateAuthCommand(context, validationService),
+    () => runSnAuthValidateCommand(context, authService),
   );
 
   context.subscriptions.push(disposable);

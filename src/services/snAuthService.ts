@@ -1,15 +1,25 @@
 import * as vscode from "vscode";
 import { SnSyncConfigService } from "@services/snSyncConfigService.js";
-import { SN_SYNC_SECRET_KEYS } from "@shared/constants/snSyncConstants.js";
+import {
+  SN_SYNC_MESSAGES,
+  SN_SYNC_SECRET_KEYS,
+  SN_SYNC_SERVICENOW,
+} from "@shared/constants/snSyncConstants.js";
 import type {
   SavedSnAuth,
   SnAuthInput,
   SnAuthSecret,
 } from "@shared/models/auth.js";
+import {
+  buildBasicAuthHeader,
+  handleHttpError,
+  normalizeInstanceUrl,
+} from "@shared/services/snHttpService.js";
 
 export class SnAuthService {
   public constructor(
     private readonly configService: SnSyncConfigService = new SnSyncConfigService(),
+    private readonly fetchApi: typeof fetch = fetch,
   ) {}
 
   public async saveAuth(
@@ -67,6 +77,36 @@ export class SnAuthService {
     } catch {
       return undefined;
     }
+  }
+
+  public async validateAuth(
+    context: vscode.ExtensionContext,
+    workspaceFolderUri: vscode.Uri,
+  ): Promise<void> {
+    const savedAuth = await this.getSavedAuth(context, workspaceFolderUri);
+
+    if (!savedAuth) {
+      throw new Error(SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED);
+    }
+
+    const response = await this.fetchApi(
+      `${normalizeInstanceUrl(savedAuth.instanceUrl)}${SN_SYNC_SERVICENOW.CURRENT_USER_API_PATH}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
+          Authorization: buildBasicAuthHeader(
+            savedAuth.username,
+            savedAuth.password,
+          ),
+        },
+      },
+    );
+
+    handleHttpError(
+      response,
+      SN_SYNC_MESSAGES.AUTH_VALIDATE_HTTP_STATUS_PREFIX,
+    );
   }
 
   private getSecretKey(
