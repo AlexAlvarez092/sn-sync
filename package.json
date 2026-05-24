@@ -2,8 +2,9 @@
   "name": "sn-sync",
   "publisher": "Alex Alvarez",
   "displayName": "sn-sync",
-  "description": "",
+  "description": "A VS Code extension for syncing ServiceNow script records to local files and safely pushing local changes back",
   "version": "0.0.1",
+  "license": "AGPL-3.0-or-later",
   "engines": {
     "vscode": "^1.120.0"
   },
