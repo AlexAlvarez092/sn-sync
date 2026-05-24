@@ -69,13 +69,7 @@ export const SN_SYNC_MESSAGES = {
     "Push aborted: remote conflicts detected. No files were uploaded.",
   PUSH_MODIFIED_SUCCESS_PREFIX: "sn-sync push modified completed.",
   PUSH_MODIFIED_FAILED_PREFIX: "Failed to push modified files to ServiceNow:",
-  CLEAR_SRC_CONFIRM:
-    "This will permanently delete all files and folders inside src. Continue?",
   CLEAR_SRC_CONFIRM_ACTION: "Clear src",
-  CLEAR_SRC_CANCELLED: "sn-sync clear src cancelled.",
-  CLEAR_SRC_NOT_FOUND: "src folder not found. Nothing to clear.",
-  CLEAR_SRC_SUCCESS: "sn-sync src folder cleared.",
-  CLEAR_SRC_FAILED_PREFIX: "Failed to clear src folder:",
 } as const;
 
 export const SN_SYNC_INPUTS = {

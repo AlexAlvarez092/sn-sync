@@ -10,7 +10,6 @@ import {
 } from "@services/snSyncIndexService.js";
 import {
   SN_SYNC_COMMANDS,
-  SN_SYNC_DEFAULTS,
   SN_SYNC_INPUTS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
@@ -24,6 +23,7 @@ import {
   ensureDirectoryExists,
 } from "@shared/services/snFolderService.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
+import { resolvePreferences } from "@shared/services/snPreferencesService.js";
 
 interface TableQuickPickItem extends vscode.QuickPickItem {
   setting: ExtensionConfigSetting;
@@ -233,21 +233,3 @@ export function registerSnPullBySysIdCommand(
   context.subscriptions.push(disposable);
 }
 
-async function resolvePreferences(
-  configService: SnSyncConfigService,
-  workspaceFolderUri: vscode.Uri,
-): Promise<{
-  rootDir: string;
-  pull: { clearBeforePull: "ask" | "delete" | "keep" };
-}> {
-  if (typeof configService.getPreferences === "function") {
-    return configService.getPreferences(workspaceFolderUri);
-  }
-
-  return {
-    rootDir: SN_SYNC_DEFAULTS.ROOT_DIR,
-    pull: {
-      clearBeforePull: SN_SYNC_DEFAULTS.CLEAR_BEFORE_PULL,
-    },
-  };
-}

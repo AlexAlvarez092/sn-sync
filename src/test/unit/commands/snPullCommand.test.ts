@@ -262,6 +262,15 @@ suite("snPullCommand", () => {
           });
         },
       },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+        clearIndex: async () => undefined,
+        replacePullSnapshot: async () => undefined,
+      },
     );
 
     assert.strictEqual(deletedEntries.length, 2);
@@ -340,6 +349,15 @@ suite("snPullCommand", () => {
             report: () => undefined,
           }),
       },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+        clearIndex: async () => undefined,
+        replacePullSnapshot: async () => undefined,
+      },
     );
 
     assert.strictEqual(deleteCalled, false);
@@ -390,6 +408,15 @@ suite("snPullCommand", () => {
           task({
             report: () => undefined,
           }),
+      },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+        clearIndex: async () => undefined,
+        replacePullSnapshot: async () => undefined,
       },
     );
 
@@ -566,93 +593,6 @@ suite("snPullCommand", () => {
 
     assert.strictEqual(snapshotCalled, true);
     assert.deepStrictEqual(snapshotUpdates, []);
-  });
-
-  test("falls back to recordPullFiles when snapshot API is unavailable", async () => {
-    const recordedUpdates: Array<{
-      localPath: string;
-      table: string;
-      sysId: string;
-      fieldName: string;
-      baseHash: string;
-    }> = [];
-
-    await runSnPullCommand(
-      {
-        workspaceState: {
-          get: () => undefined,
-          update: async () => undefined,
-        },
-      } as unknown as vscode.ExtensionContext,
-      {
-        getSyncSettings: async () => [
-          {
-            folder: "security_rules",
-            table: "sys_security_acl",
-            query: "active=true",
-            key: "name",
-            fields: [{ extension: "js", field_name: "script" }],
-          },
-        ],
-      } as unknown as never,
-      {
-        pullConfiguredScripts: async (
-          _context,
-          _workspaceUri,
-          _settings,
-          options,
-        ) => {
-          options?.onFileWritten?.({
-            settingFolder: "security_rules",
-            fileName: "acl.js",
-            localPath: "src/security_rules/acl.js",
-            table: "sys_security_acl",
-            sysId: "acl-1",
-            fieldName: "script",
-            baseHash: "sha256:abc",
-          });
-
-          return {
-            settings: 1,
-            records: 1,
-            files: 1,
-          };
-        },
-      },
-      {
-        getWorkspaceFolderUri: () =>
-          createTempWorkspaceUri("pull-index-updates-record-only"),
-        showErrorMessage: async () => undefined,
-        showInformationMessage: async () => undefined,
-        showWarningMessage: async () =>
-          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
-        readDirectory: async () => [],
-        delete: async () => undefined,
-        withProgress: async (_title, task) =>
-          task({
-            report: () => undefined,
-          }),
-      },
-      {
-        findEntryByLocalPath: async () => undefined,
-        toWorkspaceRelativePath: () => "",
-        getModifiedCandidates: async () => [],
-        updateBaseHashes: async () => undefined,
-        recordPullFiles: async (_workspaceUri, updates) => {
-          recordedUpdates.push(...updates);
-        },
-      },
-    );
-
-    assert.deepStrictEqual(recordedUpdates, [
-      {
-        localPath: "src/security_rules/acl.js",
-        table: "sys_security_acl",
-        sysId: "acl-1",
-        fieldName: "script",
-        baseHash: "sha256:abc",
-      },
-    ]);
   });
 
   test("shows error when snapshot persistence fails with index updates", async () => {
@@ -866,6 +806,16 @@ suite("snPullCommand", () => {
                   files: 1,
                 }),
               },
+              undefined,
+              {
+                findEntryByLocalPath: async () => undefined,
+                toWorkspaceRelativePath: () => "",
+                getModifiedCandidates: async () => [],
+                recordPullFiles: async () => undefined,
+                updateBaseHashes: async () => undefined,
+                clearIndex: async () => undefined,
+                replacePullSnapshot: async () => undefined,
+              },
             );
           },
         );
@@ -925,6 +875,16 @@ suite("snPullCommand", () => {
                     files: 1,
                   }),
                 },
+                undefined,
+                {
+                  findEntryByLocalPath: async () => undefined,
+                  toWorkspaceRelativePath: () => "",
+                  getModifiedCandidates: async () => [],
+                  recordPullFiles: async () => undefined,
+                  updateBaseHashes: async () => undefined,
+                  clearIndex: async () => undefined,
+                  replacePullSnapshot: async () => undefined,
+                },
               );
             },
           );
@@ -979,6 +939,16 @@ suite("snPullCommand", () => {
                     records: 1,
                     files: 1,
                   }),
+                },
+                undefined,
+                {
+                  findEntryByLocalPath: async () => undefined,
+                  toWorkspaceRelativePath: () => "",
+                  getModifiedCandidates: async () => [],
+                  recordPullFiles: async () => undefined,
+                  updateBaseHashes: async () => undefined,
+                  clearIndex: async () => undefined,
+                  replacePullSnapshot: async () => undefined,
                 },
               );
             },

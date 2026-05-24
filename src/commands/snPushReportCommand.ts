@@ -128,7 +128,7 @@ function formatPushReport(report: SnPushReportData): string {
   lines.push("# sn-sync push report");
   lines.push("");
   lines.push(
-    `Modified files detected: ${report.files.length}. Grouped by scope and current in-progress update set for your user.`,
+    `Modified files detected: ${report.files.length}. Grouped by scope and resolved update set.`,
   );
   lines.push("");
   lines.push("## Scope summary");

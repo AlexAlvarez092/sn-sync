@@ -90,48 +90,7 @@ suite("snResetIndexCommand", () => {
     assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.RESET_INDEX_SUCCESS]);
   });
 
-  test("falls back to replacePullSnapshot when clearIndex is unavailable", async () => {
-    const shownInfos: string[] = [];
-    const workspaceUri = createTempWorkspaceUri("reset-index-fallback");
-    let snapshotCalls = 0;
-
-    await runSnResetIndexCommand(
-      {
-        workspaceState: {
-          get: () => undefined,
-          update: async () => undefined,
-        },
-      } as unknown as vscode.ExtensionContext,
-      {
-        replacePullSnapshot: async (
-          receivedUri: vscode.Uri,
-          updates: Array<unknown>,
-        ) => {
-          assert.strictEqual(receivedUri.toString(), workspaceUri.toString());
-          assert.deepStrictEqual(updates, []);
-          snapshotCalls += 1;
-        },
-        recordPullFiles: async () => undefined,
-        findEntryByLocalPath: async () => undefined,
-        toWorkspaceRelativePath: () => "",
-        getModifiedCandidates: async () => [],
-        updateBaseHashes: async () => undefined,
-      },
-      {
-        getWorkspaceFolderUri: () => workspaceUri,
-        showErrorMessage: async () => undefined,
-        showInformationMessage: async (message: string) => {
-          shownInfos.push(message);
-          return undefined;
-        },
-      },
-    );
-
-    assert.strictEqual(snapshotCalls, 1);
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.RESET_INDEX_SUCCESS]);
-  });
-
-  test("shows detailed error when reset operation is unsupported", async () => {
+  test("shows detailed error when reset fails", async () => {
     const shownErrors: string[] = [];
 
     await runSnResetIndexCommand(
@@ -142,6 +101,9 @@ suite("snResetIndexCommand", () => {
         },
       } as unknown as vscode.ExtensionContext,
       {
+        clearIndex: async () => {
+          throw new Error("clear-index-fail");
+        },
         recordPullFiles: async () => undefined,
         findEntryByLocalPath: async () => undefined,
         toWorkspaceRelativePath: () => "",
@@ -150,7 +112,7 @@ suite("snResetIndexCommand", () => {
       },
       {
         getWorkspaceFolderUri: () =>
-          createTempWorkspaceUri("reset-index-unsupported"),
+          createTempWorkspaceUri("reset-index-failure"),
         showErrorMessage: async (message: string) => {
           shownErrors.push(message);
           return undefined;
@@ -160,7 +122,7 @@ suite("snResetIndexCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.RESET_INDEX_FAILED_PREFIX} Index service does not support reset operations.`,
+      `${SN_SYNC_MESSAGES.RESET_INDEX_FAILED_PREFIX} clear-index-fail`,
     ]);
   });
 

@@ -10,9 +10,9 @@ import {
 } from "@services/snSyncIndexService.js";
 import {
   SN_SYNC_COMMANDS,
-  SN_SYNC_DEFAULTS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
+import type { SnPullClearBeforePull } from "@shared/models/config.js";
 import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
@@ -23,6 +23,7 @@ import {
   ensureDirectoryExists,
 } from "@shared/services/snFolderService.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
+import { resolvePreferences } from "@shared/services/snPreferencesService.js";
 
 export interface SnPullRuntime
   extends SnBaseCommandRuntime, FolderClearRuntime {
@@ -164,20 +165,7 @@ export async function runSnPullCommand(
           });
         }
 
-        if (typeof indexService.replacePullSnapshot === "function") {
-          try {
-            await indexService.replacePullSnapshot(
-              workspaceFolderUri,
-              indexUpdates,
-            );
-          } catch (error) {
-            if (indexUpdates.length > 0) {
-              throw error;
-            }
-          }
-        } else if (indexUpdates.length > 0) {
-          await indexService.recordPullFiles(workspaceFolderUri, indexUpdates);
-        }
+        await indexService.replacePullSnapshot!(workspaceFolderUri, indexUpdates);
 
         return {
           settings: settings.length,
@@ -219,7 +207,7 @@ export function registerSnPullCommand(
 
 async function shouldDeleteBeforePullCommand(
   runtime: Pick<SnPullRuntime, "showWarningMessage">,
-  clearBeforePull: "ask" | "delete" | "keep",
+  clearBeforePull: SnPullClearBeforePull,
   rootDir: string,
 ): Promise<boolean> {
   if (clearBeforePull === "delete") {
@@ -231,29 +219,10 @@ async function shouldDeleteBeforePullCommand(
   }
 
   const clearSrcChoice = await runtime.showWarningMessage(
-    `Clear ${rootDir} before pull to avoid stale local files?`,
+    SN_SYNC_MESSAGES.PULL_CLEAR_SRC_PROMPT.replace("src", rootDir),
     SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
     SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
   );
 
   return clearSrcChoice === SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION;
-}
-
-async function resolvePreferences(
-  configService: SnSyncConfigService,
-  workspaceFolderUri: vscode.Uri,
-): Promise<{
-  rootDir: string;
-  pull: { clearBeforePull: "ask" | "delete" | "keep" };
-}> {
-  if (typeof configService.getPreferences === "function") {
-    return configService.getPreferences(workspaceFolderUri);
-  }
-
-  return {
-    rootDir: SN_SYNC_DEFAULTS.ROOT_DIR,
-    pull: {
-      clearBeforePull: SN_SYNC_DEFAULTS.CLEAR_BEFORE_PULL,
-    },
-  };
 }
