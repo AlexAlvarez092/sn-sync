@@ -7,6 +7,7 @@ export const SN_SYNC_COMMANDS = {
   INIT: "sn-sync.sn-init",
   AUTH: "sn-sync.auth",
   AUTH_VALIDATE: "sn-sync.auth-validate",
+  RESET_AUTH: "sn-sync.reset-auth",
   PULL: "sn-sync.pull",
   PULL_BY_SYS_ID: "sn-sync.pull-by-sys-id",
   RESET_INDEX: "sn-sync.reset-index",
@@ -33,6 +34,10 @@ export const SN_SYNC_MESSAGES = {
   AUTH_VALIDATE_FAILED_PREFIX: "Failed to validate ServiceNow login:",
   AUTH_VALIDATE_HTTP_STATUS_PREFIX:
     "ServiceNow login validation failed with status:",
+  AUTH_VALIDATE_NETWORK_ERROR_PREFIX:
+    "ServiceNow login validation failed before receiving a response:",
+  RESET_AUTH_SUCCESS: "sn-sync auth reset completed.",
+  RESET_AUTH_FAILED_PREFIX: "Failed to reset sn-sync auth:",
   SN_REQUEST_HTTP_STATUS_PREFIX: "ServiceNow data request failed with status:",
   PULL_PROGRESS_TITLE: "Pulling scripts from ServiceNow...",
   PULL_NO_SETTINGS:
@@ -65,11 +70,21 @@ export const SN_SYNC_MESSAGES = {
   PUSH_REPORT_TITLE: "Generating push report...",
   PUSH_REPORT_SUCCESS: "sn-sync push report generated.",
   PUSH_REPORT_FAILED_PREFIX: "Failed to generate push report:",
+  PUSH_REPORT_NO_UPDATE_SET: "(none found)",
+  PUSH_REPORT_RECORD_NOT_FOUND_NOTE: "Record not found in instance (404).",
+  PUSH_REPORT_UPDATE_SET_TABLE_UNAVAILABLE_NOTE:
+    "Update set table is not available (404).",
   PUSH_MODIFIED_CONFLICTS_PREFIX:
     "Push aborted: remote conflicts detected. No files were uploaded.",
   PUSH_MODIFIED_SUCCESS_PREFIX: "sn-sync push modified completed.",
   PUSH_MODIFIED_FAILED_PREFIX: "Failed to push modified files to ServiceNow:",
   CLEAR_SRC_CONFIRM_ACTION: "Clear src",
+} as const;
+
+export const SN_SYNC_VALUES = {
+  UNKNOWN: "unknown",
+  GLOBAL: "global",
+  UNNAMED_PATH_SEGMENT: "unnamed",
 } as const;
 
 export const SN_SYNC_INPUTS = {
@@ -121,7 +136,6 @@ export const SN_SYNC_DEFAULTS = {
 export const SN_SYNC_SERVICENOW = {
   CONTENT_TYPE_JSON: "application/json",
   TABLE_API_PATH: "/api/now/table",
-  CURRENT_USER_API_PATH: "/api/now/ui/user/current",
 } as const;
 
 export const SN_SYNC_SECRET_KEYS = {

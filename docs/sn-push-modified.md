@@ -20,7 +20,7 @@ Push all locally modified indexed files as a batch, with a remote conflict pre-c
 
 1. Workspace is open.
 2. Index has been populated by previous pull operations.
-3. ServiceNow credentials are valid.
+3. ServiceNow connection auth is valid.
 
 ## Step-by-step logic
 
@@ -63,9 +63,8 @@ Push all locally modified indexed files as a batch, with a remote conflict pre-c
 - SnPushService
 - SnSyncIndexService
 - hashText
-- Runtime with withProgress
+- snCommandRuntime helpers (withNotificationProgress, getWorkspaceFolderOrShowError, showPrefixedCommandError)
 - SN_SYNC_MESSAGES
-- getErrorMessage
 
 ## Sequence diagram
 

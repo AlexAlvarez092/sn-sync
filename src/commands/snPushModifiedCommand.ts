@@ -14,8 +14,10 @@ import {
 import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
+  getWorkspaceFolderOrShowError,
+  showPrefixedCommandError,
+  withNotificationProgress,
 } from "@shared/services/snCommandRuntime.js";
-import { getErrorMessage } from "@shared/services/errorMessageService.js";
 import type { SnSyncIndexCandidate } from "@services/snSyncIndexService.js";
 import { hashText } from "@shared/services/hashService.js";
 
@@ -30,15 +32,7 @@ export interface SnPushModifiedRuntime extends SnBaseCommandRuntime {
 
 const defaultRuntime: SnPushModifiedRuntime = {
   ...defaultBaseRuntime,
-  withProgress: (title, task) =>
-    vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title,
-        cancellable: false,
-      },
-      task,
-    ),
+  withProgress: withNotificationProgress,
 };
 
 export async function runSnPushModifiedCommand(
@@ -47,10 +41,8 @@ export async function runSnPushModifiedCommand(
   indexService: SnSyncIndexServiceApi,
   runtime: SnPushModifiedRuntime = defaultRuntime,
 ): Promise<void> {
-  const workspaceFolderUri = runtime.getWorkspaceFolderUri();
-
+  const workspaceFolderUri = getWorkspaceFolderOrShowError(runtime);
   if (!workspaceFolderUri) {
-    void runtime.showErrorMessage(SN_SYNC_MESSAGES.NO_WORKSPACE);
     return;
   }
 
@@ -133,8 +125,10 @@ export async function runSnPushModifiedCommand(
       `${SN_SYNC_MESSAGES.PUSH_MODIFIED_SUCCESS_PREFIX} ${candidates.length} files uploaded.`,
     );
   } catch (error) {
-    void runtime.showErrorMessage(
-      `${SN_SYNC_MESSAGES.PUSH_MODIFIED_FAILED_PREFIX} ${getErrorMessage(error)}`,
+    showPrefixedCommandError(
+      runtime,
+      SN_SYNC_MESSAGES.PUSH_MODIFIED_FAILED_PREFIX,
+      error,
     );
   }
 }

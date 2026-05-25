@@ -47,7 +47,7 @@ Clear the local synchronization index (workspaceState) so baseline state can be 
 
 - SnSyncIndexService
 - SN_SYNC_MESSAGES
-- getErrorMessage
+- snCommandRuntime helpers (getWorkspaceFolderOrShowError, showPrefixedCommandError)
 
 ## Sequence diagram
 

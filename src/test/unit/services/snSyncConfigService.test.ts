@@ -92,6 +92,48 @@ suite("snSyncConfigService", () => {
     });
   });
 
+  test("initialize strips legacy auth fields from rc config", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+      const rcConfigPath = getRcConfigPath(tempDir);
+
+      await writeJsonFile(rcConfigPath, {
+        instance: "dev",
+        instanceUrl: "https://dev1.service-now.com",
+        auth: {
+          bearer: "token123",
+          userToken: "token-user",
+          cookie: "JSESSIONID=abc",
+        },
+        settings: [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      });
+
+      await service.initialize(workspaceFolderUri);
+
+      await assertJsonFileEquals(rcConfigPath, {
+        instance: "dev",
+        settings: [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      });
+    });
+  });
+
   test("setInstanceName recovers from malformed rc json", async () => {
     await withTempDir("sn-sync-test-", async (tempDir) => {
       const workspaceFolderUri = vscode.Uri.file(tempDir);

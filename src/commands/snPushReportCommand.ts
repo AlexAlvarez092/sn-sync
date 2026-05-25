@@ -6,6 +6,9 @@ import {
 import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
+  getWorkspaceFolderOrShowError,
+  showPrefixedCommandError,
+  withNotificationProgress,
 } from "@shared/services/snCommandRuntime.js";
 import {
   SnSyncIndexService,
@@ -16,7 +19,6 @@ import {
   type SnPushReportData,
   type SnPushReportServiceApi,
 } from "@services/snPushReportService.js";
-import { getErrorMessage } from "@shared/services/errorMessageService.js";
 
 export interface SnPushReportRuntime extends SnBaseCommandRuntime {
   withProgress<T>(
@@ -30,15 +32,7 @@ export interface SnPushReportRuntime extends SnBaseCommandRuntime {
 
 const defaultRuntime: SnPushReportRuntime = {
   ...defaultBaseRuntime,
-  withProgress: (title, task) =>
-    vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title,
-        cancellable: false,
-      },
-      task,
-    ),
+  withProgress: withNotificationProgress,
   openMarkdownReport: async (content: string) => {
     const document = await vscode.workspace.openTextDocument({
       language: "markdown",
@@ -57,10 +51,8 @@ export async function runSnPushReportCommand(
   reportService: SnPushReportServiceApi,
   runtime: SnPushReportRuntime = defaultRuntime,
 ): Promise<void> {
-  const workspaceFolderUri = runtime.getWorkspaceFolderUri();
-
+  const workspaceFolderUri = getWorkspaceFolderOrShowError(runtime);
   if (!workspaceFolderUri) {
-    void runtime.showErrorMessage(SN_SYNC_MESSAGES.NO_WORKSPACE);
     return;
   }
 
@@ -101,8 +93,10 @@ export async function runSnPushReportCommand(
     await runtime.openMarkdownReport(formatPushReport(report));
     void runtime.showInformationMessage(SN_SYNC_MESSAGES.PUSH_REPORT_SUCCESS);
   } catch (error) {
-    void runtime.showErrorMessage(
-      `${SN_SYNC_MESSAGES.PUSH_REPORT_FAILED_PREFIX} ${getErrorMessage(error)}`,
+    showPrefixedCommandError(
+      runtime,
+      SN_SYNC_MESSAGES.PUSH_REPORT_FAILED_PREFIX,
+      error,
     );
   }
 }
@@ -164,7 +158,7 @@ function formatUpdateSet(
   updateSetId: string | undefined,
 ): string {
   if (!updateSetId) {
-    return "(none found)";
+    return SN_SYNC_MESSAGES.PUSH_REPORT_NO_UPDATE_SET;
   }
 
   if (!updateSetName) {

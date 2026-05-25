@@ -5,12 +5,15 @@ import {
   SN_SYNC_SERVICENOW,
 } from "@shared/constants/snSyncConstants.js";
 import {
-  buildBasicAuthHeader,
+  createGotFetchTransport,
   handleHttpError,
   normalizeInstanceUrl,
+  resolveConnectionHeaders,
 } from "@shared/services/snHttpService.js";
 import type { SnSyncIndexCandidate } from "@services/snSyncIndexService.js";
-import type { SavedSnAuth } from "@shared/models/auth.js";
+import type { SnServiceNowConnectionAuth } from "@services/snAuthService.js";
+import { normalizeOptionalString } from "@shared/services/snStringService.js";
+import { SN_SYNC_VALUES } from "@shared/constants/snSyncConstants.js";
 
 interface SnRecordResponse {
   result?: Record<string, unknown> | Array<Record<string, unknown>>;
@@ -62,7 +65,7 @@ export interface SnPushReportServiceApi {
 export class SnPushReportService implements SnPushReportServiceApi {
   public constructor(
     private readonly authService: SnAuthService = new SnAuthService(),
-    private readonly fetchApi: typeof fetch = fetch,
+    private readonly fetchApi: typeof fetch = createGotFetchTransport(),
   ) {}
 
   public async buildPushReport(
@@ -71,14 +74,11 @@ export class SnPushReportService implements SnPushReportServiceApi {
     candidates: SnSyncIndexCandidate[],
     options?: SnPushReportBuildOptions,
   ): Promise<SnPushReportData> {
-    const savedAuth = await this.authService.getSavedAuth(
+    const connection = await this.authService.resolveConnectionAuth(
       context,
       workspaceFolderUri,
     );
-
-    if (!savedAuth) {
-      throw new Error(SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED);
-    }
+    const headers = resolveConnectionHeaders(connection);
 
     const scopeCache = new Map<
       string,
@@ -98,7 +98,11 @@ export class SnPushReportService implements SnPushReportServiceApi {
 
       if (!scopeInfo) {
         try {
-          scopeInfo = await this.loadRecordScope(savedAuth, candidate);
+          scopeInfo = await this.loadRecordScope(
+            connection,
+            headers,
+            candidate,
+          );
           scopeCache.set(recordKey, scopeInfo);
         } catch (error) {
           if (!this.isNotFoundError(error)) {
@@ -106,19 +110,20 @@ export class SnPushReportService implements SnPushReportServiceApi {
           }
 
           scopeInfo = {
-            scopeId: "unknown",
-            scopeName: "unknown",
+            scopeId: SN_SYNC_VALUES.UNKNOWN,
+            scopeName: SN_SYNC_VALUES.UNKNOWN,
           };
           scopeCache.set(recordKey, scopeInfo);
-          resolutionNote = "Record not found in instance (404).";
+          resolutionNote = SN_SYNC_MESSAGES.PUSH_REPORT_RECORD_NOT_FOUND_NOTE;
         }
       }
 
       let updateSetInfo = updateSetCache.get(scopeInfo.scopeId);
-      if (!updateSetInfo && scopeInfo.scopeId !== "unknown") {
+      if (!updateSetInfo && scopeInfo.scopeId !== SN_SYNC_VALUES.UNKNOWN) {
         try {
           updateSetInfo = await this.loadScopeUpdateSet(
-            savedAuth,
+            connection,
+            headers,
             scopeInfo.scopeId,
           );
           updateSetCache.set(scopeInfo.scopeId, updateSetInfo);
@@ -130,7 +135,8 @@ export class SnPushReportService implements SnPushReportServiceApi {
           updateSetInfo = {};
           updateSetCache.set(scopeInfo.scopeId, updateSetInfo);
           resolutionNote =
-            resolutionNote ?? "Update set table is not available (404).";
+            resolutionNote ??
+            SN_SYNC_MESSAGES.PUSH_REPORT_UPDATE_SET_TABLE_UNAVAILABLE_NOTE;
         }
       }
 
@@ -180,19 +186,17 @@ export class SnPushReportService implements SnPushReportServiceApi {
   }
 
   private async loadRecordScope(
-    savedAuth: SavedSnAuth,
+    connection: SnServiceNowConnectionAuth,
+    headers: Record<string, string>,
     candidate: SnSyncIndexCandidate,
   ): Promise<{ scopeId: string; scopeName: string }> {
     const response = await this.fetchApi(
-      `${normalizeInstanceUrl(savedAuth.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${candidate.entry.table}/${candidate.entry.sysId}?sysparm_fields=sys_scope,sys_scope.scope,sys_scope.name`,
+      `${normalizeInstanceUrl(connection.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${candidate.entry.table}/${candidate.entry.sysId}?sysparm_fields=sys_scope,sys_scope.scope,sys_scope.name`,
       {
         method: "GET",
         headers: {
           Accept: SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
-          Authorization: buildBasicAuthHeader(
-            savedAuth.username,
-            savedAuth.password,
-          ),
+          ...headers,
         },
       },
     );
@@ -208,11 +212,11 @@ export class SnPushReportService implements SnPushReportServiceApi {
     const scopeId =
       this.normalize(record["sys_scope.scope"]) ||
       this.normalize(record.sys_scope) ||
-      "global";
+      SN_SYNC_VALUES.GLOBAL;
 
     const scopeName =
       this.normalize(record["sys_scope.name"]) ||
-      (scopeId === "global" ? "global" : scopeId);
+      (scopeId === SN_SYNC_VALUES.GLOBAL ? SN_SYNC_VALUES.GLOBAL : scopeId);
 
     return {
       scopeId,
@@ -221,17 +225,23 @@ export class SnPushReportService implements SnPushReportServiceApi {
   }
 
   private async loadScopeUpdateSet(
-    savedAuth: SavedSnAuth,
+    connection: SnServiceNowConnectionAuth,
+    headers: Record<string, string>,
     scopeId: string,
   ): Promise<{ updateSetId?: string; updateSetName?: string }> {
     const preferredUpdateSetId =
-      await this.loadScopeUpdateSetFromUserPreference(savedAuth, scopeId);
+      await this.loadScopeUpdateSetFromUserPreference(
+        connection,
+        headers,
+        scopeId,
+      );
 
     if (preferredUpdateSetId) {
       let preferredUpdateSetName: string | undefined;
       try {
         preferredUpdateSetName = await this.loadUpdateSetNameById(
-          savedAuth,
+          connection,
+          headers,
           preferredUpdateSetId,
         );
       } catch (error) {
@@ -251,15 +261,12 @@ export class SnPushReportService implements SnPushReportServiceApi {
     );
 
     const response = await this.fetchApi(
-      `${normalizeInstanceUrl(savedAuth.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/sys_update_set?sysparm_query=${query}&sysparm_fields=sys_id,name&sysparm_limit=1`,
+      `${normalizeInstanceUrl(connection.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/sys_update_set?sysparm_query=${query}&sysparm_fields=sys_id,name&sysparm_limit=1`,
       {
         method: "GET",
         headers: {
           Accept: SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
-          Authorization: buildBasicAuthHeader(
-            savedAuth.username,
-            savedAuth.password,
-          ),
+          ...headers,
         },
       },
     );
@@ -281,23 +288,25 @@ export class SnPushReportService implements SnPushReportServiceApi {
   }
 
   private async loadScopeUpdateSetFromUserPreference(
-    savedAuth: SavedSnAuth,
+    connection: SnServiceNowConnectionAuth,
+    headers: Record<string, string>,
     scopeId: string,
   ): Promise<string | undefined> {
+    if (!connection.username) {
+      return undefined;
+    }
+
     const query = encodeURIComponent(
-      `name=updateSetForScope${scopeId}^user.user_name=${savedAuth.username}`,
+      `name=updateSetForScope${scopeId}^user.user_name=${connection.username}`,
     );
 
     const response = await this.fetchApi(
-      `${normalizeInstanceUrl(savedAuth.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/sys_user_preference?sysparm_query=${query}&sysparm_fields=value&sysparm_limit=1`,
+      `${normalizeInstanceUrl(connection.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/sys_user_preference?sysparm_query=${query}&sysparm_fields=value&sysparm_limit=1`,
       {
         method: "GET",
         headers: {
           Accept: SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
-          Authorization: buildBasicAuthHeader(
-            savedAuth.username,
-            savedAuth.password,
-          ),
+          ...headers,
         },
       },
     );
@@ -312,19 +321,17 @@ export class SnPushReportService implements SnPushReportServiceApi {
   }
 
   private async loadUpdateSetNameById(
-    savedAuth: SavedSnAuth,
+    connection: SnServiceNowConnectionAuth,
+    headers: Record<string, string>,
     updateSetId: string,
   ): Promise<string | undefined> {
     const response = await this.fetchApi(
-      `${normalizeInstanceUrl(savedAuth.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/sys_update_set/${updateSetId}?sysparm_fields=name`,
+      `${normalizeInstanceUrl(connection.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/sys_update_set/${updateSetId}?sysparm_fields=name`,
       {
         method: "GET",
         headers: {
           Accept: SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
-          Authorization: buildBasicAuthHeader(
-            savedAuth.username,
-            savedAuth.password,
-          ),
+          ...headers,
         },
       },
     );
@@ -339,12 +346,9 @@ export class SnPushReportService implements SnPushReportServiceApi {
   }
 
   private normalize(value: unknown): string | undefined {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
-
-    const normalized = String(value).trim();
-    return normalized || undefined;
+    return normalizeOptionalString(
+      value === undefined || value === null ? undefined : String(value),
+    );
   }
 
   private isNotFoundError(error: unknown): boolean {

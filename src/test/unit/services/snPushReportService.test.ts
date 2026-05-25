@@ -1,16 +1,91 @@
 import * as assert from "assert";
+import * as http from "node:http";
 import * as vscode from "vscode";
 import { SnPushReportService } from "@services/snPushReportService.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 import type { SnSyncIndexCandidate } from "@services/snSyncIndexService.js";
 
 suite("snPushReportService", () => {
+  test("uses got transport by default to build push report", async () => {
+    const server = http.createServer((request, response) => {
+      const url = request.url ?? "";
+
+      if (url.includes("/api/now/table/sys_script/abc")) {
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(
+          JSON.stringify({
+            result: {
+              "sys_scope.scope": "x_app_one",
+              "sys_scope.name": "App One",
+            },
+          }),
+        );
+        return;
+      }
+
+      if (url.includes("/api/now/table/sys_user_preference?")) {
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ result: [] }));
+        return;
+      }
+
+      if (url.includes("/api/now/table/sys_update_set?")) {
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ result: [] }));
+        return;
+      }
+
+      response.writeHead(404, { "Content-Type": "application/json" });
+      response.end("{}");
+    });
+
+    await new Promise<void>((resolve) => {
+      server.listen(0, "127.0.0.1", () => resolve());
+    });
+
+    const address = server.address();
+    assert.ok(address && typeof address === "object");
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const service = new SnPushReportService({
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: baseUrl,
+          username: "admin",
+          password: "pwd",
+        }),
+      } as unknown as never);
+
+      const report = await service.buildPushReport(
+        {} as vscode.ExtensionContext,
+        vscode.Uri.file("/tmp/ws"),
+        [createCandidate("src/a.js", "sys_script", "abc")],
+      );
+
+      assert.strictEqual(report.files.length, 1);
+      assert.strictEqual(report.files[0].scopeId, "x_app_one");
+      assert.strictEqual(report.files[0].scopeName, "App One");
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+
+          resolve();
+        });
+      });
+    }
+  });
+
   test("builds report with scope and update set per file", async () => {
     const fetchCalls: string[] = [];
 
     const service = new SnPushReportService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -110,7 +185,7 @@ suite("snPushReportService", () => {
   test("falls back to global scope and empty update set when unavailable", async () => {
     const service = new SnPushReportService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -173,7 +248,7 @@ suite("snPushReportService", () => {
 
     const service = new SnPushReportService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -247,7 +322,90 @@ suite("snPushReportService", () => {
   test("throws when auth is missing", async () => {
     const service = new SnPushReportService(
       {
-        getSavedAuth: async () => undefined,
+        resolveConnectionAuth: async () => undefined,
+      } as unknown as never,
+      fetch,
+    );
+
+    await assert.rejects(
+      () =>
+        service.buildPushReport(
+          {} as vscode.ExtensionContext,
+          vscode.Uri.file("/tmp/ws"),
+          [createCandidate("src/a.js", "sys_script", "abc")],
+        ),
+      (error: unknown) =>
+        error instanceof Error &&
+        error.message === SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED,
+    );
+  });
+
+  test("uses provided headers and skips user preference lookup when username is missing", async () => {
+    const fetchCalls: string[] = [];
+
+    const service = new SnPushReportService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          headers: {
+            "X-UserToken": "token123",
+          },
+        }),
+      } as unknown as never,
+      (async (input: unknown, init?: RequestInit) => {
+        const url = String(input);
+        fetchCalls.push(url);
+
+        const headers = (init?.headers as Record<string, string>) ?? {};
+        assert.strictEqual(headers["X-UserToken"], "token123");
+        assert.strictEqual(headers.Authorization, undefined);
+
+        if (url.includes("/api/now/table/sys_script/abc")) {
+          return new Response(
+            JSON.stringify({
+              result: {
+                "sys_scope.scope": "x_app_one",
+                "sys_scope.name": "App One",
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url.includes("/api/now/table/sys_update_set?")) {
+          return new Response(
+            JSON.stringify({
+              result: [],
+            }),
+            { status: 200 },
+          );
+        }
+
+        return new Response("{}", { status: 200 });
+      }) as typeof fetch,
+    );
+
+    const report = await service.buildPushReport(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      [createCandidate("src/a.js", "sys_script", "abc")],
+    );
+
+    assert.strictEqual(report.files.length, 1);
+    const preferenceCalls = fetchCalls.filter((url) =>
+      url.includes("/api/now/table/sys_user_preference?"),
+    );
+    assert.strictEqual(preferenceCalls.length, 0);
+  });
+
+  test("throws when connection has no headers and no credentials", async () => {
+    const service = new SnPushReportService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+        }),
       } as unknown as never,
       fetch,
     );
@@ -268,7 +426,7 @@ suite("snPushReportService", () => {
   test("handles array/non-array payload fallbacks and empty normalized values", async () => {
     const service = new SnPushReportService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -352,7 +510,7 @@ suite("snPushReportService", () => {
   test("keeps report generation when record lookup returns 404", async () => {
     const service = new SnPushReportService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -397,7 +555,7 @@ suite("snPushReportService", () => {
   test("continues when update set lookup returns 404", async () => {
     const service = new SnPushReportService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -454,7 +612,7 @@ suite("snPushReportService", () => {
   test("keeps update set id when preference exists and name lookup returns 404", async () => {
     const service = new SnPushReportService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -513,7 +671,7 @@ suite("snPushReportService", () => {
   test("throws when record scope lookup fails with non-404", async () => {
     const service = new SnPushReportService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -552,7 +710,7 @@ suite("snPushReportService", () => {
   test("throws when update set lookup fails with non-404", async () => {
     const service = new SnPushReportService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -616,7 +774,7 @@ suite("snPushReportService", () => {
   test("keeps update set id when name lookup returns array payload", async () => {
     const service = new SnPushReportService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -678,7 +836,7 @@ suite("snPushReportService", () => {
   test("isNotFoundError handles non-Error values", () => {
     const service = new SnPushReportService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -709,7 +867,7 @@ suite("snPushReportService", () => {
 
     const service = new SnPushReportService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",

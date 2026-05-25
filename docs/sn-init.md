@@ -24,11 +24,11 @@ Initialize extension configuration in the current workspace. In practice, it gua
 
 ## Step-by-step logic
 
-1. Resolve the active workspace folder from runtime.getWorkspaceFolderUri().
+1. Resolve the active workspace folder through getWorkspaceFolderOrShowError(runtime).
 2. If missing, terminate with SN_SYNC_MESSAGES.NO_WORKSPACE.
 3. Call configService.initialize(workspaceFolderUri).
 4. On success, show SN_SYNC_MESSAGES.INIT_SUCCESS.
-5. On failure, catch and show SN_SYNC_MESSAGES.INIT_FAILED_PREFIX + normalized error via getErrorMessage.
+5. On failure, catch and show SN_SYNC_MESSAGES.INIT_FAILED_PREFIX + normalized error via showPrefixedCommandError.
 
 ## Service behavior
 
@@ -36,7 +36,10 @@ The command delegates to SnSyncConfigService.initialize, which:
 
 1. Resolves the .snsyncrc path.
 2. Creates the file if it does not exist.
-3. Writes default instance/settings structure when creating.
+3. Writes default structure when creating:
+   - `instance`: empty string
+   - `settings`: default sync settings
+4. Sanitizes existing `.snsyncrc` content by stripping legacy auth fields, keeping only non-sensitive configuration.
 
 ## Side effects
 
@@ -52,8 +55,7 @@ The command delegates to SnSyncConfigService.initialize, which:
 ## Direct dependencies
 
 - SnSyncConfigService
-- defaultBaseRuntime
-- getErrorMessage
+- snCommandRuntime helpers (defaultBaseRuntime, getWorkspaceFolderOrShowError, showPrefixedCommandError)
 - SN_SYNC_MESSAGES
 
 ## Sequence diagram

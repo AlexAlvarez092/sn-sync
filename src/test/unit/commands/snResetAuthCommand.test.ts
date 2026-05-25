@@ -1,13 +1,13 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
 import {
-  registerSnResetIndexCommand,
-  runSnResetIndexCommand,
-} from "@commands/snResetIndexCommand.js";
+  registerSnResetAuthCommand,
+  runSnResetAuthCommand,
+} from "@commands/snResetAuthCommand.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 import { createTempWorkspaceUri } from "@test/helpers/testRuntime.js";
 
-suite("snResetIndexCommand", () => {
+suite("snResetAuthCommand", () => {
   test("registers command and stores disposable in context subscriptions", () => {
     const context = {
       subscriptions: [] as vscode.Disposable[],
@@ -18,7 +18,7 @@ suite("snResetIndexCommand", () => {
     } as unknown as vscode.ExtensionContext;
 
     withPatchedRegisterCommand(() => {
-      registerSnResetIndexCommand(context);
+      registerSnResetAuthCommand(context);
 
       assert.strictEqual(context.subscriptions.length, 1);
       context.subscriptions[0].dispose();
@@ -28,17 +28,12 @@ suite("snResetIndexCommand", () => {
   test("shows error when no workspace folder is open", async () => {
     const shownErrors: string[] = [];
 
-    await runSnResetIndexCommand(
+    await runSnResetAuthCommand(
       {} as vscode.ExtensionContext,
       {
-        clearIndex: async () => {
+        resetAuth: async () => {
           throw new Error("must-not-be-called");
         },
-        recordPullFiles: async () => undefined,
-        findEntryByLocalPath: async () => undefined,
-        toWorkspaceRelativePath: () => "",
-        getModifiedCandidates: async () => [],
-        updateBaseHashes: async () => undefined,
       },
       {
         getWorkspaceFolderUri: () => undefined,
@@ -53,28 +48,24 @@ suite("snResetIndexCommand", () => {
     assert.deepStrictEqual(shownErrors, [SN_SYNC_MESSAGES.NO_WORKSPACE]);
   });
 
-  test("resets index using clearIndex and shows success", async () => {
+  test("resets auth and shows success", async () => {
     const shownInfos: string[] = [];
-    const workspaceUri = createTempWorkspaceUri("reset-index-success");
-    let clearCalls = 0;
+    const workspaceUri = createTempWorkspaceUri("reset-auth-success");
+    let resetCalls = 0;
 
-    await runSnResetIndexCommand(
+    await runSnResetAuthCommand(
+      {} as vscode.ExtensionContext,
       {
-        workspaceState: {
-          get: () => undefined,
-          update: async () => undefined,
+        resetAuth: async (
+          _context: vscode.ExtensionContext,
+          receivedWorkspaceUri: vscode.Uri,
+        ) => {
+          assert.strictEqual(
+            receivedWorkspaceUri.toString(),
+            workspaceUri.toString(),
+          );
+          resetCalls += 1;
         },
-      } as unknown as vscode.ExtensionContext,
-      {
-        clearIndex: async (receivedUri: vscode.Uri) => {
-          assert.strictEqual(receivedUri.toString(), workspaceUri.toString());
-          clearCalls += 1;
-        },
-        recordPullFiles: async () => undefined,
-        findEntryByLocalPath: async () => undefined,
-        toWorkspaceRelativePath: () => "",
-        getModifiedCandidates: async () => [],
-        updateBaseHashes: async () => undefined,
       },
       {
         getWorkspaceFolderUri: () => workspaceUri,
@@ -86,33 +77,23 @@ suite("snResetIndexCommand", () => {
       },
     );
 
-    assert.strictEqual(clearCalls, 1);
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.RESET_INDEX_SUCCESS]);
+    assert.strictEqual(resetCalls, 1);
+    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.RESET_AUTH_SUCCESS]);
   });
 
-  test("shows detailed error when reset fails", async () => {
+  test("shows detailed error when reset auth fails", async () => {
     const shownErrors: string[] = [];
 
-    await runSnResetIndexCommand(
+    await runSnResetAuthCommand(
+      {} as vscode.ExtensionContext,
       {
-        workspaceState: {
-          get: () => undefined,
-          update: async () => undefined,
+        resetAuth: async () => {
+          throw new Error("reset-auth-fail");
         },
-      } as unknown as vscode.ExtensionContext,
-      {
-        clearIndex: async () => {
-          throw new Error("clear-index-fail");
-        },
-        recordPullFiles: async () => undefined,
-        findEntryByLocalPath: async () => undefined,
-        toWorkspaceRelativePath: () => "",
-        getModifiedCandidates: async () => [],
-        updateBaseHashes: async () => undefined,
       },
       {
         getWorkspaceFolderUri: () =>
-          createTempWorkspaceUri("reset-index-failure"),
+          createTempWorkspaceUri("reset-auth-failure"),
         showErrorMessage: async (message: string) => {
           shownErrors.push(message);
           return undefined;
@@ -122,45 +103,12 @@ suite("snResetIndexCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.RESET_INDEX_FAILED_PREFIX} clear-index-fail`,
-    ]);
-  });
-
-  test("shows detailed error when index service does not support clearIndex", async () => {
-    const shownErrors: string[] = [];
-
-    await runSnResetIndexCommand(
-      {
-        workspaceState: {
-          get: () => undefined,
-          update: async () => undefined,
-        },
-      } as unknown as vscode.ExtensionContext,
-      {
-        recordPullFiles: async () => undefined,
-        findEntryByLocalPath: async () => undefined,
-        toWorkspaceRelativePath: () => "",
-        getModifiedCandidates: async () => [],
-        updateBaseHashes: async () => undefined,
-      },
-      {
-        getWorkspaceFolderUri: () =>
-          createTempWorkspaceUri("reset-index-missing-clear"),
-        showErrorMessage: async (message: string) => {
-          shownErrors.push(message);
-          return undefined;
-        },
-        showInformationMessage: async () => undefined,
-      },
-    );
-
-    assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.RESET_INDEX_FAILED_PREFIX} Index service does not support clearIndex`,
+      `${SN_SYNC_MESSAGES.RESET_AUTH_FAILED_PREFIX} reset-auth-fail`,
     ]);
   });
 
   test("uses default runtime and shows success when workspace exists", async () => {
-    const workspaceUri = createTempWorkspaceUri("reset-index-default-runtime");
+    const workspaceUri = createTempWorkspaceUri("reset-auth-default-runtime");
     const shownInfos: string[] = [];
 
     await withPatchedWorkspaceFolders(
@@ -173,28 +121,15 @@ suite("snResetIndexCommand", () => {
             return undefined;
           },
           async () => {
-            await runSnResetIndexCommand(
-              {
-                workspaceState: {
-                  get: () => undefined,
-                  update: async () => undefined,
-                },
-              } as unknown as vscode.ExtensionContext,
-              {
-                clearIndex: async () => undefined,
-                recordPullFiles: async () => undefined,
-                findEntryByLocalPath: async () => undefined,
-                toWorkspaceRelativePath: () => "",
-                getModifiedCandidates: async () => [],
-                updateBaseHashes: async () => undefined,
-              },
-            );
+            await runSnResetAuthCommand({} as vscode.ExtensionContext, {
+              resetAuth: async () => undefined,
+            });
           },
         );
       },
     );
 
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.RESET_INDEX_SUCCESS]);
+    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.RESET_AUTH_SUCCESS]);
   });
 });
 

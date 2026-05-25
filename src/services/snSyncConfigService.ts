@@ -9,6 +9,7 @@ import {
 import { SN_SYNC_DEFAULTS } from "@shared/constants/snSyncConstants.js";
 import { ensureJsonFile } from "@shared/services/jsonFileService.js";
 import { getSnSyncPaths } from "@shared/services/snSyncPathService.js";
+import { normalizeOptionalString } from "@shared/services/snStringService.js";
 
 interface SnSyncRcConfig extends InstanceConfig {
   settings: ExtensionConfigSetting[];
@@ -22,6 +23,10 @@ export class SnSyncConfigService {
       instance: "",
       settings: SN_SYNC_DEFAULTS.SETTINGS,
     } satisfies SnSyncRcConfig);
+
+    // Enforce security policy by stripping legacy auth fields from rc files.
+    const sanitizedConfig = await this.readConfig(rcConfigUri);
+    await this.writeConfig(rcConfigUri, sanitizedConfig);
   }
 
   public async getPreferences(
@@ -29,8 +34,6 @@ export class SnSyncConfigService {
   ): Promise<SnSyncResolvedPreferences> {
     await this.initialize(workspaceFolderUri);
 
-    const { rcConfigUri } = getSnSyncPaths(workspaceFolderUri);
-    const config = await this.readConfig(rcConfigUri);
     const vscodeConfig = vscode.workspace.getConfiguration(
       "sn-sync",
       workspaceFolderUri,
@@ -191,15 +194,6 @@ export class SnSyncConfigService {
     value: string | undefined,
     allowEmpty = false,
   ): string | undefined {
-    if (typeof value !== "string") {
-      return undefined;
-    }
-
-    const normalized = value.trim();
-    if (!allowEmpty && !normalized) {
-      return undefined;
-    }
-
-    return normalized;
+    return normalizeOptionalString(value, allowEmpty);
   }
 }
