@@ -16,14 +16,17 @@ import type { SnPullClearBeforePull } from "@shared/models/config.js";
 import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
+  getWorkspaceFolderOrShowError,
+  showPrefixedCommandError,
+  withNotificationProgress,
 } from "@shared/services/snCommandRuntime.js";
 import {
   type FolderClearRuntime,
   clearDirectory,
   ensureDirectoryExists,
 } from "@shared/services/snFolderService.js";
-import { getErrorMessage } from "@shared/services/errorMessageService.js";
 import { resolvePreferences } from "@shared/services/snPreferencesService.js";
+import { createPullFileWrittenHandler } from "@shared/services/snPullProgressService.js";
 
 export interface SnPullRuntime
   extends SnBaseCommandRuntime, FolderClearRuntime {
@@ -48,15 +51,7 @@ const defaultRuntime: SnPullRuntime = {
     vscode.workspace.fs.delete(uri, options),
   createDirectory: (uri: vscode.Uri) =>
     vscode.workspace.fs.createDirectory(uri),
-  withProgress: (title, task) =>
-    vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title,
-        cancellable: false,
-      },
-      task,
-    ),
+  withProgress: withNotificationProgress,
 };
 
 export async function runSnPullCommand(
@@ -68,10 +63,8 @@ export async function runSnPullCommand(
     context.workspaceState,
   ),
 ): Promise<void> {
-  const workspaceFolderUri = runtime.getWorkspaceFolderUri();
-
+  const workspaceFolderUri = getWorkspaceFolderOrShowError(runtime);
   if (!workspaceFolderUri) {
-    void runtime.showErrorMessage(SN_SYNC_MESSAGES.NO_WORKSPACE);
     return;
   }
 
@@ -111,7 +104,6 @@ export async function runSnPullCommand(
       async (progress) => {
         let totalRecords = 0;
         let totalFiles = 0;
-        let visibleFilesWritten = 0;
         const indexUpdates: Array<{
           localPath: string;
           table: string;
@@ -119,6 +111,10 @@ export async function runSnPullCommand(
           fieldName: string;
           baseHash: string;
         }> = [];
+        const onFileWritten = createPullFileWrittenHandler(
+          progress,
+          indexUpdates,
+        );
 
         for (const setting of settings) {
           const settingSummary = await pullService.pullConfiguredScripts(
@@ -127,32 +123,7 @@ export async function runSnPullCommand(
             [setting],
             {
               rootDir: preferences.rootDir,
-              onFileWritten: ({
-                settingFolder,
-                fileName,
-                localPath,
-                table,
-                sysId,
-                fieldName,
-                baseHash,
-              }) => {
-                visibleFilesWritten += 1;
-                progress.report({
-                  message: `Writing ${visibleFilesWritten} files... (${settingFolder}/${fileName})`,
-                });
-
-                if (!sysId || !localPath || !table || !fieldName || !baseHash) {
-                  return;
-                }
-
-                indexUpdates.push({
-                  localPath,
-                  table,
-                  sysId,
-                  fieldName,
-                  baseHash,
-                });
-              },
+              onFileWritten,
             },
           );
 
@@ -165,7 +136,14 @@ export async function runSnPullCommand(
           });
         }
 
-        await indexService.replacePullSnapshot!(workspaceFolderUri, indexUpdates);
+        if (!indexService.replacePullSnapshot) {
+          throw new Error("Index service does not support replacePullSnapshot");
+        }
+
+        await indexService.replacePullSnapshot(
+          workspaceFolderUri,
+          indexUpdates,
+        );
 
         return {
           settings: settings.length,
@@ -179,8 +157,10 @@ export async function runSnPullCommand(
       `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} ${summary.files} files from ${summary.records} records (${summary.settings} settings).`,
     );
   } catch (error) {
-    void runtime.showErrorMessage(
-      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} ${getErrorMessage(error)}`,
+    showPrefixedCommandError(
+      runtime,
+      SN_SYNC_MESSAGES.PULL_FAILED_PREFIX,
+      error,
     );
   }
 }

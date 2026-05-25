@@ -1,5 +1,6 @@
 import * as assert from "assert";
 import * as fs from "node:fs/promises";
+import * as http from "node:http";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { SnPullService } from "@services/snPullService.js";
@@ -8,6 +9,99 @@ import type { ExtensionConfigSetting } from "@shared/models/config.js";
 import { withTempDir } from "@test/helpers/testRuntime.js";
 
 suite("snPullService", () => {
+  test("uses got transport by default and pulls from local server", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+      let firstPageServed = false;
+
+      const server = http.createServer((request, response) => {
+        if (!request.url?.startsWith("/api/now/table/sys_security_acl?")) {
+          response.writeHead(404, { "Content-Type": "application/json" });
+          response.end(JSON.stringify({}));
+          return;
+        }
+
+        if (!firstPageServed) {
+          firstPageServed = true;
+          response.writeHead(200, { "Content-Type": "application/json" });
+          response.end(
+            JSON.stringify({
+              result: [
+                {
+                  name: "Rule From Got",
+                  script: "answer=true;",
+                  sys_id: "abc123",
+                },
+              ],
+            }),
+          );
+          return;
+        }
+
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ result: [] }));
+      });
+
+      await new Promise<void>((resolve) => {
+        server.listen(0, "127.0.0.1", () => resolve());
+      });
+
+      const address = server.address();
+      assert.ok(address && typeof address === "object");
+      const baseUrl = `http://127.0.0.1:${address.port}`;
+
+      try {
+        const service = new SnPullService({
+          resolveConnectionAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: baseUrl,
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never);
+
+        const summary = await service.pullConfiguredScripts(
+          {} as vscode.ExtensionContext,
+          workspaceUri,
+          [
+            {
+              folder: "security_rules",
+              table: "sys_security_acl",
+              query: "active=true",
+              key: "name",
+              fields: [{ extension: "js", field_name: "script" }],
+            },
+          ],
+        );
+
+        assert.deepStrictEqual(summary, {
+          settings: 1,
+          records: 1,
+          files: 1,
+        });
+
+        assert.strictEqual(
+          await fs.readFile(
+            path.join(tempDir, "src", "security_rules", "Rule From Got.js"),
+            "utf-8",
+          ),
+          "answer=true;",
+        );
+      } finally {
+        await new Promise<void>((resolve, reject) => {
+          server.close((error) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+
+            resolve();
+          });
+        });
+      }
+    });
+  });
+
   test("always requests sys_id and emits it for index metadata", async () => {
     await withTempDir("sn-sync-pull-", async (tempDir) => {
       const workspaceUri = vscode.Uri.file(tempDir);
@@ -16,7 +110,7 @@ suite("snPullService", () => {
 
       const service = new SnPullService(
         {
-          getSavedAuth: async () => ({
+          resolveConnectionAuth: async () => ({
             instanceName: "dev",
             instanceUrl: "https://dev.service-now.com",
             username: "admin",
@@ -89,7 +183,7 @@ suite("snPullService", () => {
 
       const service = new SnPullService(
         {
-          getSavedAuth: async () => ({
+          resolveConnectionAuth: async () => ({
             instanceName: "dev",
             instanceUrl: "https://dev.service-now.com",
             username: "admin",
@@ -251,7 +345,7 @@ suite("snPullService", () => {
 
       const service = new SnPullService(
         {
-          getSavedAuth: async () => ({
+          resolveConnectionAuth: async () => ({
             instanceName: "dev",
             instanceUrl: "https://dev.service-now.com",
             username: "admin",
@@ -304,7 +398,7 @@ suite("snPullService", () => {
   test("throws when auth is missing", async () => {
     const service = new SnPullService(
       {
-        getSavedAuth: async () => undefined,
+        resolveConnectionAuth: async () => undefined,
       } as unknown as never,
       (async () => {
         throw new Error("must-not-be-called");
@@ -336,10 +430,86 @@ suite("snPullService", () => {
     );
   });
 
+  test("uses provided headers when available", async () => {
+    const calls: RequestInit[] = [];
+    const service = new SnPullService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          headers: {
+            "X-UserToken": "token123",
+          },
+        }),
+      } as unknown as never,
+      (async (_input: unknown, init?: RequestInit) => {
+        calls.push(init ?? {});
+        return new Response(JSON.stringify({ result: [] }), { status: 200 });
+      }) as typeof fetch,
+    );
+
+    await service.pullConfiguredScripts(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      [
+        {
+          folder: "src",
+          table: "sys_script",
+          query: "active=true",
+          key: "name",
+          fields: [{ field_name: "script", extension: "js" }],
+        },
+      ],
+    );
+
+    const headers = (calls[0].headers as Record<string, string>) ?? {};
+    assert.strictEqual(headers["X-UserToken"], "token123");
+    assert.strictEqual(headers.Authorization, undefined);
+  });
+
+  test("throws when connection has no headers and no credentials", async () => {
+    const service = new SnPullService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+        }),
+      } as unknown as never,
+      (async () =>
+        new Response(JSON.stringify({ result: [] }), {
+          status: 200,
+        })) as typeof fetch,
+    );
+
+    await assert.rejects(
+      () =>
+        service.pullConfiguredScripts(
+          {} as vscode.ExtensionContext,
+          vscode.Uri.file("/tmp/ws"),
+          [
+            {
+              folder: "src",
+              table: "sys_script",
+              query: "active=true",
+              key: "name",
+              fields: [{ field_name: "script", extension: "js" }],
+            },
+          ],
+        ),
+      (error: unknown) => {
+        assert.strictEqual(
+          (error as Error).message,
+          SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED,
+        );
+        return true;
+      },
+    );
+  });
+
   test("throws invalid credential error on 401", async () => {
     const service = new SnPullService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -383,7 +553,7 @@ suite("snPullService", () => {
   test("throws status message for non-auth HTTP errors", async () => {
     const service = new SnPullService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -431,7 +601,7 @@ suite("snPullService", () => {
 
       const service = new SnPullService(
         {
-          getSavedAuth: async () => ({
+          resolveConnectionAuth: async () => ({
             instanceName: "dev",
             instanceUrl: "https://dev.service-now.com",
             username: "admin",
@@ -502,7 +672,7 @@ suite("snPullService", () => {
 
       const service = new SnPullService(
         {
-          getSavedAuth: async () => ({
+          resolveConnectionAuth: async () => ({
             instanceName: "dev",
             instanceUrl: "https://dev.service-now.com",
             username: "admin",
@@ -568,7 +738,7 @@ suite("snPullService", () => {
 
       const service = new SnPullService(
         {
-          getSavedAuth: async () => ({
+          resolveConnectionAuth: async () => ({
             instanceName: "dev",
             instanceUrl: "https://dev.service-now.com",
             username: "admin",
@@ -614,7 +784,7 @@ suite("snPullService", () => {
   test("handles malformed payload result as empty", async () => {
     const service = new SnPullService(
       {
-        getSavedAuth: async () => ({
+        resolveConnectionAuth: async () => ({
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           username: "admin",
@@ -656,7 +826,7 @@ suite("snPullService", () => {
 
       const service = new SnPullService(
         {
-          getSavedAuth: async () => ({
+          resolveConnectionAuth: async () => ({
             instanceName: "dev",
             instanceUrl: "https://dev.service-now.com",
             username: "admin",
@@ -751,7 +921,7 @@ suite("snPullService", () => {
 
       const service = new SnPullService(
         {
-          getSavedAuth: async () => ({
+          resolveConnectionAuth: async () => ({
             instanceName: "dev",
             instanceUrl: "https://dev.service-now.com",
             username: "admin",

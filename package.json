@@ -62,6 +62,10 @@
         "title": "sn: auth validate"
       },
       {
+        "command": "sn-sync.reset-auth",
+        "title": "sn: reset auth"
+      },
+      {
         "command": "sn-sync.pull",
         "title": "sn: pull"
       },
@@ -107,5 +111,9 @@
     "tsc-alias": "^1.8.16",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.56.1"
+  },
+  "dependencies": {
+    "got": "^15.0.5",
+    "tough-cookie": "^6.0.1"
   }
 }

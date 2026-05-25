@@ -17,7 +17,7 @@ Execute a targeted pull for a single ServiceNow record (by sys_id), using a tabl
 
 1. Workspace is open.
 2. Sync configuration contains at least one setting.
-3. Valid ServiceNow credentials are available.
+3. Valid connection auth is available.
 
 ## Step-by-step logic
 
@@ -39,7 +39,7 @@ Execute a targeted pull for a single ServiceNow record (by sys_id), using a tabl
 13. Ensure rootDir exists.
 14. Build filteredSetting by cloning selected setting and forcing query to sys_id=<value>.
 15. Run pullService.pullConfiguredScripts with [filteredSetting], rootDir, and onFileWritten callback.
-16. onFileWritten:
+16. onFileWritten (created by createPullFileWrittenHandler):
     - reports Writing N files progress
     - accumulates complete metadata entries into indexUpdates
 17. Persist indexUpdates with indexService.recordPullFiles.
@@ -70,7 +70,8 @@ Execute a targeted pull for a single ServiceNow record (by sys_id), using a tabl
 - SnSyncIndexService
 - snFolderService (ensureDirectoryExists)
 - snPreferencesService (resolvePreferences)
-- Runtime with showQuickPick/showInputBox/withProgress
+- snPullProgressService (createPullFileWrittenHandler)
+- snCommandRuntime helpers (withNotificationProgress, getWorkspaceFolderOrShowError, showPrefixedCommandError)
 
 ## Sequence diagram
 
@@ -79,6 +80,7 @@ sequenceDiagram
    participant U as User
    participant C as sn: pull by sys_id command
    participant CFG as SnSyncConfigService
+   participant PREF as Preferences Service
    participant R as Runtime
    participant P as SnPullService
    participant I as SnSyncIndexService
@@ -100,7 +102,7 @@ sequenceDiagram
             alt Input canceled or blank
                C->>R: showInformationMessage/ showErrorMessage(cancel/invalid)
             else Valid sys_id
-               C->>CFG: resolvePreferences()
+               C->>PREF: resolvePreferences()
                C->>P: pullConfiguredScripts(filteredSetting)
                P-->>C: onFileWritten callbacks + summary
                C->>I: recordPullFiles(indexUpdates)

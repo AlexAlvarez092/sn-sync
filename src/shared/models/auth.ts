@@ -7,8 +7,11 @@ export interface SnAuthInput {
 
 export interface SnAuthSecret {
   instanceUrl: string;
-  username: string;
-  password: string;
+  username?: string;
+  password?: string;
+  bearer?: string;
+  userToken?: string;
+  cookie?: string;
 }
 
 export interface SavedSnAuth extends SnAuthSecret {

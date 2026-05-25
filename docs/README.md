@@ -2,11 +2,22 @@
 
 This folder contains technical documentation for all extension commands and the overall architecture.
 
+Authentication model summary:
+
+- Connection auth is resolved from VS Code Secret Storage only.
+- Runtime resolution priority is: session headers -> bearer -> basic credentials.
+
+Transport and runtime summary:
+
+- ServiceNow HTTP traffic is centralized in a shared got-based transport helper.
+- Command handlers share runtime helpers for workspace resolution, notification progress, and prefixed error reporting.
+
 Documented commands:
 
 - sn: init -> sn-sync.sn-init
 - sn: auth -> sn-sync.auth
 - sn: auth validate -> sn-sync.auth-validate
+- sn: reset auth -> sn-sync.reset-auth
 - sn: pull -> sn-sync.pull
 - sn: pull by sys_id -> sn-sync.pull-by-sys-id
 - sn: reset index -> sn-sync.reset-index
@@ -19,6 +30,7 @@ Files:
 - sn-init.md
 - sn-auth.md
 - sn-auth-validate.md
+- sn-reset-auth.md
 - sn-pull.md
 - sn-pull-by-sys-id.md
 - sn-reset-index.md

@@ -6,8 +6,9 @@ import {
 import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
+  getWorkspaceFolderOrShowError,
+  showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
-import { getErrorMessage } from "@shared/services/errorMessageService.js";
 import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 
 export interface SnSyncInitializer {
@@ -22,10 +23,8 @@ export async function runSnInitCommand(
   configService: SnSyncInitializer,
   runtime: SnInitCommandRuntime = defaultRuntime,
 ): Promise<void> {
-  const workspaceFolderUri = runtime.getWorkspaceFolderUri();
-
+  const workspaceFolderUri = getWorkspaceFolderOrShowError(runtime);
   if (!workspaceFolderUri) {
-    void runtime.showErrorMessage(SN_SYNC_MESSAGES.NO_WORKSPACE);
     return;
   }
 
@@ -33,8 +32,10 @@ export async function runSnInitCommand(
     await configService.initialize(workspaceFolderUri);
     void runtime.showInformationMessage(SN_SYNC_MESSAGES.INIT_SUCCESS);
   } catch (error) {
-    void runtime.showErrorMessage(
-      `${SN_SYNC_MESSAGES.INIT_FAILED_PREFIX} ${getErrorMessage(error)}`,
+    showPrefixedCommandError(
+      runtime,
+      SN_SYNC_MESSAGES.INIT_FAILED_PREFIX,
+      error,
     );
   }
 }

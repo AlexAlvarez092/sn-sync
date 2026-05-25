@@ -5,9 +5,10 @@ import {
   SN_SYNC_SERVICENOW,
 } from "@shared/constants/snSyncConstants.js";
 import {
-  buildBasicAuthHeader,
+  createGotFetchTransport,
   handleHttpError,
   normalizeInstanceUrl,
+  resolveConnectionHeaders,
 } from "@shared/services/snHttpService.js";
 import type { SnSyncIndexEntry } from "@shared/models/syncIndex.js";
 
@@ -32,7 +33,7 @@ interface SnRecordResponse {
 export class SnPushService implements SnPushServiceApi {
   public constructor(
     private readonly authService: SnAuthService = new SnAuthService(),
-    private readonly fetchApi: typeof fetch = fetch,
+    private readonly fetchApi: typeof fetch = createGotFetchTransport(),
   ) {}
 
   public async getRemoteFieldContent(
@@ -40,25 +41,19 @@ export class SnPushService implements SnPushServiceApi {
     workspaceFolderUri: vscode.Uri,
     entry: SnSyncIndexEntry,
   ): Promise<string> {
-    const savedAuth = await this.authService.getSavedAuth(
+    const connection = await this.authService.resolveConnectionAuth(
       context,
       workspaceFolderUri,
     );
-
-    if (!savedAuth) {
-      throw new Error(SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED);
-    }
+    const headers = resolveConnectionHeaders(connection);
 
     const response = await this.fetchApi(
-      `${normalizeInstanceUrl(savedAuth.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${entry.table}/${entry.sysId}?sysparm_fields=${encodeURIComponent(entry.fieldName)}`,
+      `${normalizeInstanceUrl(connection.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${entry.table}/${entry.sysId}?sysparm_fields=${encodeURIComponent(entry.fieldName)}`,
       {
         method: "GET",
         headers: {
           Accept: SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
-          Authorization: buildBasicAuthHeader(
-            savedAuth.username,
-            savedAuth.password,
-          ),
+          ...headers,
         },
       },
     );
@@ -81,26 +76,20 @@ export class SnPushService implements SnPushServiceApi {
     entry: SnSyncIndexEntry,
     content: string,
   ): Promise<void> {
-    const savedAuth = await this.authService.getSavedAuth(
+    const connection = await this.authService.resolveConnectionAuth(
       context,
       workspaceFolderUri,
     );
-
-    if (!savedAuth) {
-      throw new Error(SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED);
-    }
+    const headers = resolveConnectionHeaders(connection);
 
     const response = await this.fetchApi(
-      `${normalizeInstanceUrl(savedAuth.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${entry.table}/${entry.sysId}`,
+      `${normalizeInstanceUrl(connection.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${entry.table}/${entry.sysId}`,
       {
         method: "PATCH",
         headers: {
           Accept: SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
           "Content-Type": SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
-          Authorization: buildBasicAuthHeader(
-            savedAuth.username,
-            savedAuth.password,
-          ),
+          ...headers,
         },
         body: JSON.stringify({
           [entry.fieldName]: content,

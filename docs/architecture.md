@@ -27,7 +27,8 @@ Registered commands:
 
 - sn-sync.sn-init
 - sn-sync.auth
-  +- sn-sync.auth-validate
+- sn-sync.auth-validate
+- sn-sync.reset-auth
 - sn-sync.pull
 - sn-sync.pull-by-sys-id
 - sn-sync.reset-index
@@ -89,6 +90,12 @@ Common benefits:
 - Improves unit testability
 - Enables deterministic testing with mocked UI and progress
 
+Current shared runtime helpers:
+
+- getWorkspaceFolderOrShowError: standard workspace precondition and NO_WORKSPACE message.
+- withNotificationProgress: consistent notification progress UI across commands.
+- showPrefixedCommandError: standardized prefixed command error output.
+
 ## Error strategy
 
 Command-level strategy:
@@ -96,13 +103,29 @@ Command-level strategy:
 - Early exits for missing preconditions (workspace, editor, settings, index entries)
 - High-level try/catch around command business flow
 - User-facing message prefixes from SN_SYNC_MESSAGES
-- Error normalization via getErrorMessage
+- Error normalization via showPrefixedCommandError (which uses getErrorMessage internally)
 
 Service-level strategy:
 
 - Validate auth availability before network calls
+- Resolve auth deterministically from Secret Storage:
+  - session headers
+  - bearer
+  - basic credentials (`sn: auth`)
 - Normalize HTTP failures into actionable messages
 - Keep business-specific edge handling inside services (for example report resolution notes)
+
+Transport strategy:
+
+- snHttpService provides createGotFetchTransport as the shared fetch-compatible transport.
+- Pull/push/push-report/auth-validate use that common transport path.
+- This avoids behavior drift between commands and keeps timeout/cookie/response handling consistent.
+
+Configuration security strategy:
+
+- `.snsyncrc` is non-sensitive and stores only instance selector + sync settings.
+- Auth data is persisted in Secret Storage.
+- SnSyncConfigService.initialize sanitizes legacy auth fields from `.snsyncrc`.
 
 ## Key shared building blocks
 
@@ -110,6 +133,9 @@ Service-level strategy:
 - snFolderService: ensureDirectoryExists and clearDirectory
 - hashService: normalized text hashing
 - snPreferencesService: fallback-safe preference resolution
+- snHttpService: instance URL normalization, auth header helpers, HTTP error normalization, shared got transport
+- snStringService: reusable optional-string normalization
+- snPullProgressService: shared pull callback for progress and index update capture
 - snSyncConstants: command IDs, messages, defaults, ServiceNow constants
 
 ## Architectural diagram
@@ -121,6 +147,7 @@ flowchart TD
   CMD --> INIT[sn: init]
   CMD --> AUTH[sn: auth]
   CMD --> AUTHV[sn: auth validate]
+  CMD --> AUTHR[sn: reset auth]
   CMD --> PULL[sn: pull]
   CMD --> PULLID[sn: pull by sys_id]
   CMD --> RESET[sn: reset index]
@@ -131,6 +158,7 @@ flowchart TD
   INIT --> CFG[SnSyncConfigService]
   AUTH --> AUTHS[SnAuthService]
   AUTHV --> AUTHS
+  AUTHR --> AUTHS
 
   PULL --> CFG
   PULL --> PULLS[SnPullService]

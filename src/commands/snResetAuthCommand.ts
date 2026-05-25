@@ -11,21 +11,19 @@ import {
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 
-export interface SnAuthValidateServiceApi {
-  validateAuth(
+export interface SnResetAuthServiceApi {
+  resetAuth(
     context: vscode.ExtensionContext,
     workspaceFolderUri: vscode.Uri,
   ): Promise<void>;
 }
 
-export interface SnAuthValidateRuntime extends SnBaseCommandRuntime {}
+const defaultRuntime: SnBaseCommandRuntime = defaultBaseRuntime;
 
-const defaultRuntime: SnAuthValidateRuntime = defaultBaseRuntime;
-
-export async function runSnAuthValidateCommand(
+export async function runSnResetAuthCommand(
   context: vscode.ExtensionContext,
-  authService: SnAuthValidateServiceApi,
-  runtime: SnAuthValidateRuntime = defaultRuntime,
+  authService: SnResetAuthServiceApi,
+  runtime: SnBaseCommandRuntime = defaultRuntime,
 ): Promise<void> {
   const workspaceFolderUri = getWorkspaceFolderOrShowError(runtime);
   if (!workspaceFolderUri) {
@@ -33,24 +31,24 @@ export async function runSnAuthValidateCommand(
   }
 
   try {
-    await authService.validateAuth(context, workspaceFolderUri);
-    void runtime.showInformationMessage(SN_SYNC_MESSAGES.AUTH_VALIDATE_SUCCESS);
+    await authService.resetAuth(context, workspaceFolderUri);
+    void runtime.showInformationMessage(SN_SYNC_MESSAGES.RESET_AUTH_SUCCESS);
   } catch (error) {
     showPrefixedCommandError(
       runtime,
-      SN_SYNC_MESSAGES.AUTH_VALIDATE_FAILED_PREFIX,
+      SN_SYNC_MESSAGES.RESET_AUTH_FAILED_PREFIX,
       error,
     );
   }
 }
 
-export function registerSnAuthValidateCommand(
+export function registerSnResetAuthCommand(
   context: vscode.ExtensionContext,
-  authService: SnAuthValidateServiceApi = new SnAuthService(),
+  authService: SnResetAuthServiceApi = new SnAuthService(),
 ): void {
   const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.AUTH_VALIDATE,
-    () => runSnAuthValidateCommand(context, authService),
+    SN_SYNC_COMMANDS.RESET_AUTH,
+    () => runSnResetAuthCommand(context, authService),
   );
 
   context.subscriptions.push(disposable);

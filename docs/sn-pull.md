@@ -18,7 +18,7 @@ Download configured records/scripts from ServiceNow into the local filesystem an
 
 1. Workspace is open.
 2. Valid sync settings exist in configuration.
-3. Valid credentials are stored in secret storage.
+3. Valid connection auth can be resolved (session headers, bearer, or basic).
 
 ## Relevant configuration
 
@@ -41,7 +41,7 @@ Download configured records/scripts from ServiceNow into the local filesystem an
 9. Start progress notification with SN_SYNC_MESSAGES.PULL_PROGRESS_TITLE.
 10. Initialize counters and indexUpdates accumulator.
 11. Iterate settings sequentially and call pullService.pullConfiguredScripts for each setting.
-12. In onFileWritten callback:
+12. In onFileWritten callback (created by createPullFileWrittenHandler):
     - increment visible file counter
     - report progress message with folder/file
     - append complete metadata entries to indexUpdates
@@ -92,7 +92,8 @@ All are surfaced as SN_SYNC_MESSAGES.PULL_FAILED_PREFIX + reason.
 - SnSyncIndexService
 - snFolderService (clearDirectory, ensureDirectoryExists)
 - snPreferencesService (resolvePreferences)
-- Runtime extensions for warning/progress/filesystem
+- snPullProgressService (createPullFileWrittenHandler)
+- snCommandRuntime helpers (withNotificationProgress, getWorkspaceFolderOrShowError, showPrefixedCommandError)
 
 ## Sequence diagram
 
@@ -101,6 +102,7 @@ sequenceDiagram
    participant U as User
    participant C as sn: pull command
    participant CFG as SnSyncConfigService
+   participant PREF as Preferences Service
    participant F as Folder Service
    participant P as SnPullService
    participant I as SnSyncIndexService
@@ -115,7 +117,7 @@ sequenceDiagram
       alt No settings
          C->>R: showInformationMessage(PULL_NO_SETTINGS)
       else Settings exist
-         C->>CFG: resolvePreferences()
+            C->>PREF: resolvePreferences()
          C->>F: ensureDirectoryExists(rootDir)
          C->>R: maybe prompt clearBeforePull
          opt Clear enabled

@@ -5,11 +5,13 @@ import {
   SN_SYNC_DEFAULTS,
   SN_SYNC_MESSAGES,
   SN_SYNC_SERVICENOW,
+  SN_SYNC_VALUES,
 } from "@shared/constants/snSyncConstants.js";
 import {
-  buildBasicAuthHeader,
+  createGotFetchTransport,
   handleHttpError,
   normalizeInstanceUrl,
+  resolveConnectionHeaders,
 } from "@shared/services/snHttpService.js";
 import type { ExtensionConfigSetting } from "@shared/models/config.js";
 import { hashText } from "@shared/services/hashService.js";
@@ -51,7 +53,7 @@ export interface SnPullServiceApi {
 export class SnPullService implements SnPullServiceApi {
   public constructor(
     private readonly authService: SnAuthService = new SnAuthService(),
-    private readonly fetchApi: typeof fetch = fetch,
+    private readonly fetchApi: typeof fetch = createGotFetchTransport(),
     private readonly pageSize = 1000,
   ) {}
 
@@ -141,10 +143,6 @@ export class SnPullService implements SnPullServiceApi {
         new TextEncoder().encode(content),
       );
 
-      const writtenContent = new TextDecoder().decode(
-        await vscode.workspace.fs.readFile(fileUri),
-      );
-
       const localPath = path
         .relative(workspaceFolderUri.fsPath, fileUri.fsPath)
         .replace(/\\/g, "/");
@@ -156,7 +154,7 @@ export class SnPullService implements SnPullServiceApi {
         table: setting.table,
         sysId,
         fieldName: field.field_name,
-        baseHash: hashText(writtenContent),
+        baseHash: hashText(content),
       });
     }
 
@@ -176,7 +174,8 @@ export class SnPullService implements SnPullServiceApi {
         }
 
         const tokenValue =
-          this.normalizeRecordValue(record[tokenMatch[1]]) ?? "unknown";
+          this.normalizeRecordValue(record[tokenMatch[1]]) ??
+          SN_SYNC_VALUES.UNKNOWN;
         return this.sanitizePathSegment(tokenValue);
       })
       .filter((part) => Boolean(part));
@@ -193,7 +192,7 @@ export class SnPullService implements SnPullServiceApi {
 
   private sanitizePathSegment(value: string): string {
     const sanitized = value.replace(/[\\/:*?"<>|]/g, "_").trim();
-    return sanitized || "unnamed";
+    return sanitized || SN_SYNC_VALUES.UNNAMED_PATH_SEGMENT;
   }
 
   private normalizeRecordValue(
@@ -219,16 +218,13 @@ export class SnPullService implements SnPullServiceApi {
     query: string,
     fields: string,
   ): Promise<Array<Record<string, unknown>>> {
-    const savedAuth = await this.authService.getSavedAuth(
+    const connection = await this.authService.resolveConnectionAuth(
       context,
       workspaceFolderUri,
     );
+    const headers = resolveConnectionHeaders(connection);
 
-    if (!savedAuth) {
-      throw new Error(SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED);
-    }
-
-    const normalizedUrl = normalizeInstanceUrl(savedAuth.instanceUrl);
+    const normalizedUrl = normalizeInstanceUrl(connection.instanceUrl);
     const encodedQuery = encodeURIComponent(query);
     const encodedFields = encodeURIComponent(fields);
 
@@ -243,10 +239,7 @@ export class SnPullService implements SnPullServiceApi {
           method: "GET",
           headers: {
             Accept: SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
-            Authorization: buildBasicAuthHeader(
-              savedAuth.username,
-              savedAuth.password,
-            ),
+            ...headers,
           },
         },
       );

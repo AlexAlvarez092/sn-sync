@@ -14,8 +14,9 @@ import {
 import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
+  getWorkspaceFolderOrShowError,
+  showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
-import { getErrorMessage } from "@shared/services/errorMessageService.js";
 import { hashText } from "@shared/services/hashService.js";
 
 export interface SnPushActiveRuntime extends SnBaseCommandRuntime {
@@ -33,10 +34,8 @@ export async function runSnPushActiveCommand(
   indexService: SnSyncIndexServiceApi,
   runtime: SnPushActiveRuntime = defaultRuntime,
 ): Promise<void> {
-  const workspaceFolderUri = runtime.getWorkspaceFolderUri();
-
+  const workspaceFolderUri = getWorkspaceFolderOrShowError(runtime);
   if (!workspaceFolderUri) {
-    void runtime.showErrorMessage(SN_SYNC_MESSAGES.NO_WORKSPACE);
     return;
   }
 
@@ -106,8 +105,10 @@ export async function runSnPushActiveCommand(
 
     void runtime.showInformationMessage(SN_SYNC_MESSAGES.PUSH_ACTIVE_SUCCESS);
   } catch (error) {
-    void runtime.showErrorMessage(
-      `${SN_SYNC_MESSAGES.PUSH_ACTIVE_FAILED_PREFIX} ${getErrorMessage(error)}`,
+    showPrefixedCommandError(
+      runtime,
+      SN_SYNC_MESSAGES.PUSH_ACTIVE_FAILED_PREFIX,
+      error,
     );
   }
 }

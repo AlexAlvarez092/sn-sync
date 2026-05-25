@@ -23,7 +23,7 @@ Push is executed only if all three conditions are satisfied.
 1. Workspace is open.
 2. An active text editor exists.
 3. Active file is indexed from prior pull activity.
-4. ServiceNow credentials are valid.
+4. ServiceNow connection auth is valid.
 
 ## Step-by-step logic
 
@@ -63,7 +63,7 @@ If they differ, command exits without uploading.
 - SnSyncIndexService
 - hashText
 - SN_SYNC_MESSAGES
-- getErrorMessage
+- snCommandRuntime helpers (getWorkspaceFolderOrShowError, showPrefixedCommandError)
 
 ## Sequence diagram
 

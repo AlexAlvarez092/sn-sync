@@ -8,9 +8,10 @@ import {
 import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
+  getWorkspaceFolderOrShowError,
+  showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 import type { SnAuthInput } from "@shared/models/auth.js";
-import { getErrorMessage } from "@shared/services/errorMessageService.js";
 
 export interface SnAuthRuntime extends SnBaseCommandRuntime {
   askInput(options: vscode.InputBoxOptions): Thenable<string | undefined>;
@@ -27,10 +28,8 @@ export async function runSnAuthCommand(
   authService: SnAuthService,
   runtime: SnAuthRuntime = defaultRuntime,
 ): Promise<void> {
-  const workspaceFolderUri = runtime.getWorkspaceFolderUri();
-
+  const workspaceFolderUri = getWorkspaceFolderOrShowError(runtime);
   if (!workspaceFolderUri) {
-    void runtime.showErrorMessage(SN_SYNC_MESSAGES.NO_WORKSPACE);
     return;
   }
 
@@ -44,8 +43,10 @@ export async function runSnAuthCommand(
     await authService.saveAuth(context, workspaceFolderUri, authInput);
     void runtime.showInformationMessage(SN_SYNC_MESSAGES.AUTH_SUCCESS);
   } catch (error) {
-    void runtime.showErrorMessage(
-      `${SN_SYNC_MESSAGES.AUTH_FAILED_PREFIX} ${getErrorMessage(error)}`,
+    showPrefixedCommandError(
+      runtime,
+      SN_SYNC_MESSAGES.AUTH_FAILED_PREFIX,
+      error,
     );
   }
 }

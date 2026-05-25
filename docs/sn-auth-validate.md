@@ -6,7 +6,7 @@
 
 ## Purpose
 
-Validate that stored credentials are currently accepted by ServiceNow.
+Validate that the currently resolved connection authentication is accepted by ServiceNow.
 
 ## When to use it
 
@@ -17,7 +17,7 @@ Validate that stored credentials are currently accepted by ServiceNow.
 ## Preconditions
 
 1. Workspace must be open.
-2. Credentials must already exist for this workspace/instance.
+2. At least one auth source must be configured for this workspace/instance.
 3. HTTP connectivity to ServiceNow must be available.
 
 ## Step-by-step logic
@@ -32,8 +32,11 @@ Validate that stored credentials are currently accepted by ServiceNow.
 
 SnAuthService.validateAuth typically:
 
-1. Resolves stored auth payload.
-2. Calls ServiceNow current user endpoint.
+1. Resolves effective connection auth with this priority:
+   - session headers
+   - bearer
+   - basic credentials saved by `sn: auth`
+2. Calls a lightweight ServiceNow `sys_user` Table API request (same API family used for pull/push flows).
 3. Interprets HTTP responses (including 401) and throws semantic errors.
 
 ## Side effects
@@ -45,14 +48,14 @@ SnAuthService.validateAuth typically:
 ## Error handling
 
 - SN_SYNC_MESSAGES.NO_WORKSPACE.
-- SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED when credentials are missing.
+- SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED when no auth source is available.
 - SN_SYNC_MESSAGES.AUTH_VALIDATE_FAILED_PREFIX + network/HTTP/auth details.
 
 ## Direct dependencies
 
 - SnAuthService (through SnAuthValidateServiceApi)
 - SN_SYNC_MESSAGES
-- getErrorMessage
+- snCommandRuntime helpers (getWorkspaceFolderOrShowError, showPrefixedCommandError)
 
 ## Sequence diagram
 
@@ -70,7 +73,7 @@ sequenceDiagram
 		C->>R: showErrorMessage(NO_WORKSPACE)
 	else Workspace exists
 		C->>S: validateAuth(context, workspaceFolderUri)
-		S->>N: GET current user endpoint
+		S->>N: GET sys_user table endpoint
 		N-->>S: HTTP response
 		alt Validation success
 			C->>R: showInformationMessage(AUTH_VALIDATE_SUCCESS)
@@ -82,9 +85,9 @@ sequenceDiagram
 
 ## Troubleshooting
 
-- Symptom: "No saved sn-sync auth found"
-  - Cause: Credentials were never stored.
-  - Resolution: Run sn: auth first.
+- Symptom: "sn-sync auth is not configured"
+  - Cause: No valid auth source is configured.
+  - Resolution: Run `sn: auth` and verify secrets were saved correctly.
 
 - Symptom: Invalid credentials error (401)
   - Cause: Username/password is no longer valid.

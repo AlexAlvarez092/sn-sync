@@ -26,7 +26,7 @@ Opens a temporary Markdown document in VS Code containing:
 
 1. Workspace is open.
 2. Index contains entries.
-3. Valid credentials exist for report service calls.
+3. Valid connection auth exists for report service calls.
 
 ## Step-by-step logic
 
@@ -55,7 +55,7 @@ formatPushReport:
 4. Renders file detail table.
 5. Escapes pipe characters with escapePipes for valid Markdown tables.
 6. Formats update set through formatUpdateSet:
-   - no id -> (none found)
+   - no id -> SN_SYNC_MESSAGES.PUSH_REPORT_NO_UPDATE_SET
    - id without name -> id
    - name + id -> Name (id)
 
@@ -87,9 +87,9 @@ All are surfaced with SN_SYNC_MESSAGES.PUSH_REPORT_FAILED_PREFIX + reason.
 
 - SnSyncIndexService
 - SnPushReportService
-- Runtime with withProgress + openMarkdownReport
+- snCommandRuntime helpers (withNotificationProgress, getWorkspaceFolderOrShowError, showPrefixedCommandError)
+- Runtime with openMarkdownReport
 - SN_SYNC_MESSAGES
-- getErrorMessage
 
 ## Sequence diagram
 

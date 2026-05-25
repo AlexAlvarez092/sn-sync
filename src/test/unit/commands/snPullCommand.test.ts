@@ -676,6 +676,65 @@ suite("snPullCommand", () => {
     ]);
   });
 
+  test("shows error when index service does not support replacePullSnapshot", async () => {
+    const shownErrors: string[] = [];
+
+    await runSnPullCommand(
+      {
+        workspaceState: {
+          get: () => undefined,
+          update: async () => undefined,
+        },
+      } as unknown as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async () => ({
+          settings: 1,
+          records: 1,
+          files: 1,
+        }),
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-missing-replace-snapshot"),
+        showErrorMessage: async (message: string) => {
+          shownErrors.push(message);
+          return undefined;
+        },
+        showInformationMessage: async () => undefined,
+        showWarningMessage: async () =>
+          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+        readDirectory: async () => [],
+        delete: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+      },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        updateBaseHashes: async () => undefined,
+        recordPullFiles: async () => undefined,
+      },
+    );
+
+    assert.deepStrictEqual(shownErrors, [
+      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} Index service does not support replacePullSnapshot`,
+    ]);
+  });
+
   test("shows detailed error when pull fails", async () => {
     const shownErrors: string[] = [];
 

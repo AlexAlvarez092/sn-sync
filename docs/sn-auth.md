@@ -6,7 +6,7 @@
 
 ## Purpose
 
-Capture and persist ServiceNow credentials for the current workspace.
+Capture and persist basic ServiceNow credentials for the current workspace, and set the workspace instance identity/URL used by all auth modes.
 
 ## Input fields
 
@@ -46,8 +46,14 @@ Capture and persist ServiceNow credentials for the current workspace.
 
 ## Side effects
 
-- Persists instance metadata in local config.
-- Stores credentials in VS Code Secret Storage.
+- Persists `instance` in `.snsyncrc` as a non-sensitive selector.
+- Stores auth data in VS Code Secret Storage (including `instanceUrl`, `username`, `password`).
+
+## Relationship to advanced auth
+
+- This command configures the basic-auth fallback path.
+- Token/session auth must also be stored in Secret Storage.
+- At runtime, advanced auth headers take precedence over basic credentials.
 
 ## Error handling
 
@@ -60,7 +66,7 @@ Capture and persist ServiceNow credentials for the current workspace.
 - SnAuthService
 - SN_SYNC_INPUTS
 - SN_SYNC_MESSAGES
-- getErrorMessage
+- snCommandRuntime helpers (getWorkspaceFolderOrShowError, showPrefixedCommandError)
 - SnAuthRuntime
 
 ## Sequence diagram
