@@ -22,46 +22,6 @@
   color: "BFD4F2"
   description: Test coverage and testing infrastructure changes.
 
-- name: "priority: p0"
-  color: "B60205"
-  description: Critical, requires immediate attention.
-
-- name: "priority: p1"
-  color: "D93F0B"
-  description: High priority.
-
-- name: "priority: p2"
-  color: "FBCA04"
-  description: Normal priority.
-
-- name: "status: needs-triage"
-  color: "EDEDED"
-  description: Newly created issue, needs maintainer triage.
-
-- name: "status: needs-info"
-  color: "FEF2C0"
-  description: Awaiting additional information from reporter.
-
-- name: "status: blocked"
-  color: "5319E7"
-  description: Cannot move forward due to an external dependency.
-
-- name: "status: in-progress"
-  color: "0E8A16"
-  description: Currently being worked on.
-
-- name: "status: ready"
-  color: "C2E0C6"
-  description: Ready to be picked up.
-
-- name: "status: duplicate"
-  color: "C5DEF5"
-  description: Already tracked in another issue.
-
-- name: "status: wontfix"
-  color: "FFFFFF"
-  description: Confirmed but not planned.
-
 - name: "area: auth"
   color: "1D76DB"
   description: Authentication and credentials handling.
@@ -89,11 +49,3 @@
 - name: "area: docs"
   color: "1D76DB"
   description: Documentation and examples.
-
-- name: good first issue
-  color: "7057FF"
-  description: Good entry point for new contributors.
-
-- name: help wanted
-  color: "008672"
-  description: Maintainers welcome community help on this.
