@@ -1,39 +1,86 @@
 # sn-sync
 
-A VS Code extension for syncing ServiceNow script records to local files and safely pushing local changes back.
+A VS Code extension to sync ServiceNow records to local files and push your changes back safely.
 
-## Why this project exists
+## What this extension does
 
-sn-sync is built for developers who need a predictable local workflow around ServiceNow records:
+sn-sync helps you work with ServiceNow scripts in a local workflow:
 
-- Pull configured records into a local source tree.
-- Track local baseline hashes in a workspace index.
-- Push safely with remote conflict checks.
-- Generate a push report grouped by scope and update set metadata.
+- Pull records from ServiceNow into your project.
+- Edit scripts locally with your usual tools.
+- Push updates back with conflict checks.
+- Generate a report before pushing modified files.
 
 ## Features
 
-- Workspace bootstrap command.
-- Auth setup and auth validation.
-- Full pull and pull by sys_id.
-- Index reset.
-- Push active file with conflict protection.
-- Push all modified files with all-or-nothing conflict gate.
-- Push report generation with progress and markdown output.
+- Project initialization command.
+- Authentication setup and validation.
+- Pull all configured records or pull by sys_id.
+- Push only the active file or all modified files.
+- Safe conflict detection before pushing.
+- Push report with progress and markdown output.
+
+## Quick start
+
+1. Open your project folder in VS Code.
+2. Run `sn: init`.
+3. Run `sn: auth` and complete your ServiceNow credentials.
+4. Run `sn: pull` to bring records into your local source folder.
+5. Edit files locally.
+6. Run `sn: push active` or `sn: push modified`.
+
+If you only need one specific record, use `sn: pull by sys_id`.
 
 ## Commands
 
-- sn: init
-- sn: auth
-- sn: auth validate
-- sn: pull
-- sn: pull by sys_id
-- sn: reset index
-- sn: push active
-- sn: push modified
-- sn: push report
+### `sn: init`
 
-Detailed command documentation:
+Creates the local sn-sync config for your workspace.
+
+### `sn: auth`
+
+Saves your ServiceNow connection credentials for the workspace.
+
+### `sn: auth validate`
+
+Checks that your saved credentials are valid.
+
+### `sn: pull`
+
+Downloads all configured records into your local files.
+
+### `sn: pull by sys_id`
+
+Downloads one specific record by table + sys_id.
+
+### `sn: reset index`
+
+Resets the local sync index if you need a clean state.
+
+### `sn: push active`
+
+Pushes only the active file in the editor, with conflict checks.
+
+### `sn: push modified`
+
+Pushes all locally modified indexed files, stopping on conflicts.
+
+### `sn: push report`
+
+Generates a markdown report of files that would be pushed.
+
+## Configuration
+
+VS Code settings used by the extension:
+
+- `sn-sync.rootDir`
+- `sn-sync.pull.clearBeforePull`
+
+The workspace also uses a `.snsyncrc` file for sync settings.
+
+## Need more detailed documentation?
+
+Technical and command-level docs are available in [docs/README.md](docs/README.md):
 
 - [docs/sn-init.md](docs/sn-init.md)
 - [docs/sn-auth.md](docs/sn-auth.md)
@@ -44,42 +91,24 @@ Detailed command documentation:
 - [docs/sn-push-active.md](docs/sn-push-active.md)
 - [docs/sn-push-modified.md](docs/sn-push-modified.md)
 - [docs/sn-push-report.md](docs/sn-push-report.md)
-
-Architecture overview:
-
 - [docs/architecture.md](docs/architecture.md)
 
-## Configuration
+## For contributors
 
-VS Code settings contributed by the extension:
+Development and contribution details:
 
-- sn-sync.rootDir
-- sn-sync.pull.clearBeforePull
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- [SECURITY.md](SECURITY.md)
+- [SUPPORT.md](SUPPORT.md)
 
-The project also uses .snsyncrc in workspace root for sync settings.
+Issue and PR templates are in [.github](.github).
 
-## Development
+## Acknowledgment
 
-Install dependencies:
+This project was inspired by the extension [ikosak-sync-now](https://marketplace.visualstudio.com/items?itemName=AndreKosak.ikosak-sync-now), which I used for years in real ServiceNow workflows.
 
-    npm install
-
-Compile:
-
-    npm run compile
-
-Run coverage:
-
-    npm run coverage
-
-## Contributing and community
-
-- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Code of Conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- Security policy: [SECURITY.md](SECURITY.md)
-- Support guide: [SUPPORT.md](SUPPORT.md)
-
-Issue and PR templates are available under [.github](.github).
+If you are evaluating alternatives, it is also worth checking out [ikosak-sync-now](https://marketplace.visualstudio.com/items?itemName=AndreKosak.ikosak-sync-now).
 
 ## License
 

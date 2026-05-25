@@ -1,92 +1,92 @@
-- name: type: bug
+- name: "type: bug"
   color: D73A4A
   description: Something is not working as expected.
 
-- name: type: feature
+- name: "type: feature"
   color: A2EEEF
   description: New functionality or behavior request.
 
-- name: type: docs
+- name: "type: docs"
   color: 0075CA
   description: Documentation improvements or fixes.
 
-- name: type: chore
+- name: "type: chore"
   color: CFD3D7
   description: Repository maintenance and non-product tasks.
 
-- name: type: refactor
+- name: "type: refactor"
   color: F9D0C4
   description: Code structure changes without behavior change.
 
-- name: type: test
+- name: "type: test"
   color: BFD4F2
   description: Test coverage and testing infrastructure changes.
 
-- name: priority: p0
+- name: "priority: p0"
   color: B60205
   description: Critical, requires immediate attention.
 
-- name: priority: p1
+- name: "priority: p1"
   color: D93F0B
   description: High priority.
 
-- name: priority: p2
+- name: "priority: p2"
   color: FBCA04
   description: Normal priority.
 
-- name: status: needs-triage
+- name: "status: needs-triage"
   color: EDEDED
   description: Newly created issue, needs maintainer triage.
 
-- name: status: needs-info
+- name: "status: needs-info"
   color: FEF2C0
   description: Awaiting additional information from reporter.
 
-- name: status: blocked
+- name: "status: blocked"
   color: 5319E7
   description: Cannot move forward due to an external dependency.
 
-- name: status: in-progress
+- name: "status: in-progress"
   color: 0E8A16
   description: Currently being worked on.
 
-- name: status: ready
+- name: "status: ready"
   color: C2E0C6
   description: Ready to be picked up.
 
-- name: status: duplicate
+- name: "status: duplicate"
   color: C5DEF5
   description: Already tracked in another issue.
 
-- name: status: wontfix
+- name: "status: wontfix"
   color: FFFFFF
   description: Confirmed but not planned.
 
-- name: area: auth
+- name: "area: auth"
   color: 1D76DB
   description: Authentication and credentials handling.
 
-- name: area: pull
+- name: "area: pull"
   color: 1D76DB
   description: Pull flows and synchronization from ServiceNow.
 
-- name: area: push
+- name: "area: push"
   color: 1D76DB
   description: Push flows and conflict handling.
 
-- name: area: report
+- name: "area: report"
   color: 1D76DB
   description: Reporting command and report generation.
 
-- name: area: index
+- name: "area: index"
   color: 1D76DB
   description: Index persistence and modified detection logic.
 
-- name: area: config
+- name: "area: config"
   color: 1D76DB
   description: Workspace config and preferences behavior.
 
-- name: area: docs
+- name: "area: docs"
   color: 1D76DB
   description: Documentation and examples.
 
