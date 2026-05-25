@@ -2,7 +2,8 @@ name: Feature request
 description: Suggest an enhancement for sn-sync.
 title: "feature: "
 labels:
-  - enhancement
+  - type: feature
+  - status: needs-triage
 body:
   - type: markdown
     attributes:
