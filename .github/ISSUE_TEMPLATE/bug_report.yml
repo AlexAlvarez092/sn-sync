@@ -87,6 +87,7 @@ body:
         - sn: pull
         - sn: pull by sys_id
         - sn: reset index
+        - sn: reset auth
         - sn: push active
         - sn: push modified
         - sn: push report

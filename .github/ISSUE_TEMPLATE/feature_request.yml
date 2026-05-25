@@ -40,23 +40,6 @@ body:
       label: Alternatives considered
       description: Other approaches you evaluated.
 
-  - type: dropdown
-    id: area
-    attributes:
-      label: Area
-      options:
-        - Auth
-        - Pull
-        - Push
-        - Report
-        - Index
-        - Config
-        - Documentation
-        - CI / tooling
-        - Other
-    validations:
-      required: true
-
   - type: textarea
     id: scope
     attributes:
