@@ -97,6 +97,10 @@ export async function runSnPushReportCommand(
       runtime,
       SN_SYNC_MESSAGES.PUSH_REPORT_FAILED_PREFIX,
       error,
+      {
+        code: "SN_PUSH_REPORT_FAILED",
+        command: SN_SYNC_COMMANDS.PUSH_REPORT,
+      },
     );
   }
 }

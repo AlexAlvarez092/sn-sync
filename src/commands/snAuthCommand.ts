@@ -47,6 +47,10 @@ export async function runSnAuthCommand(
       runtime,
       SN_SYNC_MESSAGES.AUTH_FAILED_PREFIX,
       error,
+      {
+        code: "SN_AUTH_FAILED",
+        command: SN_SYNC_COMMANDS.AUTH,
+      },
     );
   }
 }

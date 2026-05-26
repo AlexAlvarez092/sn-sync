@@ -39,6 +39,10 @@ export async function runSnResetIndexCommand(
       runtime,
       SN_SYNC_MESSAGES.RESET_INDEX_FAILED_PREFIX,
       error,
+      {
+        code: "SN_RESET_INDEX_FAILED",
+        command: SN_SYNC_COMMANDS.RESET_INDEX,
+      },
     );
   }
 }

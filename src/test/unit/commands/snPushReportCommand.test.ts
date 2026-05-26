@@ -421,7 +421,7 @@ suite("snPushReportCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PUSH_REPORT_FAILED_PREFIX} report-fail`,
+      `${SN_SYNC_MESSAGES.PUSH_REPORT_FAILED_PREFIX} (SN_PUSH_REPORT_FAILED) report-fail`,
     ]);
   });
 

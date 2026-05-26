@@ -38,6 +38,10 @@ export async function runSnResetAuthCommand(
       runtime,
       SN_SYNC_MESSAGES.RESET_AUTH_FAILED_PREFIX,
       error,
+      {
+        code: "SN_RESET_AUTH_FAILED",
+        command: SN_SYNC_COMMANDS.RESET_AUTH,
+      },
     );
   }
 }

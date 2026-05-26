@@ -79,4 +79,24 @@ suite("snCommandRuntime", () => {
     await Promise.resolve();
     assert.deepStrictEqual(shownErrors, ["Prefix: Unknown error"]);
   });
+
+  test("shows Error message for Error instances in prefixed fallback mode", async () => {
+    const shownErrors: string[] = [];
+
+    showPrefixedCommandError(
+      {
+        getWorkspaceFolderUri: () => undefined,
+        showErrorMessage: async (message: string) => {
+          shownErrors.push(message);
+          return undefined;
+        },
+        showInformationMessage: async () => undefined,
+      },
+      "Prefix:",
+      new Error("boom"),
+    );
+
+    await Promise.resolve();
+    assert.deepStrictEqual(shownErrors, ["Prefix: boom"]);
+  });
 });

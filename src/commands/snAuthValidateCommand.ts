@@ -40,6 +40,10 @@ export async function runSnAuthValidateCommand(
       runtime,
       SN_SYNC_MESSAGES.AUTH_VALIDATE_FAILED_PREFIX,
       error,
+      {
+        code: "SN_AUTH_VALIDATE_FAILED",
+        command: SN_SYNC_COMMANDS.AUTH_VALIDATE,
+      },
     );
   }
 }

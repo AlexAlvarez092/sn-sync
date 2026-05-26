@@ -182,6 +182,10 @@ export async function runSnPullBySysIdCommand(
       runtime,
       SN_SYNC_MESSAGES.PULL_BY_SYS_ID_FAILED_PREFIX,
       error,
+      {
+        code: "SN_PULL_BY_SYS_ID_FAILED",
+        command: SN_SYNC_COMMANDS.PULL_BY_SYS_ID,
+      },
     );
   }
 }

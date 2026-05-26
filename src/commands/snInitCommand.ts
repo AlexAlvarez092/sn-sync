@@ -36,6 +36,10 @@ export async function runSnInitCommand(
       runtime,
       SN_SYNC_MESSAGES.INIT_FAILED_PREFIX,
       error,
+      {
+        code: "SN_INIT_FAILED",
+        command: SN_SYNC_COMMANDS.INIT,
+      },
     );
   }
 }
