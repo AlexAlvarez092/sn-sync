@@ -7,7 +7,7 @@
   description: New functionality or behavior request.
 
 - name: "type: docs"
-  color: "0075CA"
+  color: "FBCA04"
   description: Documentation improvements or fixes.
 
 - name: "type: chore"
