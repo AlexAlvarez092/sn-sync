@@ -94,7 +94,7 @@ Use this end-to-end workflow for consistency across contributors.
 Example:
 
 ```bash
-git switch main
+git switch master
 git pull --ff-only
 git switch -c feature/error-reporting-standardization
 ```
@@ -146,7 +146,7 @@ git push -u origin feature/error-reporting-standardization
 Example:
 
 ```bash
-git switch main
+git switch master
 git pull --ff-only
 git branch -d feature/error-reporting-standardization
 git fetch --prune
