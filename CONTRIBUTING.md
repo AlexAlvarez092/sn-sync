@@ -73,6 +73,94 @@ If your change affects command behavior, update/add:
 3. Link related issue(s) with `Closes #...` when applicable.
 4. Respond to review feedback and keep discussion in one PR thread.
 
+## Standard workflow for a new feature
+
+Use this end-to-end workflow for consistency across contributors.
+
+1. Pick and assign an issue
+
+- Confirm the issue is approved for implementation.
+- Assign the issue to yourself in GitHub before coding.
+- If needed, add a short implementation note to align scope.
+
+2. Create a standardized branch
+
+- Branch from the latest default branch.
+- Naming convention:
+  - `feature/<short-kebab-description>` for new features
+  - `fix/<short-kebab-description>` for bug fixes
+  - `docs/<short-kebab-description>` for docs-only work
+
+Example:
+
+```bash
+git switch main
+git pull --ff-only
+git switch -c feature/error-reporting-standardization
+```
+
+3. Implement in small, reviewable commits
+
+- Keep commits focused on one logical change.
+- Prefer conventional commit style.
+- Recommended format: `<type>(<scope>): <summary>`
+
+Examples:
+
+- `feat(errors): add normalized error model and mapper`
+- `test(push): cover patch response branches`
+- `docs(contributing): add feature workflow standard`
+
+4. Validate locally before pushing
+
+Run quality checks before opening a PR:
+
+```bash
+npm run coverage
+```
+
+5. Push and open PR with template
+
+- Push branch to origin.
+- Open a PR and complete every section of the PR template.
+- Ensure the PR body includes a linked issue (for example `Closes #18`).
+- Keep PR scoped; avoid unrelated changes.
+
+Example:
+
+```bash
+git push -u origin feature/error-reporting-standardization
+```
+
+6. Review cycle and merge readiness
+
+- Address review comments with follow-up commits.
+- Re-run validation after each substantial change.
+- Keep conversation and decisions in the PR thread for traceability.
+
+7. Post-merge cleanup
+
+- Delete merged branch in remote and local.
+- Sync your local default branch.
+
+Example:
+
+```bash
+git switch main
+git pull --ff-only
+git branch -d feature/error-reporting-standardization
+git fetch --prune
+```
+
+### Minimal checklist for contributors
+
+- Issue assigned before implementation.
+- Branch name follows convention.
+- Commits are focused and descriptive.
+- `npm run coverage` passes.
+- PR template fully completed.
+- Issue linked with `Closes #...`.
+
 ## Reporting bugs and requesting features
 
 - Use GitHub Issue templates:

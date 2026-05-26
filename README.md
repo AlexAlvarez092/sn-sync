@@ -123,6 +123,16 @@ Technical and command-level docs are available in [docs/README.md](docs/README.m
 
 ## For contributors
 
+Quick contribution flow:
+
+1. Pick or open an issue and assign it to yourself.
+2. Create a branch using project conventions (`feature/*`, `fix/*`, `docs/*`).
+3. Implement with focused commits and clear messages.
+4. Run `npm run coverage` before opening a PR.
+5. Open a PR using the template and link the issue with `Closes #...`.
+
+For full contribution standards and examples, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 Development and contribution details:
 
 - [CONTRIBUTING.md](CONTRIBUTING.md)
