@@ -109,6 +109,10 @@ export async function runSnPushActiveCommand(
       runtime,
       SN_SYNC_MESSAGES.PUSH_ACTIVE_FAILED_PREFIX,
       error,
+      {
+        code: "SN_PUSH_ACTIVE_FAILED",
+        command: SN_SYNC_COMMANDS.PUSH_ACTIVE,
+      },
     );
   }
 }

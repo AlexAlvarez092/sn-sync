@@ -161,6 +161,10 @@ export async function runSnPullCommand(
       runtime,
       SN_SYNC_MESSAGES.PULL_FAILED_PREFIX,
       error,
+      {
+        code: "SN_PULL_FAILED",
+        command: SN_SYNC_COMMANDS.PULL,
+      },
     );
   }
 }

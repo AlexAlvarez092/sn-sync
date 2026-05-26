@@ -132,6 +132,10 @@ export async function runSnPushModifiedCommand(
       runtime,
       SN_SYNC_MESSAGES.PUSH_MODIFIED_FAILED_PREFIX,
       error,
+      {
+        code: "SN_PUSH_MODIFIED_FAILED",
+        command: SN_SYNC_COMMANDS.PUSH_MODIFIED,
+      },
     );
   }
 }

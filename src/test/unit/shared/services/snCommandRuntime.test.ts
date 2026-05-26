@@ -1,6 +1,9 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { defaultBaseRuntime } from "@shared/services/snCommandRuntime.js";
+import {
+  defaultBaseRuntime,
+  showPrefixedCommandError,
+} from "@shared/services/snCommandRuntime.js";
 
 suite("snCommandRuntime", () => {
   test("resolves workspace from active editor when available", () => {
@@ -55,5 +58,25 @@ suite("snCommandRuntime", () => {
         windowObject.activeTextEditor = undefined;
       }
     }
+  });
+
+  test("shows Unknown error for non-Error values in prefixed fallback mode", async () => {
+    const shownErrors: string[] = [];
+
+    showPrefixedCommandError(
+      {
+        getWorkspaceFolderUri: () => undefined,
+        showErrorMessage: async (message: string) => {
+          shownErrors.push(message);
+          return undefined;
+        },
+        showInformationMessage: async () => undefined,
+      },
+      "Prefix:",
+      "plain-text-error",
+    );
+
+    await Promise.resolve();
+    assert.deepStrictEqual(shownErrors, ["Prefix: Unknown error"]);
   });
 });

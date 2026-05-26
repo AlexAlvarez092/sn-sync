@@ -1,6 +1,11 @@
 import * as vscode from "vscode";
+import type { SnCommandErrorContext } from "@shared/models/error.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
-import { getErrorMessage } from "@shared/services/errorMessageService.js";
+import {
+  buildCommandErrorMessage,
+  logCommandErrorDiagnostic,
+  normalizeCommandError,
+} from "@shared/services/snErrorService.js";
 
 export interface SnBaseCommandRuntime {
   getWorkspaceFolderUri(): vscode.Uri | undefined;
@@ -40,8 +45,18 @@ export function showPrefixedCommandError(
   runtime: SnBaseCommandRuntime,
   prefix: string,
   error: unknown,
+  context?: SnCommandErrorContext,
 ): void {
-  void runtime.showErrorMessage(`${prefix} ${getErrorMessage(error)}`);
+  if (!context) {
+    const fallbackMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    void runtime.showErrorMessage(`${prefix} ${fallbackMessage}`);
+    return;
+  }
+
+  const diagnostic = normalizeCommandError(error, context);
+  logCommandErrorDiagnostic(diagnostic);
+  void runtime.showErrorMessage(buildCommandErrorMessage(prefix, diagnostic));
 }
 
 export const defaultBaseRuntime: SnBaseCommandRuntime = {
