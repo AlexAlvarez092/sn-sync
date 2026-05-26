@@ -77,7 +77,7 @@ Operationally:
 
 - pull uses replacePullSnapshot for full baseline refresh
 - pull-by-sys-id uses recordPullFiles for incremental index updates
-- push commands use updateBaseHashes to advance baseline after successful writes
+- push commands use updateBaseHashes to advance baseline from the values stored remotely after successful writes
 - reset-index uses clearIndex to wipe all entries
 
 ## Runtime abstraction pattern

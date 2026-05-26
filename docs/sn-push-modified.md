@@ -43,7 +43,7 @@ Push all locally modified indexed files as a batch, with a remote conflict pre-c
    - run withProgress(SN_SYNC_MESSAGES.PUSH_PROGRESS_TITLE)
    - iterate candidates and call pushFieldContent for each
    - report Uploading i/n progress messages and increments
-9. After uploads complete, call indexService.updateBaseHashes with each candidate localHash.
+9. After uploads complete, call indexService.updateBaseHashes with hashes computed from values returned by pushFieldContent (stored ServiceNow values).
 10. Show SN_SYNC_MESSAGES.PUSH_MODIFIED_SUCCESS_PREFIX + uploaded file count.
 11. On failure, show SN_SYNC_MESSAGES.PUSH_MODIFIED_FAILED_PREFIX + details.
 
@@ -98,9 +98,10 @@ sequenceDiagram
             loop Upload each candidate
                C->>P: pushFieldContent(entry, localContent)
                P->>N: PATCH record field
+               N-->>P: stored field value
                C->>R: progress.report(Uploading i/n)
             end
-            C->>I: updateBaseHashes(localHash per candidate)
+            C->>I: updateBaseHashes(hash(storedValue) per candidate)
             C->>R: showInformationMessage(PUSH_MODIFIED_SUCCESS_PREFIX)
          end
       end

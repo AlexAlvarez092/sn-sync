@@ -39,7 +39,7 @@ Push is executed only if all three conditions are satisfied.
 10. Fetch remote field content and compute remoteHash.
 11. If remoteHash differs from entry.baseHash, abort with SN_SYNC_MESSAGES.PUSH_ACTIVE_CONFLICT_PREFIX + path.
 12. If no conflict, push local content via pushFieldContent.
-13. Update entry baseline hash using indexService.updateBaseHashes.
+13. Update entry baseline hash using the value returned by pushFieldContent (actual content stored in ServiceNow), then persist with indexService.updateBaseHashes.
 14. Show SN_SYNC_MESSAGES.PUSH_ACTIVE_SUCCESS.
 15. On any thrown error, show SN_SYNC_MESSAGES.PUSH_ACTIVE_FAILED_PREFIX + details.
 
@@ -102,7 +102,8 @@ sequenceDiagram
 					else No conflict
 						C->>P: pushFieldContent(entry, localContent)
 						P->>N: PATCH record field
-						C->>I: updateBaseHashes(localHash)
+						N-->>P: stored field value
+						C->>I: updateBaseHashes(hash(storedValue))
 						C->>R: showInformationMessage(PUSH_ACTIVE_SUCCESS)
 					end
 				end
@@ -121,6 +122,6 @@ sequenceDiagram
   - Cause: Remote baseline changed since last local baseline.
   - Resolution: Pull latest remote state, merge manually, then retry.
 
-- Symptom: Push succeeds but changes reappear as modified
-  - Cause: External edits/newline normalization mismatch after push.
-  - Resolution: Pull once to refresh baseline snapshot and verify content parity.
+- Symptom: Push succeeds but file still appears modified
+  - Cause: Local content changed again after the push or index state is stale.
+  - Resolution: Save file, rerun push if needed, or run sn: reset index + sn: pull to rebuild baseline.
