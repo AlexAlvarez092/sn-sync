@@ -46,7 +46,7 @@ export function buildCommandErrorMessage(
   prefix: string,
   diagnostic: SnSyncErrorDiagnostic,
 ): string {
-  return `${prefix} ${diagnostic.message}`;
+  return `${prefix} (${diagnostic.code}) ${diagnostic.message}`;
 }
 
 function getDiagnosticsChannel(): vscode.OutputChannel | undefined {

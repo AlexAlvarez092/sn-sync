@@ -131,7 +131,7 @@ suite("snErrorService", () => {
       timestamp: "2026-01-01T00:00:00.000Z",
     });
 
-    assert.strictEqual(message, "failed: boom");
+    assert.strictEqual(message, "failed: (SN_X) boom");
   });
 
   test("logs diagnostic via output channel and reuses channel", () => {

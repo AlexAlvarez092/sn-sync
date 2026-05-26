@@ -411,7 +411,7 @@ suite("snPushModifiedCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PUSH_MODIFIED_FAILED_PREFIX} preflight-fail`,
+      `${SN_SYNC_MESSAGES.PUSH_MODIFIED_FAILED_PREFIX} (SN_PUSH_MODIFIED_FAILED) preflight-fail`,
     ]);
   });
 });

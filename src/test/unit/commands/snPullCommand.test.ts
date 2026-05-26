@@ -672,7 +672,7 @@ suite("snPullCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} snapshot-fail`,
+      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} (SN_PULL_FAILED) snapshot-fail`,
     ]);
   });
 
@@ -731,7 +731,7 @@ suite("snPullCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} Index service does not support replacePullSnapshot`,
+      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} (SN_PULL_FAILED) Index service does not support replacePullSnapshot`,
     ]);
   });
 
@@ -775,7 +775,7 @@ suite("snPullCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} pull-fail`,
+      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} (SN_PULL_FAILED) pull-fail`,
     ]);
   });
 
@@ -822,7 +822,7 @@ suite("snPullCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} permission-denied`,
+      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} (SN_PULL_FAILED) permission-denied`,
     ]);
   });
 
