@@ -86,7 +86,7 @@ export async function runSnPushActiveCommand(
       return;
     }
 
-    await pushService.pushFieldContent(
+    const storedContent = await pushService.pushFieldContent(
       context,
       workspaceFolderUri,
       entry,
@@ -99,7 +99,7 @@ export async function runSnPushActiveCommand(
         table: entry.table,
         sysId: entry.sysId,
         fieldName: entry.fieldName,
-        baseHash: localHash,
+        baseHash: hashText(storedContent),
       },
     ]);
 

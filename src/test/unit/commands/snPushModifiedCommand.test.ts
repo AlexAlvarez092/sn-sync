@@ -38,7 +38,7 @@ suite("snPushModifiedCommand", () => {
     await withCapturedRegisterCommand(async (invokeRegistered) => {
       registerSnPushModifiedCommand(context, {
         getRemoteFieldContent: async () => "",
-        pushFieldContent: async () => undefined,
+        pushFieldContent: async () => "",
       });
 
       await withPatchedWorkspaceFolders(undefined, async () => {
@@ -83,7 +83,7 @@ suite("snPushModifiedCommand", () => {
               {} as vscode.ExtensionContext,
               {
                 getRemoteFieldContent: async () => "base",
-                pushFieldContent: async () => undefined,
+                pushFieldContent: async () => "",
               },
               {
                 getModifiedCandidates: async () => [
@@ -124,7 +124,7 @@ suite("snPushModifiedCommand", () => {
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "",
-        pushFieldContent: async () => undefined,
+        pushFieldContent: async () => "",
       },
       {
         getModifiedCandidates: async () => [],
@@ -157,7 +157,7 @@ suite("snPushModifiedCommand", () => {
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "",
-        pushFieldContent: async () => undefined,
+        pushFieldContent: async () => "",
       },
       {
         getModifiedCandidates: async () => [],
@@ -195,6 +195,7 @@ suite("snPushModifiedCommand", () => {
         getRemoteFieldContent: async () => "remote-changed",
         pushFieldContent: async () => {
           pushed = true;
+          return "";
         },
       },
       {
@@ -247,7 +248,7 @@ suite("snPushModifiedCommand", () => {
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "remote-changed",
-        pushFieldContent: async () => undefined,
+        pushFieldContent: async () => "",
       },
       {
         getModifiedCandidates: async () =>
@@ -296,8 +297,9 @@ suite("snPushModifiedCommand", () => {
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "base",
-        pushFieldContent: async (_context, _workspaceUri, entry) => {
+        pushFieldContent: async (_context, _workspaceUri, entry, content) => {
           pushedPaths.push(entry.localPath);
+          return content;
         },
       },
       {
@@ -372,7 +374,7 @@ suite("snPushModifiedCommand", () => {
         getRemoteFieldContent: async () => {
           throw new Error("preflight-fail");
         },
-        pushFieldContent: async () => undefined,
+        pushFieldContent: async () => "",
       },
       {
         getModifiedCandidates: async () => [
