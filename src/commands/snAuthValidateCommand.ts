@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { SnAuthService } from "@services/snAuthService.js";
 import {
   SN_SYNC_COMMANDS,
+  SN_SYNC_ERROR_CODES,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
 import {
@@ -41,7 +42,7 @@ export async function runSnAuthValidateCommand(
       SN_SYNC_MESSAGES.AUTH_VALIDATE_FAILED_PREFIX,
       error,
       {
-        code: "SN_AUTH_VALIDATE_FAILED",
+        code: SN_SYNC_ERROR_CODES.AUTH_VALIDATE_FAILED,
         command: SN_SYNC_COMMANDS.AUTH_VALIDATE,
       },
     );

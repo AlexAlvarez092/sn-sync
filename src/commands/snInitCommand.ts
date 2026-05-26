@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import {
   SN_SYNC_COMMANDS,
+  SN_SYNC_ERROR_CODES,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
 import {
@@ -37,7 +38,7 @@ export async function runSnInitCommand(
       SN_SYNC_MESSAGES.INIT_FAILED_PREFIX,
       error,
       {
-        code: "SN_INIT_FAILED",
+        code: SN_SYNC_ERROR_CODES.INIT_FAILED,
         command: SN_SYNC_COMMANDS.INIT,
       },
     );

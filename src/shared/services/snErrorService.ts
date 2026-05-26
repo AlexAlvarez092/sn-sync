@@ -4,6 +4,7 @@ import type {
   SnErrorCategory,
   SnSyncErrorDiagnostic,
 } from "@shared/models/error.js";
+import { SN_SYNC_DIAGNOSTICS } from "@shared/constants/snSyncConstants.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
 
 const REDACTED = "[REDACTED]";
@@ -11,6 +12,7 @@ const REDACT_KEYS = /(password|token|cookie|authorization|secret|bearer)/i;
 
 let diagnosticsChannel: vscode.OutputChannel | undefined;
 
+// Test-only helper to reset module-level output channel state.
 export function resetDiagnosticsChannelForTests(): void {
   diagnosticsChannel = undefined;
 }
@@ -56,7 +58,7 @@ function getDiagnosticsChannel(): vscode.OutputChannel | undefined {
 
   try {
     diagnosticsChannel = vscode.window.createOutputChannel(
-      "sn-sync diagnostics",
+      SN_SYNC_DIAGNOSTICS.CHANNEL_NAME,
     );
     return diagnosticsChannel;
   } catch {

@@ -9,6 +9,7 @@ import {
 } from "@services/snSyncIndexService.js";
 import {
   SN_SYNC_COMMANDS,
+  SN_SYNC_ERROR_CODES,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
 import {
@@ -110,7 +111,7 @@ export async function runSnPushActiveCommand(
       SN_SYNC_MESSAGES.PUSH_ACTIVE_FAILED_PREFIX,
       error,
       {
-        code: "SN_PUSH_ACTIVE_FAILED",
+        code: SN_SYNC_ERROR_CODES.PUSH_ACTIVE_FAILED,
         command: SN_SYNC_COMMANDS.PUSH_ACTIVE,
       },
     );
