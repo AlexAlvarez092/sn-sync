@@ -313,6 +313,82 @@ suite("snPushService", () => {
     assert.strictEqual(content, "");
   });
 
+  test("pushFieldContent returns stored content from PATCH response", async () => {
+    const service = new SnPushService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "pwd",
+        }),
+      } as unknown as never,
+      (async () =>
+        new Response(
+          JSON.stringify({
+            result: {
+              script: "stored-by-servicenow",
+            },
+          }),
+          { status: 200 },
+        )) as typeof fetch,
+    );
+
+    const stored = await service.pushFieldContent(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      {
+        localPath: "src/a.js",
+        table: "sys_script",
+        sysId: "abc",
+        fieldName: "script",
+        baseHash: "sha256:x",
+        updatedAt: new Date().toISOString(),
+      },
+      "new-content",
+    );
+
+    assert.strictEqual(stored, "stored-by-servicenow");
+  });
+
+  test("pushFieldContent returns empty string when PATCH response field is null", async () => {
+    const service = new SnPushService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "pwd",
+        }),
+      } as unknown as never,
+      (async () =>
+        new Response(
+          JSON.stringify({
+            result: {
+              script: null,
+            },
+          }),
+          { status: 200 },
+        )) as typeof fetch,
+    );
+
+    const stored = await service.pushFieldContent(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      {
+        localPath: "src/a.js",
+        table: "sys_script",
+        sysId: "abc",
+        fieldName: "script",
+        baseHash: "sha256:x",
+        updatedAt: new Date().toISOString(),
+      },
+      "new-content",
+    );
+
+    assert.strictEqual(stored, "");
+  });
+
   test("throws when auth is missing for pushFieldContent", async () => {
     const service = new SnPushService(
       {

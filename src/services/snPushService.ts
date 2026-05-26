@@ -23,7 +23,7 @@ export interface SnPushServiceApi {
     workspaceFolderUri: vscode.Uri,
     entry: SnSyncIndexEntry,
     content: string,
-  ): Promise<void>;
+  ): Promise<string>;
 }
 
 interface SnRecordResponse {
@@ -75,7 +75,7 @@ export class SnPushService implements SnPushServiceApi {
     workspaceFolderUri: vscode.Uri,
     entry: SnSyncIndexEntry,
     content: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const connection = await this.authService.resolveConnectionAuth(
       context,
       workspaceFolderUri,
@@ -98,5 +98,9 @@ export class SnPushService implements SnPushServiceApi {
     );
 
     handleHttpError(response, SN_SYNC_MESSAGES.SN_REQUEST_HTTP_STATUS_PREFIX);
+
+    const payload = (await response.json()) as SnRecordResponse;
+    const value = payload.result?.[entry.fieldName];
+    return value === undefined || value === null ? "" : String(value);
   }
 }

@@ -38,7 +38,7 @@ suite("snPushActiveCommand", () => {
     await withCapturedRegisterCommand(async (invokeRegistered) => {
       registerSnPushActiveCommand(context, {
         getRemoteFieldContent: async () => "",
-        pushFieldContent: async () => undefined,
+        pushFieldContent: async () => "",
       });
 
       await withPatchedWorkspaceFolders(undefined, async () => {
@@ -75,7 +75,7 @@ suite("snPushActiveCommand", () => {
               {} as vscode.ExtensionContext,
               {
                 getRemoteFieldContent: async () => "",
-                pushFieldContent: async () => undefined,
+                pushFieldContent: async () => "",
               },
               {
                 findEntryByLocalPath: async () => undefined,
@@ -102,7 +102,7 @@ suite("snPushActiveCommand", () => {
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "",
-        pushFieldContent: async () => undefined,
+        pushFieldContent: async () => "",
       },
       {
         findEntryByLocalPath: async () => undefined,
@@ -132,7 +132,7 @@ suite("snPushActiveCommand", () => {
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "",
-        pushFieldContent: async () => undefined,
+        pushFieldContent: async () => "",
       },
       {
         findEntryByLocalPath: async () => undefined,
@@ -164,7 +164,7 @@ suite("snPushActiveCommand", () => {
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "",
-        pushFieldContent: async () => undefined,
+        pushFieldContent: async () => "",
       },
       {
         findEntryByLocalPath: async () => undefined,
@@ -206,7 +206,7 @@ suite("snPushActiveCommand", () => {
           fetchedRemote = true;
           return "old";
         },
-        pushFieldContent: async () => undefined,
+        pushFieldContent: async () => "",
       },
       {
         findEntryByLocalPath: async () => ({
@@ -255,6 +255,7 @@ suite("snPushActiveCommand", () => {
         getRemoteFieldContent: async () => "remote-new",
         pushFieldContent: async () => {
           pushed = true;
+          return "";
         },
       },
       {
@@ -303,7 +304,7 @@ suite("snPushActiveCommand", () => {
         getRemoteFieldContent: async () => {
           throw new Error("remote-fail");
         },
-        pushFieldContent: async () => undefined,
+        pushFieldContent: async () => "",
       },
       {
         findEntryByLocalPath: async () => ({
@@ -352,6 +353,7 @@ suite("snPushActiveCommand", () => {
         getRemoteFieldContent: async () => "old",
         pushFieldContent: async () => {
           pushed = true;
+          return "new";
         },
       },
       {

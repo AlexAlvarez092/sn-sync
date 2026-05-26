@@ -86,18 +86,21 @@ export async function runSnPushModifiedCommand(
       return;
     }
 
+    const storedContents: string[] = [];
+
     await runtime.withProgress(
       SN_SYNC_MESSAGES.PUSH_PROGRESS_TITLE,
       async (progress) => {
         let processed = 0;
 
         for (const candidate of candidates) {
-          await pushService.pushFieldContent(
+          const storedContent = await pushService.pushFieldContent(
             context,
             workspaceFolderUri,
             candidate.entry,
             candidate.localContent,
           );
+          storedContents.push(storedContent);
 
           processed += 1;
           progress.report({
@@ -112,12 +115,12 @@ export async function runSnPushModifiedCommand(
 
     await indexService.updateBaseHashes(
       workspaceFolderUri,
-      candidates.map((candidate) => ({
+      candidates.map((candidate, index) => ({
         localPath: candidate.entry.localPath,
         table: candidate.entry.table,
         sysId: candidate.entry.sysId,
         fieldName: candidate.entry.fieldName,
-        baseHash: candidate.localHash,
+        baseHash: hashText(storedContents[index]),
       })),
     );
 
