@@ -586,7 +586,7 @@ suite("snPullBySysIdCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PULL_BY_SYS_ID_FAILED_PREFIX} pull-by-sys-id-fail`,
+      `${SN_SYNC_MESSAGES.PULL_BY_SYS_ID_FAILED_PREFIX} (SN_PULL_BY_SYS_ID_FAILED) pull-by-sys-id-fail`,
     ]);
   });
 });

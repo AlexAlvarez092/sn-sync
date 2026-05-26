@@ -102,8 +102,16 @@ Command-level strategy:
 
 - Early exits for missing preconditions (workspace, editor, settings, index entries)
 - High-level try/catch around command business flow
-- User-facing message prefixes from SN_SYNC_MESSAGES
-- Error normalization via showPrefixedCommandError (which uses getErrorMessage internally)
+- User-facing message prefixes from SN_SYNC_MESSAGES plus stable error codes
+- Error normalization via showPrefixedCommandError and snErrorService
+- Structured diagnostics logging to output channel `sn-sync diagnostics`
+- Sensitive context redaction before diagnostics are written
+
+Error message shape:
+
+- `<prefix> (<ERROR_CODE>) <details>`
+
+See `docs/error-handling.md` for the current code catalog and troubleshooting flow.
 
 Service-level strategy:
 

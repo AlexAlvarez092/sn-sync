@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import {
   SN_SYNC_COMMANDS,
+  SN_SYNC_ERROR_CODES,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
 import {
@@ -39,6 +40,10 @@ export async function runSnResetIndexCommand(
       runtime,
       SN_SYNC_MESSAGES.RESET_INDEX_FAILED_PREFIX,
       error,
+      {
+        code: SN_SYNC_ERROR_CODES.RESET_INDEX_FAILED,
+        command: SN_SYNC_COMMANDS.RESET_INDEX,
+      },
     );
   }
 }

@@ -103,7 +103,7 @@ suite("snResetAuthCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.RESET_AUTH_FAILED_PREFIX} reset-auth-fail`,
+      `${SN_SYNC_MESSAGES.RESET_AUTH_FAILED_PREFIX} (SN_RESET_AUTH_FAILED) reset-auth-fail`,
     ]);
   });
 

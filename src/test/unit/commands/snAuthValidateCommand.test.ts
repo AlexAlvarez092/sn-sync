@@ -99,7 +99,7 @@ suite("snAuthValidateCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.AUTH_VALIDATE_FAILED_PREFIX} auth-invalid`,
+      `${SN_SYNC_MESSAGES.AUTH_VALIDATE_FAILED_PREFIX} (SN_AUTH_VALIDATE_FAILED) auth-invalid`,
     ]);
   });
 

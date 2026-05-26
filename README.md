@@ -119,6 +119,7 @@ Technical and command-level docs are available in [docs/README.md](docs/README.m
 - [docs/sn-push-active.md](docs/sn-push-active.md)
 - [docs/sn-push-modified.md](docs/sn-push-modified.md)
 - [docs/sn-push-report.md](docs/sn-push-report.md)
+- [docs/error-handling.md](docs/error-handling.md)
 - [docs/architecture.md](docs/architecture.md)
 
 ## For contributors

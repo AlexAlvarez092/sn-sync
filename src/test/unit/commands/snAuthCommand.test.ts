@@ -291,7 +291,7 @@ suite("snAuthCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.AUTH_FAILED_PREFIX} save-failed`,
+      `${SN_SYNC_MESSAGES.AUTH_FAILED_PREFIX} (SN_AUTH_FAILED) save-failed`,
     ]);
   });
 

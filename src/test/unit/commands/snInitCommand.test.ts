@@ -93,7 +93,7 @@ suite("snInitCommand", () => {
     await runSnInitCommand(configService, runtime);
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.INIT_FAILED_PREFIX} fail`,
+      `${SN_SYNC_MESSAGES.INIT_FAILED_PREFIX} (SN_INIT_FAILED) fail`,
     ]);
   });
 
@@ -155,7 +155,7 @@ suite("snInitCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.INIT_FAILED_PREFIX} default-runtime-fail`,
+      `${SN_SYNC_MESSAGES.INIT_FAILED_PREFIX} (SN_INIT_FAILED) default-runtime-fail`,
     ]);
   });
 });

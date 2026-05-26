@@ -10,6 +10,7 @@ import {
 } from "@services/snSyncIndexService.js";
 import {
   SN_SYNC_COMMANDS,
+  SN_SYNC_ERROR_CODES,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
 import type { SnPullClearBeforePull } from "@shared/models/config.js";
@@ -161,6 +162,10 @@ export async function runSnPullCommand(
       runtime,
       SN_SYNC_MESSAGES.PULL_FAILED_PREFIX,
       error,
+      {
+        code: SN_SYNC_ERROR_CODES.PULL_FAILED,
+        command: SN_SYNC_COMMANDS.PULL,
+      },
     );
   }
 }

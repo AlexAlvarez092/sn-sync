@@ -122,7 +122,7 @@ suite("snResetIndexCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.RESET_INDEX_FAILED_PREFIX} clear-index-fail`,
+      `${SN_SYNC_MESSAGES.RESET_INDEX_FAILED_PREFIX} (SN_RESET_INDEX_FAILED) clear-index-fail`,
     ]);
   });
 
@@ -155,7 +155,7 @@ suite("snResetIndexCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.RESET_INDEX_FAILED_PREFIX} Index service does not support clearIndex`,
+      `${SN_SYNC_MESSAGES.RESET_INDEX_FAILED_PREFIX} (SN_RESET_INDEX_FAILED) Index service does not support clearIndex`,
     ]);
   });
 

@@ -10,6 +10,7 @@ import {
 } from "@services/snSyncIndexService.js";
 import {
   SN_SYNC_COMMANDS,
+  SN_SYNC_ERROR_CODES,
   SN_SYNC_INPUTS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
@@ -182,6 +183,10 @@ export async function runSnPullBySysIdCommand(
       runtime,
       SN_SYNC_MESSAGES.PULL_BY_SYS_ID_FAILED_PREFIX,
       error,
+      {
+        code: SN_SYNC_ERROR_CODES.PULL_BY_SYS_ID_FAILED,
+        command: SN_SYNC_COMMANDS.PULL_BY_SYS_ID,
+      },
     );
   }
 }

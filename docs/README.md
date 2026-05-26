@@ -37,4 +37,5 @@ Files:
 - sn-push-active.md
 - sn-push-modified.md
 - sn-push-report.md
+- error-handling.md
 - architecture.md

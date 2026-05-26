@@ -338,7 +338,7 @@ suite("snPushActiveCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PUSH_ACTIVE_FAILED_PREFIX} remote-fail`,
+      `${SN_SYNC_MESSAGES.PUSH_ACTIVE_FAILED_PREFIX} (SN_PUSH_ACTIVE_FAILED) remote-fail`,
     ]);
   });
 
