@@ -22,6 +22,10 @@
   color: "BFD4F2"
   description: Test coverage and testing infrastructure changes.
 
+- name: "type: security"
+  color: "E11D21"
+  description: Security improvements and vulnerability fixes.
+
 - name: "area: auth"
   color: "1D76DB"
   description: Authentication and credentials handling.
@@ -49,3 +53,7 @@
 - name: "area: docs"
   color: "1D76DB"
   description: Documentation and examples.
+
+- name: "area: cicd"
+  color: "1D76DB"
+  description: CI/CD workflows and release process.
