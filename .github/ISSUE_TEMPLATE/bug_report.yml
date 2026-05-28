@@ -81,17 +81,17 @@ body:
     attributes:
       label: Affected command
       options:
-        - sn: init
-        - sn: auth
-        - sn: auth validate
-        - sn: pull
-        - sn: pull by sys_id
-        - sn: reset index
-        - sn: reset auth
-        - sn: push active
-        - sn: push modified
-        - sn: push report
-        - Other / unknown
+        - "sn: init"
+        - "sn: auth"
+        - "sn: auth validate"
+        - "sn: pull"
+        - "sn: pull by sys_id"
+        - "sn: reset index"
+        - "sn: reset auth"
+        - "sn: push active"
+        - "sn: push modified"
+        - "sn: push report"
+        - "Other / unknown"
     validations:
       required: true
 
