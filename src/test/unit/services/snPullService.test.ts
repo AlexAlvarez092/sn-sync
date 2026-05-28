@@ -6,6 +6,7 @@ import * as vscode from "vscode";
 import { SnPullService } from "@services/snPullService.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 import type { ExtensionConfigSetting } from "@shared/models/config.js";
+import { hashText } from "@shared/services/hashService.js";
 import { withTempDir } from "@test/helpers/testRuntime.js";
 
 suite("snPullService", () => {
@@ -392,6 +393,71 @@ suite("snPullService", () => {
         ),
         "",
       );
+    });
+  });
+
+  test("preserves exact remote field content and baseHash when whitespace is present", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+      const remoteScript = "  first line\nsecond line\n  ";
+      const writtenEvents: Array<{ baseHash?: string }> = [];
+
+      const service = new SnPullService(
+        {
+          resolveConnectionAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (): Promise<Response> => {
+          return {
+            ok: true,
+            json: async () => ({
+              result: [
+                {
+                  name: "Whitespace Rule",
+                  script: remoteScript,
+                },
+              ],
+            }),
+          } as Response;
+        }) as typeof fetch,
+      );
+
+      const summary = await service.pullConfiguredScripts(
+        {} as vscode.ExtensionContext,
+        workspaceUri,
+        [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+        {
+          onFileWritten: (event) => {
+            writtenEvents.push({ baseHash: event.baseHash });
+          },
+        },
+      );
+
+      assert.deepStrictEqual(summary, {
+        settings: 1,
+        records: 1,
+        files: 1,
+      });
+
+      const localContent = await fs.readFile(
+        path.join(tempDir, "src", "security_rules", "Whitespace Rule.js"),
+        "utf-8",
+      );
+
+      assert.strictEqual(localContent, remoteScript);
+      assert.strictEqual(writtenEvents[0].baseHash, hashText(remoteScript));
     });
   });
 
