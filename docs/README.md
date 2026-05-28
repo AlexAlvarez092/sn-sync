@@ -39,3 +39,4 @@ Files:
 - sn-push-report.md
 - error-handling.md
 - architecture.md
+- release-workflow.md
