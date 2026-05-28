@@ -203,6 +203,11 @@ export class SnPullService implements SnPullServiceApi {
       return undefined;
     }
 
+    if (allowEmpty) {
+      // Preserve exact server content for synced fields to avoid baseline hash drift.
+      return String(value);
+    }
+
     const normalized = String(value).trim();
     if (!allowEmpty && !normalized) {
       return undefined;
