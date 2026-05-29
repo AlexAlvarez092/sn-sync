@@ -37,6 +37,7 @@ suite("snResetAuthCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => undefined,
+        askConfirmation: async () => true,
         showErrorMessage: async (message: string) => {
           shownErrors.push(message);
           return undefined;
@@ -69,6 +70,17 @@ suite("snResetAuthCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => workspaceUri,
+        askConfirmation: async (message: string, actionLabel: string) => {
+          assert.strictEqual(
+            message,
+            SN_SYNC_MESSAGES.RESET_AUTH_CONFIRM_PROMPT,
+          );
+          assert.strictEqual(
+            actionLabel,
+            SN_SYNC_MESSAGES.RESET_AUTH_CONFIRM_ACTION,
+          );
+          return true;
+        },
         showErrorMessage: async () => undefined,
         showInformationMessage: async (message: string) => {
           shownInfos.push(message);
@@ -79,6 +91,33 @@ suite("snResetAuthCommand", () => {
 
     assert.strictEqual(resetCalls, 1);
     assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.RESET_AUTH_SUCCESS]);
+  });
+
+  test("cancels reset when confirmation is dismissed", async () => {
+    const shownInfos: string[] = [];
+    let resetCalls = 0;
+
+    await runSnResetAuthCommand(
+      {} as vscode.ExtensionContext,
+      {
+        resetAuth: async () => {
+          resetCalls += 1;
+        },
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("reset-auth-cancel"),
+        askConfirmation: async () => false,
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async (message: string) => {
+          shownInfos.push(message);
+          return undefined;
+        },
+      },
+    );
+
+    assert.strictEqual(resetCalls, 0);
+    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.RESET_AUTH_CANCELLED]);
   });
 
   test("shows detailed error when reset auth fails", async () => {
@@ -94,6 +133,7 @@ suite("snResetAuthCommand", () => {
       {
         getWorkspaceFolderUri: () =>
           createTempWorkspaceUri("reset-auth-failure"),
+        askConfirmation: async () => true,
         showErrorMessage: async (message: string) => {
           shownErrors.push(message);
           return undefined;
@@ -114,16 +154,21 @@ suite("snResetAuthCommand", () => {
     await withPatchedWorkspaceFolders(
       [{ uri: workspaceUri, name: "tmp", index: 0 }],
       async () => {
-        await withPatchedWindowMessages(
-          async (_message: string) => undefined,
-          async (message: string) => {
-            shownInfos.push(message);
-            return undefined;
-          },
+        await withPatchedWarningMessage(
+          SN_SYNC_MESSAGES.RESET_AUTH_CONFIRM_ACTION,
           async () => {
-            await runSnResetAuthCommand({} as vscode.ExtensionContext, {
-              resetAuth: async () => undefined,
-            });
+            await withPatchedWindowMessages(
+              async (_message: string) => undefined,
+              async (message: string) => {
+                shownInfos.push(message);
+                return undefined;
+              },
+              async () => {
+                await runSnResetAuthCommand({} as vscode.ExtensionContext, {
+                  resetAuth: async () => undefined,
+                });
+              },
+            );
           },
         );
       },
@@ -151,6 +196,28 @@ function withPatchedRegisterCommand(run: () => void): void {
     run();
   } finally {
     commandsObject.registerCommand = originalRegisterCommand;
+  }
+}
+
+async function withPatchedWarningMessage(
+  response: string | undefined,
+  run: () => Promise<void>,
+): Promise<void> {
+  const windowObject = vscode.window as unknown as {
+    showWarningMessage: (
+      message: string,
+      options: vscode.MessageOptions,
+      ...items: string[]
+    ) => Thenable<string | undefined>;
+  };
+
+  const originalShowWarningMessage = windowObject.showWarningMessage;
+  windowObject.showWarningMessage = async () => response;
+
+  try {
+    await run();
+  } finally {
+    windowObject.showWarningMessage = originalShowWarningMessage;
   }
 }
 

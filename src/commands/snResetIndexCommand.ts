@@ -15,15 +15,39 @@ import {
   type SnSyncIndexServiceApi,
 } from "@services/snSyncIndexService.js";
 
-const defaultRuntime: SnBaseCommandRuntime = defaultBaseRuntime;
+export interface SnResetIndexRuntime extends SnBaseCommandRuntime {
+  askConfirmation(message: string, actionLabel: string): Thenable<boolean>;
+}
+
+const defaultRuntime: SnResetIndexRuntime = {
+  ...defaultBaseRuntime,
+  askConfirmation: async (message: string, actionLabel: string) => {
+    const selected = await vscode.window.showWarningMessage(
+      message,
+      { modal: true },
+      actionLabel,
+    );
+
+    return selected === actionLabel;
+  },
+};
 
 export async function runSnResetIndexCommand(
   context: vscode.ExtensionContext,
   indexService: SnSyncIndexServiceApi,
-  runtime: SnBaseCommandRuntime = defaultRuntime,
+  runtime: SnResetIndexRuntime = defaultRuntime,
 ): Promise<void> {
   const workspaceFolderUri = getWorkspaceFolderOrShowError(runtime);
   if (!workspaceFolderUri) {
+    return;
+  }
+
+  const shouldProceed = await runtime.askConfirmation(
+    SN_SYNC_MESSAGES.RESET_INDEX_CONFIRM_PROMPT,
+    SN_SYNC_MESSAGES.RESET_INDEX_CONFIRM_ACTION,
+  );
+  if (!shouldProceed) {
+    void runtime.showInformationMessage(SN_SYNC_MESSAGES.RESET_INDEX_CANCELLED);
     return;
   }
 

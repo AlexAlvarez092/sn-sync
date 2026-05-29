@@ -42,6 +42,10 @@ export const SN_SYNC_MESSAGES = {
     "ServiceNow login validation failed before receiving a response:",
   RESET_AUTH_SUCCESS: "sn-sync auth reset completed.",
   RESET_AUTH_FAILED_PREFIX: "Failed to reset sn-sync auth:",
+  RESET_AUTH_CONFIRM_PROMPT:
+    "This will delete the active auth secret. Continue?",
+  RESET_AUTH_CONFIRM_ACTION: "Delete auth",
+  RESET_AUTH_CANCELLED: "sn-sync reset auth cancelled.",
   OPEN_ACTIVE_NO_EDITOR:
     "No active file found. Open a file from this workspace and try again.",
   OPEN_ACTIVE_NOT_INDEXED:
@@ -67,6 +71,9 @@ export const SN_SYNC_MESSAGES = {
     "Failed to pull record by sys_id from ServiceNow:",
   RESET_INDEX_SUCCESS: "sn-sync index reset completed.",
   RESET_INDEX_FAILED_PREFIX: "Failed to reset sn-sync index:",
+  RESET_INDEX_CONFIRM_PROMPT: "This will clear the local sync index. Continue?",
+  RESET_INDEX_CONFIRM_ACTION: "Clear index",
+  RESET_INDEX_CANCELLED: "sn-sync reset index cancelled.",
   PULL_CLEAR_SRC_PROMPT: "Clear src before pull to avoid stale local files?",
   PULL_CLEAR_SRC_SKIP_ACTION: "Keep src",
   PULL_SUCCESS_PREFIX: "sn-sync pull completed.",

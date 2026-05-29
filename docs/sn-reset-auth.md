@@ -23,9 +23,11 @@ Remove the currently active instance authentication secret from VS Code Secret S
 
 1. Resolve workspaceFolderUri.
 2. If missing, show SN_SYNC_MESSAGES.NO_WORKSPACE.
-3. Execute authService.resetAuth(context, workspaceFolderUri).
-4. On success, show SN_SYNC_MESSAGES.RESET_AUTH_SUCCESS.
-5. On failure, show SN_SYNC_MESSAGES.RESET_AUTH_FAILED_PREFIX + details.
+3. Show warning confirmation dialog with SN_SYNC_MESSAGES.RESET_AUTH_CONFIRM_PROMPT.
+4. If user dismisses or declines, show SN_SYNC_MESSAGES.RESET_AUTH_CANCELLED and stop.
+5. Execute authService.resetAuth(context, workspaceFolderUri).
+6. On success, show SN_SYNC_MESSAGES.RESET_AUTH_SUCCESS.
+7. On failure, show SN_SYNC_MESSAGES.RESET_AUTH_FAILED_PREFIX + details.
 
 ## Service behavior
 
@@ -42,6 +44,7 @@ SnAuthService.resetAuth:
 - Does not modify local source files.
 - Does not call ServiceNow.
 - Does not clear sync index state.
+- Requires explicit user confirmation before deletion.
 
 ## Functional impact after reset
 
@@ -74,12 +77,17 @@ sequenceDiagram
 	alt No workspace
 		C->>R: showErrorMessage(NO_WORKSPACE)
 	else Workspace exists
-		C->>S: resetAuth(context, workspaceFolderUri)
-		S->>SEC: delete(active instance secret)
-		alt Success
-			C->>R: showInformationMessage(RESET_AUTH_SUCCESS)
-		else Failure
-			C->>R: showErrorMessage(RESET_AUTH_FAILED_PREFIX + error)
+		C->>R: showWarningMessage(RESET_AUTH_CONFIRM_PROMPT)
+		alt Cancelled
+			C->>R: showInformationMessage(RESET_AUTH_CANCELLED)
+		else Confirmed
+			C->>S: resetAuth(context, workspaceFolderUri)
+			S->>SEC: delete(active instance secret)
+			alt Success
+				C->>R: showInformationMessage(RESET_AUTH_SUCCESS)
+			else Failure
+				C->>R: showErrorMessage(RESET_AUTH_FAILED_PREFIX + error)
+			end
 		end
 	end
 ```
@@ -93,3 +101,7 @@ sequenceDiagram
 - Symptom: Pull/push fails right after reset
   - Cause: Auth was intentionally removed.
   - Resolution: Run `sn: auth` to save fresh credentials.
+
+- Symptom: Nothing happened when running reset auth
+  - Cause: Confirmation dialog was dismissed or cancelled.
+  - Resolution: Run the command again and confirm the warning prompt.
