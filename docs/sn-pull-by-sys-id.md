@@ -8,6 +8,11 @@
 
 Execute a targeted pull for a single ServiceNow record (by sys_id), using a table selected by the user from existing sync settings.
 
+## Default shortcut
+
+- macOS: `cmd+alt+shift+p`
+- Windows/Linux: `ctrl+alt+shift+p`
+
 ## When to use it
 
 - Quickly retrieve one specific record without running full pull.

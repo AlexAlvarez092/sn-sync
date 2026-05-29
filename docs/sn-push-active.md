@@ -8,6 +8,11 @@
 
 Push exactly the currently active editor file to ServiceNow, with remote conflict verification against indexed baseline state.
 
+## Default shortcut
+
+- macOS: `cmd+alt+u`
+- Windows/Linux: `ctrl+alt+u`
+
 ## Write safety model
 
 The command prevents accidental overwrite by enforcing three guards:

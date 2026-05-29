@@ -8,6 +8,11 @@
 
 Open the currently active, indexed file as its corresponding ServiceNow record in the browser.
 
+## Default shortcut
+
+- macOS: `cmd+alt+o`
+- Windows/Linux: `ctrl+alt+o`
+
 ## When to use it
 
 - Quickly verify the remote record after local edits.

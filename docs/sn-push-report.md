@@ -8,6 +8,11 @@
 
 Generate a Markdown report for modified files that are candidates for push, grouped by scope and enriched with resolved update set metadata.
 
+## Default shortcut
+
+- macOS: `cmd+alt+r`
+- Windows/Linux: `ctrl+alt+r`
+
 ## Output
 
 Opens a temporary Markdown document in VS Code containing:
