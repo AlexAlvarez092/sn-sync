@@ -25,6 +25,11 @@ Download configured records/scripts from ServiceNow into the local filesystem an
 - sn-sync.rootDir
 - sn-sync.pull.clearBeforePull (ask | delete | keep)
 
+Note:
+
+- `rootDir` is resolved with `vscode.Uri.joinPath(workspaceFolderUri, rootDir)`.
+- Keep `rootDir` as a workspace-relative path.
+
 ## Step-by-step logic
 
 1. Resolve workspaceFolderUri.
@@ -51,6 +56,13 @@ Download configured records/scripts from ServiceNow into the local filesystem an
 14. After loop completion, replace full index snapshot through indexService.replacePullSnapshot(workspaceFolderUri, indexUpdates).
 15. Show success with file/record/setting totals.
 16. On any error, show SN_SYNC_MESSAGES.PULL_FAILED_PREFIX + normalized reason.
+
+## Path handling in SnPullService
+
+- Record key values are sanitized for filenames by replacing reserved filesystem characters (`\\ / : * ? " < > |`) with `_`.
+- Empty sanitized keys fall back to `SN_SYNC_VALUES.UNNAMED_PATH_SEGMENT`.
+- `subDirPattern` static parts and token values are sanitized with the same strategy before local path composition.
+- Local destination paths are composed from `rootDir`, `setting.folder`, optional subdir parts, and generated filenames.
 
 ## Index behavior details
 

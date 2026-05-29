@@ -81,7 +81,7 @@ Current standardized command failure codes:
    - auth: re-run `sn: auth` / `sn: auth validate`
    - conflict: run pull, merge, and retry
    - network: retry and verify instance/network availability
-   - validation: verify command inputs, workspace preconditions, and indexed/configured ServiceNow identifiers
+   - validation: verify command inputs, workspace preconditions, and indexed/configured ServiceNow identifiers (for example blank `sys_id`, missing workspace, or invalid/empty configuration values)
 5. If unresolved, open a bug report and include:
    - error code
    - command

@@ -117,9 +117,19 @@ Service-level strategy:
 
 - Validate auth availability before network calls
 - Validate and encode dynamic ServiceNow path segments before URL assembly
-- Resolve basic auth deterministically from Secret Storage (`sn: auth`)
+- Resolve auth deterministically from Secret Storage:
+  - session headers
+  - bearer
+  - basic credentials (`sn: auth`)
+- `validateAuth` uses resolved headers and validates against `sys_user` in ServiceNow.
 - Normalize HTTP failures into actionable messages
 - Keep business-specific edge handling inside services (for example report resolution notes)
+
+Pull filesystem strategy:
+
+- Pull destination URIs are composed with `vscode.Uri.joinPath` from workspace + configured fragments.
+- `SnPullService` sanitizes generated path segments (record keys and subdir parts) for filesystem-safe filenames.
+- Index metadata (`localPath`, `table`, `sysId`, `fieldName`, `baseHash`) is emitted through pull callbacks and persisted as command-level snapshots/updates.
 
 Transport strategy:
 
