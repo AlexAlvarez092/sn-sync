@@ -25,15 +25,20 @@ suite("snInitCommand", () => {
 
   test("shows error when no workspace folder is open", async () => {
     let initializeCalled = false;
+    let setInstanceCalled = false;
     const shownErrors: string[] = [];
 
     const configService: SnSyncInitializer = {
       initialize: async () => {
         initializeCalled = true;
       },
+      setInstanceName: async () => {
+        setInstanceCalled = true;
+      },
     };
     const runtime: SnInitCommandRuntime = {
       getWorkspaceFolderUri: () => undefined,
+      askInput: async () => undefined,
       showErrorMessage: async (message: string) => {
         shownErrors.push(message);
         return undefined;
@@ -44,21 +49,32 @@ suite("snInitCommand", () => {
     await runSnInitCommand(configService, runtime);
 
     assert.strictEqual(initializeCalled, false);
+    assert.strictEqual(setInstanceCalled, false);
     assert.deepStrictEqual(shownErrors, [SN_SYNC_MESSAGES.NO_WORKSPACE]);
   });
 
-  test("initializes and shows success message", async () => {
+  test("initializes, stores instance name, and shows success message", async () => {
     const shownInfos: string[] = [];
     const workspaceUri = createTempWorkspaceUri();
     let initializedUri: vscode.Uri | undefined;
+    let setInstanceUri: vscode.Uri | undefined;
+    let setInstanceValue: string | undefined;
 
     const configService: SnSyncInitializer = {
       initialize: async (workspaceFolderUri: vscode.Uri) => {
         initializedUri = workspaceFolderUri;
       },
+      setInstanceName: async (
+        workspaceFolderUri: vscode.Uri,
+        instanceName: string,
+      ) => {
+        setInstanceUri = workspaceFolderUri;
+        setInstanceValue = instanceName;
+      },
     };
     const runtime: SnInitCommandRuntime = {
       getWorkspaceFolderUri: () => workspaceUri,
+      askInput: async () => "  dev-instance  ",
       showErrorMessage: async () => undefined,
       showInformationMessage: async (message: string) => {
         shownInfos.push(message);
@@ -69,7 +85,42 @@ suite("snInitCommand", () => {
     await runSnInitCommand(configService, runtime);
 
     assert.strictEqual(initializedUri?.toString(), workspaceUri.toString());
+    assert.strictEqual(setInstanceUri?.toString(), workspaceUri.toString());
+    assert.strictEqual(setInstanceValue, "dev-instance");
     assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.INIT_SUCCESS]);
+  });
+
+  test("initializes and completes without instance when input is cancelled", async () => {
+    const shownInfos: string[] = [];
+    const workspaceUri = createTempWorkspaceUri();
+    let initializeCalls = 0;
+    let setInstanceCalls = 0;
+
+    const configService: SnSyncInitializer = {
+      initialize: async () => {
+        initializeCalls += 1;
+      },
+      setInstanceName: async () => {
+        setInstanceCalls += 1;
+      },
+    };
+    const runtime: SnInitCommandRuntime = {
+      getWorkspaceFolderUri: () => workspaceUri,
+      askInput: async () => undefined,
+      showErrorMessage: async () => undefined,
+      showInformationMessage: async (message: string) => {
+        shownInfos.push(message);
+        return undefined;
+      },
+    };
+
+    await runSnInitCommand(configService, runtime);
+
+    assert.strictEqual(initializeCalls, 1);
+    assert.strictEqual(setInstanceCalls, 0);
+    assert.deepStrictEqual(shownInfos, [
+      SN_SYNC_MESSAGES.INIT_INSTANCE_SKIPPED,
+    ]);
   });
 
   test("shows detailed error when initialization fails", async () => {
@@ -80,9 +131,11 @@ suite("snInitCommand", () => {
       initialize: async () => {
         throw new Error("fail");
       },
+      setInstanceName: async () => undefined,
     };
     const runtime: SnInitCommandRuntime = {
       getWorkspaceFolderUri: () => workspaceUri,
+      askInput: async () => "ignored",
       showErrorMessage: async (message: string) => {
         shownErrors.push(message);
         return undefined;
@@ -106,21 +159,24 @@ suite("snInitCommand", () => {
       initialize: async () => {
         initializeCalls += 1;
       },
+      setInstanceName: async () => undefined,
     };
 
     await withPatchedWorkspaceFolders(
       [{ uri: workspaceUri, name: "tmp", index: 0 }],
       async () => {
-        await withPatchedWindowMessages(
-          async (_message: string) => undefined,
-          async (message: string) => {
-            shownInfos.push(message);
-            return undefined;
-          },
-          async () => {
-            await runSnInitCommand(configService);
-          },
-        );
+        await withPatchedInputBox("default-instance", async () => {
+          await withPatchedWindowMessages(
+            async (_message: string) => undefined,
+            async (message: string) => {
+              shownInfos.push(message);
+              return undefined;
+            },
+            async () => {
+              await runSnInitCommand(configService);
+            },
+          );
+        });
       },
     );
 
@@ -136,21 +192,24 @@ suite("snInitCommand", () => {
       initialize: async () => {
         throw new Error("default-runtime-fail");
       },
+      setInstanceName: async () => undefined,
     };
 
     await withPatchedWorkspaceFolders(
       [{ uri: workspaceUri, name: "tmp", index: 0 }],
       async () => {
-        await withPatchedWindowMessages(
-          async (message: string) => {
-            shownErrors.push(message);
-            return undefined;
-          },
-          async (_message: string) => undefined,
-          async () => {
-            await runSnInitCommand(configService);
-          },
-        );
+        await withPatchedInputBox("default-instance", async () => {
+          await withPatchedWindowMessages(
+            async (message: string) => {
+              shownErrors.push(message);
+              return undefined;
+            },
+            async (_message: string) => undefined,
+            async () => {
+              await runSnInitCommand(configService);
+            },
+          );
+        });
       },
     );
 
@@ -178,6 +237,27 @@ function withPatchedRegisterCommand(run: () => void): void {
     run();
   } finally {
     commandsObject.registerCommand = originalRegisterCommand;
+  }
+}
+
+async function withPatchedInputBox(
+  response: string | undefined,
+  run: () => Promise<void>,
+): Promise<void> {
+  const windowObject = vscode.window as unknown as {
+    showInputBox: (
+      options?: vscode.InputBoxOptions,
+      token?: vscode.CancellationToken,
+    ) => Thenable<string | undefined>;
+  };
+
+  const originalShowInputBox = windowObject.showInputBox;
+  windowObject.showInputBox = async () => response;
+
+  try {
+    await run();
+  } finally {
+    windowObject.showInputBox = originalShowInputBox;
   }
 }
 

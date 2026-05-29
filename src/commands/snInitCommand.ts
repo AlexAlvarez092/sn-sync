@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import {
   SN_SYNC_COMMANDS,
   SN_SYNC_ERROR_CODES,
+  SN_SYNC_INPUTS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
 import {
@@ -14,11 +15,21 @@ import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 
 export interface SnSyncInitializer {
   initialize(workspaceFolderUri: vscode.Uri): Promise<void>;
+  setInstanceName(
+    workspaceFolderUri: vscode.Uri,
+    instanceName: string,
+  ): Promise<void>;
 }
 
-export interface SnInitCommandRuntime extends SnBaseCommandRuntime {}
+export interface SnInitCommandRuntime extends SnBaseCommandRuntime {
+  askInput(options: vscode.InputBoxOptions): Thenable<string | undefined>;
+}
 
-const defaultRuntime: SnInitCommandRuntime = defaultBaseRuntime;
+const defaultRuntime: SnInitCommandRuntime = {
+  ...defaultBaseRuntime,
+  askInput: (options: vscode.InputBoxOptions) =>
+    vscode.window.showInputBox(options),
+};
 
 export async function runSnInitCommand(
   configService: SnSyncInitializer,
@@ -31,6 +42,21 @@ export async function runSnInitCommand(
 
   try {
     await configService.initialize(workspaceFolderUri);
+
+    const instanceName = await askRequiredInput(runtime, {
+      prompt: SN_SYNC_INPUTS.AUTH_INSTANCE_NAME_PROMPT,
+      placeHolder: SN_SYNC_INPUTS.AUTH_INSTANCE_NAME_PLACEHOLDER,
+      ignoreFocusOut: true,
+    });
+
+    if (!instanceName) {
+      void runtime.showInformationMessage(
+        SN_SYNC_MESSAGES.INIT_INSTANCE_SKIPPED,
+      );
+      return;
+    }
+
+    await configService.setInstanceName(workspaceFolderUri, instanceName);
     void runtime.showInformationMessage(SN_SYNC_MESSAGES.INIT_SUCCESS);
   } catch (error) {
     showPrefixedCommandError(
@@ -55,4 +81,18 @@ export function registerSnInitCommand(
   );
 
   context.subscriptions.push(disposable);
+}
+
+async function askRequiredInput(
+  runtime: SnInitCommandRuntime,
+  options: vscode.InputBoxOptions,
+): Promise<string | undefined> {
+  const value = await runtime.askInput(options);
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return undefined;
+  }
+
+  return trimmed;
 }
