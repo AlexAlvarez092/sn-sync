@@ -6,7 +6,7 @@
 
 ## Purpose
 
-Initialize extension configuration in the current workspace. In practice, it guarantees that .snsyncrc exists with a valid baseline structure and default sync settings.
+Initialize extension configuration in the current workspace and collect the instance name for first-time setup. In practice, it guarantees that .snsyncrc exists with a valid baseline structure and default sync settings.
 
 ## When to use it
 
@@ -27,8 +27,11 @@ Initialize extension configuration in the current workspace. In practice, it gua
 1. Resolve the active workspace folder through getWorkspaceFolderOrShowError(runtime).
 2. If missing, terminate with SN_SYNC_MESSAGES.NO_WORKSPACE.
 3. Call configService.initialize(workspaceFolderUri).
-4. On success, show SN_SYNC_MESSAGES.INIT_SUCCESS.
-5. On failure, catch and show SN_SYNC_MESSAGES.INIT_FAILED_PREFIX + normalized error via showPrefixedCommandError.
+4. Prompt for instance name via InputBox.
+5. If input is empty/cancelled, complete init and show SN_SYNC_MESSAGES.INIT_INSTANCE_SKIPPED.
+6. If input is valid, trim and persist to `.snsyncrc.instance` using configService.setInstanceName.
+7. On success, show SN_SYNC_MESSAGES.INIT_SUCCESS.
+8. On failure, catch and show SN_SYNC_MESSAGES.INIT_FAILED_PREFIX + normalized error via showPrefixedCommandError.
 
 ## Service behavior
 
@@ -41,9 +44,12 @@ The command delegates to SnSyncConfigService.initialize, which:
    - `settings`: default sync settings
 4. Sanitizes existing `.snsyncrc` content by stripping legacy auth fields, keeping only non-sensitive configuration.
 
+After initialization, the command stores the provided instance name (when present) through SnSyncConfigService.setInstanceName.
+
 ## Side effects
 
 - May create .snsyncrc in the workspace root.
+- May update `.snsyncrc.instance` when a non-empty instance name is provided.
 - Does not modify secrets.
 - Does not modify sync index state.
 
@@ -73,8 +79,12 @@ sequenceDiagram
 		C->>R: showErrorMessage(NO_WORKSPACE)
 	else Workspace exists
 		C->>S: initialize(workspaceFolderUri)
-		alt Success
-			C->>R: showInformationMessage(INIT_SUCCESS)
+			C->>R: askInput(instance name)
+			alt Cancelled/empty
+				C->>R: showInformationMessage(INIT_INSTANCE_SKIPPED)
+			else Instance provided
+				C->>S: setInstanceName(workspaceFolderUri, instance)
+				C->>R: showInformationMessage(INIT_SUCCESS)
 		else Failure
 			C->>R: showErrorMessage(INIT_FAILED_PREFIX + error)
 		end
@@ -90,3 +100,7 @@ sequenceDiagram
 - Symptom: "Failed to initialize sn-sync"
   - Cause: Write permissions or filesystem failure.
   - Resolution: Verify file permissions in workspace root and retry.
+
+- Symptom: init completes without instance name
+  - Cause: Instance prompt was cancelled or empty.
+  - Resolution: Re-run `sn: init` or run `sn: auth` to set/select an instance.

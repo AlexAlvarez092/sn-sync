@@ -37,7 +37,7 @@ If you only need one specific record, use `sn: pull by sys_id`.
 
 ### `sn: init`
 
-Creates the local sn-sync config for your workspace.
+Creates the local sn-sync config for your workspace and prompts for the instance name.
 
 ### `sn: auth`
 
