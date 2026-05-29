@@ -19,15 +19,39 @@ export interface SnResetAuthServiceApi {
   ): Promise<void>;
 }
 
-const defaultRuntime: SnBaseCommandRuntime = defaultBaseRuntime;
+export interface SnResetAuthRuntime extends SnBaseCommandRuntime {
+  askConfirmation(message: string, actionLabel: string): Thenable<boolean>;
+}
+
+const defaultRuntime: SnResetAuthRuntime = {
+  ...defaultBaseRuntime,
+  askConfirmation: async (message: string, actionLabel: string) => {
+    const selected = await vscode.window.showWarningMessage(
+      message,
+      { modal: true },
+      actionLabel,
+    );
+
+    return selected === actionLabel;
+  },
+};
 
 export async function runSnResetAuthCommand(
   context: vscode.ExtensionContext,
   authService: SnResetAuthServiceApi,
-  runtime: SnBaseCommandRuntime = defaultRuntime,
+  runtime: SnResetAuthRuntime = defaultRuntime,
 ): Promise<void> {
   const workspaceFolderUri = getWorkspaceFolderOrShowError(runtime);
   if (!workspaceFolderUri) {
+    return;
+  }
+
+  const shouldProceed = await runtime.askConfirmation(
+    SN_SYNC_MESSAGES.RESET_AUTH_CONFIRM_PROMPT,
+    SN_SYNC_MESSAGES.RESET_AUTH_CONFIRM_ACTION,
+  );
+  if (!shouldProceed) {
+    void runtime.showInformationMessage(SN_SYNC_MESSAGES.RESET_AUTH_CANCELLED);
     return;
   }
 
