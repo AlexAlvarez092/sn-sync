@@ -41,6 +41,9 @@ export const SN_SYNC_MESSAGES = {
   SN_REQUEST_HTTP_STATUS_PREFIX: "ServiceNow data request failed with status:",
   SN_REQUEST_INVALID_PATH_SEGMENT_PREFIX:
     "Invalid ServiceNow request path segment:",
+  WORKSPACE_PATH_INVALID_PREFIX: "Invalid workspace path fragment:",
+  WORKSPACE_PATH_OUTSIDE_WORKSPACE_PREFIX:
+    "Resolved workspace path escapes workspace folder:",
   PULL_PROGRESS_TITLE: "Pulling scripts from ServiceNow...",
   PULL_NO_SETTINGS:
     "No sync settings found in extension config. Nothing to pull.",

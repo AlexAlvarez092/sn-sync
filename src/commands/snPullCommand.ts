@@ -28,6 +28,7 @@ import {
 } from "@shared/services/snFolderService.js";
 import { resolvePreferences } from "@shared/services/snPreferencesService.js";
 import { createPullFileWrittenHandler } from "@shared/services/snPullProgressService.js";
+import { resolveWorkspaceChildUri } from "@shared/services/snWorkspacePathService.js";
 
 export interface SnPullRuntime
   extends SnBaseCommandRuntime, FolderClearRuntime {
@@ -81,11 +82,15 @@ export async function runSnPullCommand(
       configService,
       workspaceFolderUri,
     );
+    const rootDirUri = resolveWorkspaceChildUri(workspaceFolderUri, [
+      {
+        value: preferences.rootDir,
+        label: "rootDir",
+        allowHierarchy: true,
+      },
+    ]);
 
-    await ensureDirectoryExists(
-      runtime,
-      vscode.Uri.joinPath(workspaceFolderUri, preferences.rootDir),
-    );
+    await ensureDirectoryExists(runtime, rootDirUri);
 
     const shouldDeleteBeforePull = await shouldDeleteBeforePullCommand(
       runtime,
@@ -94,10 +99,7 @@ export async function runSnPullCommand(
     );
 
     if (shouldDeleteBeforePull) {
-      await clearDirectory(
-        runtime,
-        vscode.Uri.joinPath(workspaceFolderUri, preferences.rootDir),
-      );
+      await clearDirectory(runtime, rootDirUri);
     }
 
     const summary = await runtime.withProgress(

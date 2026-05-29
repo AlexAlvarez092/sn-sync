@@ -11,11 +11,15 @@ import {
   buildServiceNowTableApiUrl,
   createGotFetchTransport,
   handleHttpError,
-  normalizeInstanceUrl,
   resolveConnectionHeaders,
 } from "@shared/services/snHttpService.js";
 import type { ExtensionConfigSetting } from "@shared/models/config.js";
 import { hashText } from "@shared/services/hashService.js";
+import {
+  getWorkspacePathSegments,
+  resolveWorkspaceChildUri,
+  type WorkspacePathFragmentInput,
+} from "@shared/services/snWorkspacePathService.js";
 
 interface SnTableResponse {
   result?: Array<Record<string, unknown>>;
@@ -120,22 +124,53 @@ export class SnPullService implements SnPullServiceApi {
     const safeKeyValue = this.sanitizePathSegment(keyValue);
     const sysId = this.normalizeRecordValue(record.sys_id);
 
-    const baseParts = [
-      options?.rootDir ?? SN_SYNC_DEFAULTS.ROOT_DIR,
-      setting.folder,
+    const baseFragments: WorkspacePathFragmentInput[] = [
+      {
+        value: options?.rootDir ?? SN_SYNC_DEFAULTS.ROOT_DIR,
+        label: "rootDir",
+        allowHierarchy: true,
+      },
+      {
+        value: setting.folder,
+        label: "folder",
+        allowHierarchy: true,
+      },
     ];
     if (setting.subDirPattern) {
-      baseParts.push(...this.resolveSubDirParts(setting.subDirPattern, record));
+      baseFragments.push(
+        ...this.resolveSubDirParts(setting.subDirPattern, record).map(
+          (part) => ({
+            value: part,
+            label: "subDirPattern segment",
+          }),
+        ),
+      );
     } else if (setting.fields.length > 1) {
-      baseParts.push(safeKeyValue);
+      baseFragments.push({
+        value: safeKeyValue,
+        label: "record key path segment",
+      });
     }
 
-    const targetDirUri = vscode.Uri.joinPath(workspaceFolderUri, ...baseParts);
+    const targetDirUri = resolveWorkspaceChildUri(
+      workspaceFolderUri,
+      baseFragments,
+    );
     await vscode.workspace.fs.createDirectory(targetDirUri);
 
     for (const field of setting.fields) {
-      const fileName = `${safeKeyValue}.${field.extension}`;
-      const fileUri = vscode.Uri.joinPath(targetDirUri, fileName);
+      const safeExtension = getWorkspacePathSegments({
+        value: field.extension,
+        label: "file extension",
+      })[0];
+      const fileName = `${safeKeyValue}.${safeExtension}`;
+      const fileUri = resolveWorkspaceChildUri(workspaceFolderUri, [
+        ...baseFragments,
+        {
+          value: fileName,
+          label: "file name",
+        },
+      ]);
       const content =
         this.normalizeRecordValue(record[field.field_name], true) ?? "";
 
@@ -171,7 +206,10 @@ export class SnPullService implements SnPullServiceApi {
       .map((part) => {
         const tokenMatch = /^<([^>]+)>$/.exec(part.trim());
         if (!tokenMatch) {
-          return this.sanitizePathSegment(part.trim());
+          return getWorkspacePathSegments({
+            value: part.trim(),
+            label: "subDirPattern literal",
+          })[0];
         }
 
         const tokenValue =
@@ -193,6 +231,9 @@ export class SnPullService implements SnPullServiceApi {
 
   private sanitizePathSegment(value: string): string {
     const sanitized = value.replace(/[\\/:*?"<>|]/g, "_").trim();
+    if (sanitized === "." || sanitized === "..") {
+      return SN_SYNC_VALUES.UNNAMED_PATH_SEGMENT;
+    }
     return sanitized || SN_SYNC_VALUES.UNNAMED_PATH_SEGMENT;
   }
 
