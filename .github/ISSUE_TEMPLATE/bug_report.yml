@@ -88,6 +88,7 @@ body:
         - "sn: pull by sys_id"
         - "sn: reset index"
         - "sn: reset auth"
+        - "sn: open active in instance"
         - "sn: push active"
         - "sn: push modified"
         - "sn: push report"
