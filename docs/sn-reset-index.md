@@ -23,15 +23,18 @@ Clear the local synchronization index (workspaceState) so baseline state can be 
 
 1. Resolve workspaceFolderUri.
 2. If missing, show SN_SYNC_MESSAGES.NO_WORKSPACE.
-3. Execute indexService.clearIndex(workspaceFolderUri).
-4. On success, show SN_SYNC_MESSAGES.RESET_INDEX_SUCCESS.
-5. On failure, show SN_SYNC_MESSAGES.RESET_INDEX_FAILED_PREFIX + details.
+3. Show warning confirmation dialog with SN_SYNC_MESSAGES.RESET_INDEX_CONFIRM_PROMPT.
+4. If user dismisses or declines, show SN_SYNC_MESSAGES.RESET_INDEX_CANCELLED and stop.
+5. Execute indexService.clearIndex(workspaceFolderUri).
+6. On success, show SN_SYNC_MESSAGES.RESET_INDEX_SUCCESS.
+7. On failure, show SN_SYNC_MESSAGES.RESET_INDEX_FAILED_PREFIX + details.
 
 ## Side effects
 
 - Removes all index entries for the workspace.
 - Does not modify local source files.
 - Does not call ServiceNow.
+- Requires explicit user confirmation before clearing state.
 
 ## Functional impact after reset
 
@@ -63,11 +66,16 @@ sequenceDiagram
 	alt No workspace
 		C->>R: showErrorMessage(NO_WORKSPACE)
 	else Workspace exists
-		C->>I: clearIndex(workspaceFolderUri)
-		alt Success
-			C->>R: showInformationMessage(RESET_INDEX_SUCCESS)
-		else Failure
-			C->>R: showErrorMessage(RESET_INDEX_FAILED_PREFIX + error)
+		C->>R: showWarningMessage(RESET_INDEX_CONFIRM_PROMPT)
+		alt Cancelled
+			C->>R: showInformationMessage(RESET_INDEX_CANCELLED)
+		else Confirmed
+			C->>I: clearIndex(workspaceFolderUri)
+			alt Success
+				C->>R: showInformationMessage(RESET_INDEX_SUCCESS)
+			else Failure
+				C->>R: showErrorMessage(RESET_INDEX_FAILED_PREFIX + error)
+			end
 		end
 	end
 ```
@@ -81,3 +89,7 @@ sequenceDiagram
 - Symptom: Push commands fail after reset
   - Cause: Index is intentionally empty.
   - Resolution: Run sn: pull or sn: pull by sys_id to repopulate index.
+
+- Symptom: Nothing happened when running reset index
+	- Cause: Confirmation dialog was dismissed or cancelled.
+	- Resolution: Run the command again and confirm the warning prompt.
