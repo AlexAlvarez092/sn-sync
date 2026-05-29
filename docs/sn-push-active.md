@@ -48,6 +48,11 @@ Push is executed only if all three conditions are satisfied.
 - Remote write to one ServiceNow record field.
 - Baseline hash update for one index entry.
 
+## Request safety model
+
+- The underlying push service validates and encodes dynamic ServiceNow path segments before issuing GET/PATCH requests.
+- Malformed indexed values such as table names or `sys_id` fail fast before any network call is attempted.
+
 ## Conflict handling
 
 Compares:
@@ -125,3 +130,7 @@ sequenceDiagram
 - Symptom: Push succeeds but file still appears modified
   - Cause: Local content changed again after the push or index state is stale.
   - Resolution: Save file, rerun push if needed, or run sn: reset index + sn: pull to rebuild baseline.
+
+- Symptom: Push fails with an invalid path segment error
+  - Cause: The indexed entry contains a malformed table name or `sys_id`.
+  - Resolution: Refresh the index from a valid pull, or inspect the stored sync/index data before retrying.

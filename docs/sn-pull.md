@@ -79,6 +79,7 @@ Decision is implemented in shouldDeleteBeforePullCommand:
 A single high-level try/catch captures:
 
 - Configuration load failures.
+- Invalid ServiceNow request path segments derived from sync settings.
 - ServiceNow/API failures from pullService.
 - Filesystem write/delete failures.
 - Snapshot persistence failures.
@@ -148,3 +149,7 @@ sequenceDiagram
 - Symptom: Unexpected files are removed from index after pull
   - Cause: Snapshot replacement removes entries not returned by current pull.
   - Resolution: Confirm current pull query/settings include intended records.
+
+- Symptom: Pull fails before any ServiceNow response is received with an invalid path segment error
+  - Cause: A sync setting contains a malformed table name used in the outbound Table API path.
+  - Resolution: Correct the affected `table` value in `.snsyncrc` and rerun the command.

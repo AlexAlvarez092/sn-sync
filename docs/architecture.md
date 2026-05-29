@@ -116,6 +116,7 @@ See `docs/error-handling.md` for the current code catalog and troubleshooting fl
 Service-level strategy:
 
 - Validate auth availability before network calls
+- Validate and encode dynamic ServiceNow path segments before URL assembly
 - Resolve basic auth deterministically from Secret Storage (`sn: auth`)
 - Normalize HTTP failures into actionable messages
 - Keep business-specific edge handling inside services (for example report resolution notes)
@@ -123,6 +124,7 @@ Service-level strategy:
 Transport strategy:
 
 - snHttpService provides createGotFetchTransport as the shared fetch-compatible transport.
+- snHttpService also centralizes ServiceNow Table API URL construction for dynamic path segments such as table names, sys_ids, and update set ids.
 - Pull/push/push-report/auth-validate use that common transport path.
 - This avoids behavior drift between commands and keeps timeout and response handling consistent.
 
@@ -138,7 +140,7 @@ Configuration security strategy:
 - snFolderService: ensureDirectoryExists and clearDirectory
 - hashService: normalized text hashing
 - snPreferencesService: fallback-safe preference resolution
-- snHttpService: instance URL normalization, auth header helpers, HTTP error normalization, shared got transport
+- snHttpService: instance URL normalization, auth header helpers, ServiceNow Table API URL construction, HTTP error normalization, shared got transport
 - snStringService: reusable optional-string normalization
 - snPullProgressService: shared pull callback for progress and index update capture
 - snSyncConstants: command IDs, messages, defaults, ServiceNow constants
