@@ -6,6 +6,8 @@ Authentication model summary:
 
 - Connection auth is resolved from VS Code Secret Storage only.
 - Runtime resolution uses basic credentials saved by `sn: auth`.
+- Instance URL policy enforces HTTPS and allows only `service-now.com` hosts by default.
+- Custom hosts are opt-in via `sn-sync.auth.allowCustomHosts` and `sn-sync.auth.customHosts`.
 
 Transport and runtime summary:
 

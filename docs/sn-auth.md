@@ -47,18 +47,30 @@ Capture and persist the ServiceNow credentials used by this workspace, and set t
 ## Side effects
 
 - Persists `instance` in `.snsyncrc` as a non-sensitive selector.
-- Stores auth data in VS Code Secret Storage (including `instanceUrl`, `username`, `password`).
+- Stores auth data in VS Code Secret Storage (including normalized `instanceUrl`, `username`, `password`).
 
 ## Authentication model
 
 - This command stores the only supported runtime auth for the extension.
 - Downstream commands resolve basic auth from Secret Storage using the saved instance URL, username, and password.
 
+## Instance URL policy
+
+- URL must be absolute and use `https`.
+- Embedded URL credentials (`user:pass@host`) are rejected.
+- Non-default HTTPS ports are rejected.
+- Allowed hosts by default: `service-now.com` and its subdomains.
+- Optional custom hosts:
+  - enable `sn-sync.auth.allowCustomHosts`
+  - add exact hostnames to `sn-sync.auth.customHosts`
+- The URL is normalized and persisted as `https://<host>`.
+
 ## Error handling
 
 - SN_SYNC_MESSAGES.NO_WORKSPACE when no folder is open.
 - SN_SYNC_MESSAGES.AUTH_CANCELLED for user cancellation/invalid input.
 - SN_SYNC_MESSAGES.AUTH_FAILED_PREFIX for save failures.
+- SN_SYNC_MESSAGES.AUTH_INVALID_INSTANCE_URL_PREFIX when URL policy checks fail.
 
 ## Direct dependencies
 

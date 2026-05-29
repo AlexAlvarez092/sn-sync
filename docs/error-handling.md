@@ -27,6 +27,7 @@ Commands provide a stable `code` and `command` identifier.
 When category is not explicitly set, it is inferred from the error message.
 
 Validation errors can also occur before any network call when sn-sync rejects malformed ServiceNow path segments used to build Table API URLs.
+Validation errors also include instance URL policy rejections (for example non-HTTPS URL or host not allowed by configured policy).
 
 ## Diagnostics output
 

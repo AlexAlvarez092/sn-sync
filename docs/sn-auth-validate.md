@@ -33,8 +33,9 @@ Validate that the currently resolved connection authentication is accepted by Se
 SnAuthService.validateAuth typically:
 
 1. Resolves the saved basic auth credentials from Secret Storage.
-2. Calls a lightweight ServiceNow `sys_user` Table API request (same API family used for pull/push flows).
-3. Interprets HTTP responses (including 401) and throws semantic errors.
+2. Revalidates the stored instance URL against the active host policy (HTTPS + allowed hosts).
+3. Calls a lightweight ServiceNow `sys_user` Table API request (same API family used for pull/push flows).
+4. Interprets HTTP responses (including 401) and throws semantic errors.
 
 ## Side effects
 
@@ -46,6 +47,7 @@ SnAuthService.validateAuth typically:
 
 - SN_SYNC_MESSAGES.NO_WORKSPACE.
 - SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED when basic auth is unavailable.
+- SN_SYNC_MESSAGES.AUTH_INVALID_INSTANCE_URL_PREFIX when the stored URL no longer passes host policy.
 - SN_SYNC_MESSAGES.AUTH_VALIDATE_FAILED_PREFIX + network/HTTP/auth details.
 
 ## Direct dependencies
