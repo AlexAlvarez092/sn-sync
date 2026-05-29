@@ -8,6 +8,11 @@
 
 Push all locally modified indexed files as a batch, with a remote conflict pre-check for each candidate.
 
+## Default shortcut
+
+- macOS: `cmd+alt+shift+u`
+- Windows/Linux: `ctrl+alt+shift+u`
+
 ## High-level strategy
 
 1. Discover modified candidates (local hash vs indexed baseHash).

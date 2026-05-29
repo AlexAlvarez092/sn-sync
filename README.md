@@ -79,6 +79,19 @@ Pushes all locally modified indexed files, stopping on conflicts.
 
 Generates a markdown report of files that would be pushed.
 
+## Keyboard shortcuts
+
+Default shortcuts for common sync workflows:
+
+- Pull: `cmd+alt+p` (macOS) / `ctrl+alt+p` (Windows/Linux)
+- Pull by sys_id: `cmd+alt+shift+p` / `ctrl+alt+shift+p`
+- Push active: `cmd+alt+u` / `ctrl+alt+u`
+- Push modified: `cmd+alt+shift+u` / `ctrl+alt+shift+u`
+- Push report: `cmd+alt+r` / `ctrl+alt+r`
+- Open active in instance: `cmd+alt+o` / `ctrl+alt+o`
+
+These shortcuts are optional defaults. You can override or remove them in VS Code Keyboard Shortcuts.
+
 ## Configuration
 
 VS Code settings used by the extension:

@@ -106,6 +106,44 @@
         "command": "sn-sync.push-modified",
         "title": "sn: push modified"
       }
+    ],
+    "keybindings": [
+      {
+        "command": "sn-sync.pull",
+        "key": "ctrl+alt+p",
+        "mac": "cmd+alt+p",
+        "when": "workspaceFolderCount > 0"
+      },
+      {
+        "command": "sn-sync.pull-by-sys-id",
+        "key": "ctrl+alt+shift+p",
+        "mac": "cmd+alt+shift+p",
+        "when": "workspaceFolderCount > 0"
+      },
+      {
+        "command": "sn-sync.push-active",
+        "key": "ctrl+alt+u",
+        "mac": "cmd+alt+u",
+        "when": "editorTextFocus && workspaceFolderCount > 0"
+      },
+      {
+        "command": "sn-sync.push-modified",
+        "key": "ctrl+alt+shift+u",
+        "mac": "cmd+alt+shift+u",
+        "when": "workspaceFolderCount > 0"
+      },
+      {
+        "command": "sn-sync.push-report",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r",
+        "when": "workspaceFolderCount > 0"
+      },
+      {
+        "command": "sn-sync.open-active-in-instance",
+        "key": "ctrl+alt+o",
+        "mac": "cmd+alt+o",
+        "when": "editorTextFocus && workspaceFolderCount > 0"
+      }
     ]
   },
   "scripts": {

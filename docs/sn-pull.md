@@ -8,6 +8,11 @@
 
 Download configured records/scripts from ServiceNow into the local filesystem and refresh the sync index snapshot so the extension has an accurate baseline for future change detection.
 
+## Default shortcut
+
+- macOS: `cmd+alt+p`
+- Windows/Linux: `ctrl+alt+p`
+
 ## Primary use cases
 
 - Full local synchronization from a ServiceNow instance.
