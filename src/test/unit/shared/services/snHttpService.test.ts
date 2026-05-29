@@ -2,6 +2,7 @@ import * as assert from "assert";
 import * as http from "node:http";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 import {
+  buildServiceNowTableApiUrl,
   buildBasicAuthHeader,
   createGotFetchTransport,
   handleHttpError,
@@ -21,6 +22,54 @@ suite("snHttpService", () => {
     assert.strictEqual(
       buildBasicAuthHeader("admin", "secret"),
       `Basic ${Buffer.from("admin:secret", "utf-8").toString("base64")}`,
+    );
+  });
+
+  test("buildServiceNowTableApiUrl encodes query params and dynamic path segments", () => {
+    const url = buildServiceNowTableApiUrl(
+      "https://dev.service-now.com/",
+      "sys?script",
+      {
+        pathSegments: [{ value: "abc#123", label: "sys_id" }],
+        queryParams: {
+          sysparm_fields: "sys_scope,name",
+          sysparm_limit: 1,
+          sysparm_offset: undefined,
+        },
+      },
+    );
+
+    assert.strictEqual(
+      url,
+      "https://dev.service-now.com/api/now/table/sys%3Fscript/abc%23123?sysparm_fields=sys_scope%2Cname&sysparm_limit=1",
+    );
+  });
+
+  test("buildServiceNowTableApiUrl rejects unsafe path segments", () => {
+    assert.throws(
+      () =>
+        buildServiceNowTableApiUrl("https://dev.service-now.com", "../sys", {
+          pathSegments: [{ value: "abc", label: "sys_id" }],
+        }),
+      (error: unknown) =>
+        error instanceof Error &&
+        error.message ===
+          `${SN_SYNC_MESSAGES.SN_REQUEST_INVALID_PATH_SEGMENT_PREFIX} table name.`,
+    );
+
+    assert.throws(
+      () =>
+        buildServiceNowTableApiUrl(
+          "https://dev.service-now.com",
+          "sys_script",
+          {
+            pathSegments: [{ value: "bad/control\n", label: "sys_id" }],
+          },
+        ),
+      (error: unknown) =>
+        error instanceof Error &&
+        error.message ===
+          `${SN_SYNC_MESSAGES.SN_REQUEST_INVALID_PATH_SEGMENT_PREFIX} sys_id.`,
     );
   });
 

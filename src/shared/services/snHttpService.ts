@@ -1,12 +1,26 @@
-import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
+import {
+  SN_SYNC_MESSAGES,
+  SN_SYNC_SERVICENOW,
+} from "@shared/constants/snSyncConstants.js";
 import { CookieJar } from "tough-cookie";
 
 const DEFAULT_SN_REQUEST_TIMEOUT_MS = 90000;
+const CONTROL_CHAR_PATTERN = /[\u0000-\u001F\u007F]/;
 
 export interface ConnectionHeadersInput {
   headers?: Record<string, string>;
   username?: string;
   password?: string;
+}
+
+interface ServiceNowPathSegmentInput {
+  value: string;
+  label: string;
+}
+
+interface ServiceNowTableApiUrlOptions {
+  pathSegments?: ServiceNowPathSegmentInput[];
+  queryParams?: Record<string, string | number | undefined>;
 }
 
 export function normalizeInstanceUrl(instanceUrl: string): string {
@@ -18,6 +32,30 @@ export function buildBasicAuthHeader(
   password: string,
 ): string {
   return `Basic ${Buffer.from(`${username}:${password}`, "utf-8").toString("base64")}`;
+}
+
+export function buildServiceNowTableApiUrl(
+  instanceUrl: string,
+  tableName: string,
+  options?: ServiceNowTableApiUrlOptions,
+): string {
+  let url = `${normalizeInstanceUrl(instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${encodeServiceNowPathSegment(tableName, "table name")}`;
+
+  for (const segment of options?.pathSegments ?? []) {
+    url += `/${encodeServiceNowPathSegment(segment.value, segment.label)}`;
+  }
+
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(options?.queryParams ?? {})) {
+    if (value === undefined) {
+      continue;
+    }
+
+    query.set(key, String(value));
+  }
+
+  const queryString = query.toString();
+  return queryString ? `${url}?${queryString}` : url;
 }
 
 export function resolveConnectionHeaders(
@@ -85,6 +123,23 @@ export function createGotFetchTransport(
       headers: response.headers as Record<string, string>,
     });
   };
+}
+
+function encodeServiceNowPathSegment(value: string, label: string): string {
+  const normalized = value.trim();
+  if (
+    !normalized ||
+    normalized === "." ||
+    normalized === ".." ||
+    /[\\/]/.test(normalized) ||
+    CONTROL_CHAR_PATTERN.test(normalized)
+  ) {
+    throw new Error(
+      `${SN_SYNC_MESSAGES.SN_REQUEST_INVALID_PATH_SEGMENT_PREFIX} ${label}.`,
+    );
+  }
+
+  return encodeURIComponent(normalized);
 }
 
 function normalizeMethod(method: string | undefined): string {

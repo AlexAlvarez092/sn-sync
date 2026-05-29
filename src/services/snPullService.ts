@@ -8,6 +8,7 @@ import {
   SN_SYNC_VALUES,
 } from "@shared/constants/snSyncConstants.js";
 import {
+  buildServiceNowTableApiUrl,
   createGotFetchTransport,
   handleHttpError,
   normalizeInstanceUrl,
@@ -229,17 +230,20 @@ export class SnPullService implements SnPullServiceApi {
     );
     const headers = resolveConnectionHeaders(connection);
 
-    const normalizedUrl = normalizeInstanceUrl(connection.instanceUrl);
-    const encodedQuery = encodeURIComponent(query);
-    const encodedFields = encodeURIComponent(fields);
-
     const limit = this.pageSize;
     const allRows: Array<Record<string, unknown>> = [];
     let previousPageSignature: string | undefined;
 
     for (let offset = 0; ; offset += limit) {
       const response = await this.fetchApi(
-        `${normalizedUrl}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${tableName}?sysparm_query=${encodedQuery}&sysparm_fields=${encodedFields}&sysparm_limit=${limit}&sysparm_offset=${offset}`,
+        buildServiceNowTableApiUrl(connection.instanceUrl, tableName, {
+          queryParams: {
+            sysparm_query: query,
+            sysparm_fields: fields,
+            sysparm_limit: limit,
+            sysparm_offset: offset,
+          },
+        }),
         {
           method: "GET",
           headers: {

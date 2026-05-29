@@ -5,9 +5,9 @@ import {
   SN_SYNC_SERVICENOW,
 } from "@shared/constants/snSyncConstants.js";
 import {
+  buildServiceNowTableApiUrl,
   createGotFetchTransport,
   handleHttpError,
-  normalizeInstanceUrl,
   resolveConnectionHeaders,
 } from "@shared/services/snHttpService.js";
 import type { SnSyncIndexCandidate } from "@services/snSyncIndexService.js";
@@ -191,7 +191,16 @@ export class SnPushReportService implements SnPushReportServiceApi {
     candidate: SnSyncIndexCandidate,
   ): Promise<{ scopeId: string; scopeName: string }> {
     const response = await this.fetchApi(
-      `${normalizeInstanceUrl(connection.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${candidate.entry.table}/${candidate.entry.sysId}?sysparm_fields=sys_scope,sys_scope.scope,sys_scope.name`,
+      buildServiceNowTableApiUrl(
+        connection.instanceUrl,
+        candidate.entry.table,
+        {
+          pathSegments: [{ value: candidate.entry.sysId, label: "sys_id" }],
+          queryParams: {
+            sysparm_fields: "sys_scope,sys_scope.scope,sys_scope.name",
+          },
+        },
+      ),
       {
         method: "GET",
         headers: {
@@ -261,7 +270,13 @@ export class SnPushReportService implements SnPushReportServiceApi {
     );
 
     const response = await this.fetchApi(
-      `${normalizeInstanceUrl(connection.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/sys_update_set?sysparm_query=${query}&sysparm_fields=sys_id,name&sysparm_limit=1`,
+      buildServiceNowTableApiUrl(connection.instanceUrl, "sys_update_set", {
+        queryParams: {
+          sysparm_query: `sys_scope=${scopeId}^is_default=true^ORDERBYDESCsys_updated_on`,
+          sysparm_fields: "sys_id,name",
+          sysparm_limit: 1,
+        },
+      }),
       {
         method: "GET",
         headers: {
@@ -296,12 +311,18 @@ export class SnPushReportService implements SnPushReportServiceApi {
       return undefined;
     }
 
-    const query = encodeURIComponent(
-      `name=updateSetForScope${scopeId}^user.user_name=${connection.username}`,
-    );
-
     const response = await this.fetchApi(
-      `${normalizeInstanceUrl(connection.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/sys_user_preference?sysparm_query=${query}&sysparm_fields=value&sysparm_limit=1`,
+      buildServiceNowTableApiUrl(
+        connection.instanceUrl,
+        "sys_user_preference",
+        {
+          queryParams: {
+            sysparm_query: `name=updateSetForScope${scopeId}^user.user_name=${connection.username}`,
+            sysparm_fields: "value",
+            sysparm_limit: 1,
+          },
+        },
+      ),
       {
         method: "GET",
         headers: {
@@ -326,7 +347,12 @@ export class SnPushReportService implements SnPushReportServiceApi {
     updateSetId: string,
   ): Promise<string | undefined> {
     const response = await this.fetchApi(
-      `${normalizeInstanceUrl(connection.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/sys_update_set/${updateSetId}?sysparm_fields=name`,
+      buildServiceNowTableApiUrl(connection.instanceUrl, "sys_update_set", {
+        pathSegments: [{ value: updateSetId, label: "update set id" }],
+        queryParams: {
+          sysparm_fields: "name",
+        },
+      }),
       {
         method: "GET",
         headers: {

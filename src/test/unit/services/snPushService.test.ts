@@ -273,6 +273,50 @@ suite("snPushService", () => {
     );
   });
 
+  test("rejects invalid sys_id path segments before network calls", async () => {
+    let fetchCalls = 0;
+
+    const service = new SnPushService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "secret",
+        }),
+      } as unknown as never,
+      (async (): Promise<Response> => {
+        fetchCalls += 1;
+        return new Response("{}", { status: 200 });
+      }) as typeof fetch,
+    );
+
+    await assert.rejects(
+      () =>
+        service.getRemoteFieldContent(
+          {} as vscode.ExtensionContext,
+          vscode.Uri.file("/tmp/ws"),
+          {
+            localPath: "src/a.js",
+            table: "sys_script",
+            sysId: "../abc",
+            fieldName: "script",
+            baseHash: "sha256:x",
+            updatedAt: new Date().toISOString(),
+          },
+        ),
+      (error: unknown) => {
+        assert.strictEqual(
+          (error as Error).message,
+          `${SN_SYNC_MESSAGES.SN_REQUEST_INVALID_PATH_SEGMENT_PREFIX} sys_id.`,
+        );
+        return true;
+      },
+    );
+
+    assert.strictEqual(fetchCalls, 0);
+  });
+
   test("returns empty remote field content when ServiceNow field is null", async () => {
     const service = new SnPushService(
       {
