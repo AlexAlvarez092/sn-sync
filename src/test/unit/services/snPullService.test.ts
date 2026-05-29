@@ -4,7 +4,10 @@ import * as http from "node:http";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { SnPullService } from "@services/snPullService.js";
-import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
+import {
+  SN_SYNC_MESSAGES,
+  SN_SYNC_VALUES,
+} from "@shared/constants/snSyncConstants.js";
 import type { ExtensionConfigSetting } from "@shared/models/config.js";
 import { hashText } from "@shared/services/hashService.js";
 import { withTempDir } from "@test/helpers/testRuntime.js";
@@ -704,6 +707,197 @@ suite("snPullService", () => {
     assert.strictEqual(fetchCalls, 0);
   });
 
+  test("rejects invalid rootDir before writing files", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      const service = new SnPullService(
+        {
+          resolveConnectionAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (): Promise<Response> => {
+          return {
+            ok: true,
+            json: async () => ({
+              result: [
+                {
+                  name: "Can Read",
+                  script: "answer=true;",
+                },
+              ],
+            }),
+          } as Response;
+        }) as typeof fetch,
+      );
+
+      await assert.rejects(
+        () =>
+          service.pullConfiguredScripts(
+            {} as vscode.ExtensionContext,
+            workspaceUri,
+            [
+              {
+                folder: "security_rules",
+                table: "sys_security_acl",
+                query: "active=true",
+                key: "name",
+                fields: [{ extension: "js", field_name: "script" }],
+              },
+            ],
+            {
+              rootDir: "../outside",
+            },
+          ),
+        (error: unknown) => {
+          assert.strictEqual(
+            (error as Error).message,
+            `${SN_SYNC_MESSAGES.WORKSPACE_PATH_INVALID_PREFIX} rootDir.`,
+          );
+          return true;
+        },
+      );
+    });
+  });
+
+  test("rejects invalid folder path fragments before writing files", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      const service = new SnPullService(
+        {
+          resolveConnectionAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (): Promise<Response> => {
+          return {
+            ok: true,
+            json: async () => ({
+              result: [
+                {
+                  name: "Can Read",
+                  script: "answer=true;",
+                },
+              ],
+            }),
+          } as Response;
+        }) as typeof fetch,
+      );
+
+      await assert.rejects(
+        () =>
+          service.pullConfiguredScripts(
+            {} as vscode.ExtensionContext,
+            workspaceUri,
+            [
+              {
+                folder: "../security_rules",
+                table: "sys_security_acl",
+                query: "active=true",
+                key: "name",
+                fields: [{ extension: "js", field_name: "script" }],
+              },
+            ],
+          ),
+        (error: unknown) => {
+          assert.strictEqual(
+            (error as Error).message,
+            `${SN_SYNC_MESSAGES.WORKSPACE_PATH_INVALID_PREFIX} folder.`,
+          );
+          return true;
+        },
+      );
+    });
+  });
+
+  test("rejects invalid subDirPattern literals and file extensions before writing files", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      const service = new SnPullService(
+        {
+          resolveConnectionAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (): Promise<Response> => {
+          return {
+            ok: true,
+            json: async () => ({
+              result: [
+                {
+                  name: "Can Read",
+                  collection: "incident",
+                  script: "answer=true;",
+                },
+              ],
+            }),
+          } as Response;
+        }) as typeof fetch,
+      );
+
+      await assert.rejects(
+        () =>
+          service.pullConfiguredScripts(
+            {} as vscode.ExtensionContext,
+            workspaceUri,
+            [
+              {
+                folder: "security_rules",
+                table: "sys_security_acl",
+                query: "active=true",
+                key: "name",
+                subDirPattern: "../unsafe/<collection>",
+                fields: [{ extension: "js", field_name: "script" }],
+              },
+            ],
+          ),
+        (error: unknown) => {
+          assert.strictEqual(
+            (error as Error).message,
+            `${SN_SYNC_MESSAGES.WORKSPACE_PATH_INVALID_PREFIX} subDirPattern literal.`,
+          );
+          return true;
+        },
+      );
+
+      await assert.rejects(
+        () =>
+          service.pullConfiguredScripts(
+            {} as vscode.ExtensionContext,
+            workspaceUri,
+            [
+              {
+                folder: "security_rules",
+                table: "sys_security_acl",
+                query: "active=true",
+                key: "name",
+                fields: [{ extension: "../js", field_name: "script" }],
+              },
+            ],
+          ),
+        (error: unknown) => {
+          assert.strictEqual(
+            (error as Error).message,
+            `${SN_SYNC_MESSAGES.WORKSPACE_PATH_INVALID_PREFIX} file extension.`,
+          );
+          return true;
+        },
+      );
+    });
+  });
+
   test("supports pagination when results reach request limit", async () => {
     await withTempDir("sn-sync-pull-", async (tempDir) => {
       const workspaceUri = vscode.Uri.file(tempDir);
@@ -930,7 +1124,7 @@ suite("snPullService", () => {
     });
   });
 
-  test("handles static subdir pattern and missing token values with safe fallbacks", async () => {
+  test("rejects malformed static subdir pattern literals", async () => {
     await withTempDir("sn-sync-pull-", async (tempDir) => {
       const workspaceUri = vscode.Uri.file(tempDir);
 
@@ -962,18 +1156,65 @@ suite("snPullService", () => {
         }) as typeof fetch,
       );
 
+      await assert.rejects(
+        () =>
+          service.pullConfiguredScripts(
+            {} as vscode.ExtensionContext,
+            workspaceUri,
+            [
+              {
+                folder: "security_rules",
+                table: "sys_security_acl",
+                query: "active=true",
+                key: "name",
+                subDirPattern: "///",
+                fields: [{ extension: "js", field_name: "script" }],
+              },
+            ],
+          ),
+        (error: unknown) => {
+          assert.strictEqual(
+            (error as Error).message,
+            `${SN_SYNC_MESSAGES.WORKSPACE_PATH_INVALID_PREFIX} subDirPattern literal.`,
+          );
+          return true;
+        },
+      );
+    });
+  });
+
+  test("handles missing subdir token values with safe fallback", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      const service = new SnPullService(
+        {
+          resolveConnectionAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (): Promise<Response> => {
+          return {
+            ok: true,
+            json: async () => ({
+              result: [
+                {
+                  name: "Rule One",
+                  script: "answer=true;",
+                },
+              ],
+            }),
+          } as Response;
+        }) as typeof fetch,
+      );
+
       const summary = await service.pullConfiguredScripts(
         {} as vscode.ExtensionContext,
         workspaceUri,
         [
-          {
-            folder: "security_rules",
-            table: "sys_security_acl",
-            query: "active=true",
-            key: "name",
-            subDirPattern: "///",
-            fields: [{ extension: "js", field_name: "script" }],
-          },
           {
             folder: "business_rules",
             table: "sys_script",
@@ -986,27 +1227,10 @@ suite("snPullService", () => {
       );
 
       assert.deepStrictEqual(summary, {
-        settings: 2,
-        records: 2,
-        files: 2,
+        settings: 1,
+        records: 1,
+        files: 1,
       });
-
-      assert.strictEqual(
-        await fs.readFile(
-          path.join(
-            tempDir,
-            "src",
-            "security_rules",
-            "unnamed",
-            "unnamed",
-            "unnamed",
-            "unnamed",
-            "Rule One.js",
-          ),
-          "utf-8",
-        ),
-        "answer=true;",
-      );
 
       assert.strictEqual(
         await fs.readFile(
@@ -1021,6 +1245,88 @@ suite("snPullService", () => {
           "utf-8",
         ),
         "answer=true;",
+      );
+    });
+  });
+
+  test("sanitizes dot segments and uses safe file names", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      const service = new SnPullService(
+        {
+          resolveConnectionAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (): Promise<Response> => {
+          return {
+            ok: true,
+            json: async () => ({
+              result: [
+                {
+                  name: ".",
+                  script: "first",
+                },
+                {
+                  name: "<>",
+                  script: "second",
+                },
+              ],
+            }),
+          } as Response;
+        }) as typeof fetch,
+      );
+
+      const summary = await service.pullConfiguredScripts(
+        {} as vscode.ExtensionContext,
+        workspaceUri,
+        [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      );
+
+      assert.deepStrictEqual(summary, {
+        settings: 1,
+        records: 2,
+        files: 2,
+      });
+
+      assert.strictEqual(
+        await fs.readFile(
+          path.join(tempDir, "src", "security_rules", "unnamed.js"),
+          "utf-8",
+        ),
+        "first",
+      );
+
+      assert.strictEqual(
+        await fs.readFile(
+          path.join(tempDir, "src", "security_rules", "__.js"),
+          "utf-8",
+        ),
+        "second",
+      );
+
+      const sanitizePathSegment = (
+        service as unknown as { sanitizePathSegment: (value: string) => string }
+      ).sanitizePathSegment;
+      assert.strictEqual(
+        sanitizePathSegment("."),
+        SN_SYNC_VALUES.UNNAMED_PATH_SEGMENT,
+      );
+      assert.strictEqual(
+        sanitizePathSegment(""),
+        SN_SYNC_VALUES.UNNAMED_PATH_SEGMENT,
       );
     });
   });

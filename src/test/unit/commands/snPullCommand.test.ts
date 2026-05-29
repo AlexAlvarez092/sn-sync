@@ -826,6 +826,68 @@ suite("snPullCommand", () => {
     ]);
   });
 
+  test("shows detailed error when rootDir escapes workspace before clear-before-pull", async () => {
+    const shownErrors: string[] = [];
+    let readDirectoryCalled = false;
+    let pullCalled = false;
+
+    await runSnPullCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+        getPreferences: async () => ({
+          rootDir: "../outside",
+          pull: { clearBeforePull: "delete" },
+        }),
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async () => {
+          pullCalled = true;
+          return {
+            settings: 1,
+            records: 1,
+            files: 1,
+          };
+        },
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-invalid-rootdir"),
+        showErrorMessage: async (message: string) => {
+          shownErrors.push(message);
+          return undefined;
+        },
+        showInformationMessage: async () => undefined,
+        showWarningMessage: async () => {
+          throw new Error("must-not-be-called");
+        },
+        readDirectory: async () => {
+          readDirectoryCalled = true;
+          return [];
+        },
+        delete: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+      },
+    );
+
+    assert.strictEqual(readDirectoryCalled, false);
+    assert.strictEqual(pullCalled, false);
+    assert.deepStrictEqual(shownErrors, [
+      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} (SN_PULL_FAILED) ${SN_SYNC_MESSAGES.WORKSPACE_PATH_INVALID_PREFIX} rootDir.`,
+    ]);
+  });
+
   test("uses default runtime and shows success when workspace exists", async () => {
     const workspaceUri = createTempWorkspaceUri("pull-default-runtime-success");
     const shownInfos: string[] = [];
