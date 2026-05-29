@@ -83,7 +83,7 @@ sequenceDiagram
 ## Troubleshooting
 
 - Symptom: "sn-sync auth is not configured"
-	- Cause: No valid basic auth is configured.
+  - Cause: No valid basic auth is configured.
   - Resolution: Run `sn: auth` and verify secrets were saved correctly.
 
 - Symptom: Invalid credentials error (401)
