@@ -38,6 +38,18 @@ suite("snAuthService", () => {
         getInstanceName: async () => "dev1",
       } as unknown as never);
 
+      (
+        service as unknown as {
+          resolveConnectionAuth: SnAuthService["resolveConnectionAuth"];
+        }
+      ).resolveConnectionAuth = async () => ({
+        instanceUrl: baseUrl,
+        headers: {
+          Authorization: `Basic ${Buffer.from("admin:secret", "utf-8").toString("base64")}`,
+        },
+        username: "admin",
+      });
+
       await service.validateAuth(
         {
           secrets: {
@@ -116,6 +128,82 @@ suite("snAuthService", () => {
       username: authInput.username,
       password: authInput.password,
     });
+  });
+
+  test("saveAuth normalizes instanceUrl before storing", async () => {
+    const authInput: SnAuthInput = {
+      instanceName: "dev1",
+      instanceUrl: "https://Dev1.Service-Now.com/anything?q=1",
+      username: "admin",
+      password: "secret",
+    };
+
+    let storedSecretValue: string | undefined;
+
+    const service = new SnAuthService({
+      setInstanceName: async () => undefined,
+      getInstanceName: async () => "dev1",
+    } as unknown as never);
+
+    await service.saveAuth(
+      {
+        secrets: {
+          store: async (_key: string, value: string): Promise<void> => {
+            storedSecretValue = value;
+          },
+        },
+      } as unknown as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/workspace"),
+      authInput,
+    );
+
+    assert.deepStrictEqual(JSON.parse(storedSecretValue ?? "{}"), {
+      instanceUrl: "https://dev1.service-now.com",
+      username: "admin",
+      password: "secret",
+    });
+  });
+
+  test("saveAuth rejects invalid instance URL before persisting", async () => {
+    let setInstanceCalled = false;
+    let storeCalled = false;
+
+    const service = new SnAuthService({
+      setInstanceName: async () => {
+        setInstanceCalled = true;
+      },
+      getInstanceName: async () => "dev1",
+    } as unknown as never);
+
+    await assert.rejects(
+      () =>
+        service.saveAuth(
+          {
+            secrets: {
+              store: async (): Promise<void> => {
+                storeCalled = true;
+              },
+            },
+          } as unknown as vscode.ExtensionContext,
+          vscode.Uri.file("/tmp/workspace"),
+          {
+            instanceName: "dev1",
+            instanceUrl: "http://dev1.service-now.com",
+            username: "admin",
+            password: "secret",
+          },
+        ),
+      (error: unknown) => {
+        assert.strictEqual(
+          (error as Error).message,
+          `${SN_SYNC_MESSAGES.AUTH_INVALID_INSTANCE_URL_PREFIX} Only HTTPS URLs are allowed.`,
+        );
+        return true;
+      },
+    );
+
+    assert.strictEqual(setInstanceCalled, false);
+    assert.strictEqual(storeCalled, false);
   });
 
   test("saveAuth overwrites stored secret with basic auth only", async () => {
@@ -664,6 +752,70 @@ suite("snAuthService", () => {
         );
         return true;
       },
+    );
+  });
+
+  test("resolveConnectionAuth rejects stored instance URL outside default host policy", async () => {
+    const service = new SnAuthService({
+      getInstanceName: async () => "dev1",
+    } as unknown as never);
+
+    await assert.rejects(
+      () =>
+        service.resolveConnectionAuth(
+          {
+            secrets: {
+              get: async () =>
+                JSON.stringify({
+                  instanceUrl: "https://sn.company.com",
+                  username: "admin",
+                  password: "secret",
+                }),
+            },
+          } as unknown as vscode.ExtensionContext,
+          vscode.Uri.file("/tmp/ws"),
+        ),
+      (error: unknown) => {
+        assert.strictEqual(
+          (error as Error).message,
+          `${SN_SYNC_MESSAGES.AUTH_INVALID_INSTANCE_URL_PREFIX} Host is not allowed. Enable 'sn-sync.auth.allowCustomHosts' and add the exact hostname to 'sn-sync.auth.customHosts'.`,
+        );
+        return true;
+      },
+    );
+  });
+
+  test("resolveConnectionAuth allows configured custom host when policy opt-in is enabled", async () => {
+    const service = new SnAuthService({
+      getInstanceName: async () => "dev1",
+      getPreferences: async () => ({
+        rootDir: "src",
+        pull: { clearBeforePull: "ask" },
+        auth: {
+          allowCustomHosts: true,
+          customHosts: ["sn.company.com"],
+        },
+      }),
+    } as unknown as never);
+
+    const resolved = await service.resolveConnectionAuth(
+      {
+        secrets: {
+          get: async () =>
+            JSON.stringify({
+              instanceUrl: "https://SN.company.com/path",
+              username: "admin",
+              password: "secret",
+            }),
+        },
+      } as unknown as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+    );
+
+    assert.strictEqual(resolved.instanceUrl, "https://sn.company.com");
+    assert.strictEqual(
+      resolved.headers.Authorization,
+      `Basic ${Buffer.from("admin:secret", "utf-8").toString("base64")}`,
     );
   });
 
