@@ -58,10 +58,13 @@ suite("snInstanceUrlPolicyService", () => {
   test("rejects embedded credentials and non-default ports", () => {
     assert.throws(
       () =>
-        normalizeAndValidateInstanceUrl("https://admin:secret@dev1.service-now.com", {
-          allowCustomHosts: false,
-          customHosts: [],
-        }),
+        normalizeAndValidateInstanceUrl(
+          "https://admin:secret@dev1.service-now.com",
+          {
+            allowCustomHosts: false,
+            customHosts: [],
+          },
+        ),
       (error: unknown) =>
         error instanceof Error &&
         error.message ===
@@ -96,10 +99,13 @@ suite("snInstanceUrlPolicyService", () => {
   });
 
   test("allows custom host when enabled and included in allowlist", () => {
-    const normalized = normalizeAndValidateInstanceUrl("https://SN.Company.com", {
-      allowCustomHosts: true,
-      customHosts: ["sn.company.com"],
-    });
+    const normalized = normalizeAndValidateInstanceUrl(
+      "https://SN.Company.com",
+      {
+        allowCustomHosts: true,
+        customHosts: ["sn.company.com"],
+      },
+    );
 
     assert.strictEqual(normalized, "https://sn.company.com");
   });
