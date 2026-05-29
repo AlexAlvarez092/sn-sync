@@ -18,7 +18,7 @@ Download configured records/scripts from ServiceNow into the local filesystem an
 
 1. Workspace is open.
 2. Valid sync settings exist in configuration.
-3. Valid connection auth can be resolved (session headers, bearer, or basic).
+3. Valid basic auth can be resolved for the target instance.
 
 ## Relevant configuration
 

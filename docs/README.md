@@ -5,7 +5,7 @@ This folder contains technical documentation for all extension commands and the 
 Authentication model summary:
 
 - Connection auth is resolved from VS Code Secret Storage only.
-- Runtime resolution priority is: session headers -> bearer -> basic credentials.
+- Runtime resolution uses basic credentials saved by `sn: auth`.
 
 Transport and runtime summary:
 

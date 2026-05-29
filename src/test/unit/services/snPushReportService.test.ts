@@ -340,7 +340,7 @@ suite("snPushReportService", () => {
     );
   });
 
-  test("uses provided headers and skips user preference lookup when username is missing", async () => {
+  test("uses resolved authorization headers and skips user preference lookup when username is missing", async () => {
     const fetchCalls: string[] = [];
 
     const service = new SnPushReportService(
@@ -349,7 +349,7 @@ suite("snPushReportService", () => {
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           headers: {
-            "X-UserToken": "token123",
+            Authorization: "Basic YWRtaW46c2VjcmV0",
           },
         }),
       } as unknown as never,
@@ -358,8 +358,7 @@ suite("snPushReportService", () => {
         fetchCalls.push(url);
 
         const headers = (init?.headers as Record<string, string>) ?? {};
-        assert.strictEqual(headers["X-UserToken"], "token123");
-        assert.strictEqual(headers.Authorization, undefined);
+        assert.strictEqual(headers.Authorization, "Basic YWRtaW46c2VjcmV0");
 
         if (url.includes("/api/now/table/sys_script/abc")) {
           return new Response(

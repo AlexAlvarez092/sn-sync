@@ -118,7 +118,7 @@ suite("snAuthService", () => {
     });
   });
 
-  test("saveAuth preserves previously stored session/bearer auth fields", async () => {
+  test("saveAuth overwrites stored secret with basic auth only", async () => {
     const authInput: SnAuthInput = {
       instanceName: "dev1",
       instanceUrl: "https://dev1.service-now.com",
@@ -156,9 +156,6 @@ suite("snAuthService", () => {
       instanceUrl: "https://dev1.service-now.com",
       username: "admin",
       password: "secret",
-      bearer: "token-1",
-      userToken: "ut-1",
-      cookie: "JSESSIONID=abc",
     });
   });
 
@@ -507,39 +504,45 @@ suite("snAuthService", () => {
     );
   });
 
-  test("validateAuth uses admin fallback when username is missing", async () => {
-    let requestedUrl: string | undefined;
-
+  test("validateAuth throws when resolved connection username is blank", async () => {
     const service = new SnAuthService(
       {
         getInstanceName: async () => "dev1",
       } as unknown as never,
-      (async (url: string) => {
-        requestedUrl = url;
-        return {
-          statusCode: 200,
-          statusMessage: "OK",
-        };
+      (async () => {
+        throw new Error("must not be called");
       }) as unknown as never,
     );
 
-    await service.validateAuth(
-      {
-        secrets: {
-          get: async () =>
-            JSON.stringify({
-              instanceUrl: "https://dev1.service-now.com",
-              bearer: "my-token",
-            }),
-        },
-      } as unknown as vscode.ExtensionContext,
-      vscode.Uri.file("/tmp/ws"),
-    );
+    (
+      service as unknown as {
+        resolveConnectionAuth: SnAuthService["resolveConnectionAuth"];
+      }
+    ).resolveConnectionAuth = async () => ({
+      instanceUrl: "https://dev1.service-now.com",
+      headers: {
+        Authorization: "Basic dGVzdDp0ZXN0",
+      },
+      username: "   ",
+    });
 
-    assert.ok(
-      requestedUrl?.includes(
-        "/api/now/v2/table/sys_user?user_name=admin&sysparm_fields=user_name,name",
-      ),
+    await assert.rejects(
+      () =>
+        service.validateAuth(
+          {
+            secrets: {
+              get: async () => undefined,
+            },
+          } as unknown as vscode.ExtensionContext,
+          vscode.Uri.file("/tmp/ws"),
+        ),
+      (error: unknown) => {
+        assert.strictEqual(
+          (error as Error).message,
+          SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED,
+        );
+        return true;
+      },
     );
   });
 
@@ -581,131 +584,7 @@ suite("snAuthService", () => {
     );
   });
 
-  test("resolveConnectionAuth prioritizes user token and cookie over bearer and basic", async () => {
-    const service = new SnAuthService({
-      getInstanceName: async () => "dev1",
-    } as unknown as never);
-
-    const resolved = await service.resolveConnectionAuth(
-      {
-        secrets: {
-          get: async () =>
-            JSON.stringify({
-              instanceUrl: "https://dev1.service-now.com",
-              username: "admin",
-              password: "secret",
-              userToken: "token-123",
-              cookie: "JSESSIONID=abc",
-              bearer: "bearer-should-not-be-used",
-            }),
-        },
-      } as unknown as vscode.ExtensionContext,
-      vscode.Uri.file("/tmp/ws"),
-    );
-
-    assert.deepStrictEqual(resolved.headers, {
-      "X-UserToken": "token-123",
-      Cookie: "JSESSIONID=abc",
-    });
-    assert.strictEqual(resolved.username, "admin");
-  });
-
-  test("resolveConnectionAuth uses bearer when session headers are not configured", async () => {
-    const service = new SnAuthService({
-      getInstanceName: async () => "dev1",
-    } as unknown as never);
-
-    const resolved = await service.resolveConnectionAuth(
-      {
-        secrets: {
-          get: async () =>
-            JSON.stringify({
-              instanceUrl: "https://dev1.service-now.com",
-              username: "admin",
-              password: "secret",
-              bearer: "my-token",
-            }),
-        },
-      } as unknown as vscode.ExtensionContext,
-      vscode.Uri.file("/tmp/ws"),
-    );
-
-    assert.deepStrictEqual(resolved.headers, {
-      Authorization: "Bearer my-token",
-    });
-    assert.strictEqual(resolved.username, "admin");
-  });
-
-  test("resolveConnectionAuth supports session auth with only user token", async () => {
-    const service = new SnAuthService({
-      getInstanceName: async () => "dev1",
-    } as unknown as never);
-
-    const resolved = await service.resolveConnectionAuth(
-      {
-        secrets: {
-          get: async () =>
-            JSON.stringify({
-              instanceUrl: "https://dev1.service-now.com",
-              userToken: "token-only",
-            }),
-        },
-      } as unknown as vscode.ExtensionContext,
-      vscode.Uri.file("/tmp/ws"),
-    );
-
-    assert.deepStrictEqual(resolved.headers, {
-      "X-UserToken": "token-only",
-    });
-  });
-
-  test("resolveConnectionAuth supports session auth with only cookie", async () => {
-    const service = new SnAuthService({
-      getInstanceName: async () => "dev1",
-    } as unknown as never);
-
-    const resolved = await service.resolveConnectionAuth(
-      {
-        secrets: {
-          get: async () =>
-            JSON.stringify({
-              instanceUrl: "https://dev1.service-now.com",
-              cookie: "JSESSIONID=only-cookie",
-            }),
-        },
-      } as unknown as vscode.ExtensionContext,
-      vscode.Uri.file("/tmp/ws"),
-    );
-
-    assert.deepStrictEqual(resolved.headers, {
-      Cookie: "JSESSIONID=only-cookie",
-    });
-  });
-
-  test("resolveConnectionAuth keeps bearer prefix when already present", async () => {
-    const service = new SnAuthService({
-      getInstanceName: async () => "dev1",
-    } as unknown as never);
-
-    const resolved = await service.resolveConnectionAuth(
-      {
-        secrets: {
-          get: async () =>
-            JSON.stringify({
-              instanceUrl: "https://dev1.service-now.com",
-              bearer: "Bearer prefixed-token",
-            }),
-        },
-      } as unknown as vscode.ExtensionContext,
-      vscode.Uri.file("/tmp/ws"),
-    );
-
-    assert.deepStrictEqual(resolved.headers, {
-      Authorization: "Bearer prefixed-token",
-    });
-  });
-
-  test("resolveConnectionAuth falls back to basic auth when advanced auth is missing", async () => {
+  test("resolveConnectionAuth returns basic auth headers", async () => {
     const service = new SnAuthService({
       getInstanceName: async () => "dev1",
     } as unknown as never);
@@ -759,7 +638,7 @@ suite("snAuthService", () => {
     );
   });
 
-  test("resolveConnectionAuth throws when advanced auth values are blank strings", async () => {
+  test("resolveConnectionAuth throws when saved auth omits username and password", async () => {
     const service = new SnAuthService({
       getInstanceName: async () => "dev1",
     } as unknown as never);
@@ -772,7 +651,7 @@ suite("snAuthService", () => {
               get: async () =>
                 JSON.stringify({
                   instanceUrl: "https://dev1.service-now.com",
-                  userToken: "   ",
+                  username: "admin",
                 }),
             },
           } as unknown as vscode.ExtensionContext,
