@@ -17,7 +17,7 @@ Validate that the currently resolved connection authentication is accepted by Se
 ## Preconditions
 
 1. Workspace must be open.
-2. At least one auth source must be configured for this workspace/instance.
+2. Basic auth must be configured for this workspace/instance.
 3. HTTP connectivity to ServiceNow must be available.
 
 ## Step-by-step logic
@@ -32,10 +32,7 @@ Validate that the currently resolved connection authentication is accepted by Se
 
 SnAuthService.validateAuth typically:
 
-1. Resolves effective connection auth with this priority:
-   - session headers
-   - bearer
-   - basic credentials saved by `sn: auth`
+1. Resolves the saved basic auth credentials from Secret Storage.
 2. Calls a lightweight ServiceNow `sys_user` Table API request (same API family used for pull/push flows).
 3. Interprets HTTP responses (including 401) and throws semantic errors.
 
@@ -48,7 +45,7 @@ SnAuthService.validateAuth typically:
 ## Error handling
 
 - SN_SYNC_MESSAGES.NO_WORKSPACE.
-- SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED when no auth source is available.
+- SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED when basic auth is unavailable.
 - SN_SYNC_MESSAGES.AUTH_VALIDATE_FAILED_PREFIX + network/HTTP/auth details.
 
 ## Direct dependencies
@@ -86,7 +83,7 @@ sequenceDiagram
 ## Troubleshooting
 
 - Symptom: "sn-sync auth is not configured"
-  - Cause: No valid auth source is configured.
+	- Cause: No valid basic auth is configured.
   - Resolution: Run `sn: auth` and verify secrets were saved correctly.
 
 - Symptom: Invalid credentials error (401)

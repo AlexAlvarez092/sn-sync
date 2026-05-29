@@ -496,7 +496,7 @@ suite("snPullService", () => {
     );
   });
 
-  test("uses provided headers when available", async () => {
+  test("uses resolved authorization headers when available", async () => {
     const calls: RequestInit[] = [];
     const service = new SnPullService(
       {
@@ -504,7 +504,7 @@ suite("snPullService", () => {
           instanceName: "dev",
           instanceUrl: "https://dev.service-now.com",
           headers: {
-            "X-UserToken": "token123",
+            Authorization: "Basic YWRtaW46c2VjcmV0",
           },
         }),
       } as unknown as never,
@@ -529,8 +529,7 @@ suite("snPullService", () => {
     );
 
     const headers = (calls[0].headers as Record<string, string>) ?? {};
-    assert.strictEqual(headers["X-UserToken"], "token123");
-    assert.strictEqual(headers.Authorization, undefined);
+    assert.strictEqual(headers.Authorization, "Basic YWRtaW46c2VjcmV0");
   });
 
   test("throws when connection has no headers and no credentials", async () => {

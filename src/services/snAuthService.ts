@@ -65,14 +65,10 @@ export class SnAuthService {
       workspaceFolderUri,
       authInput.instanceName,
     );
-    const existingAuth = await this.getSavedAuth(context, workspaceFolderUri);
     const secretValue: SnAuthSecret = {
       instanceUrl: authInput.instanceUrl,
       username: authInput.username,
       password: authInput.password,
-      ...(existingAuth?.bearer ? { bearer: existingAuth.bearer } : {}),
-      ...(existingAuth?.userToken ? { userToken: existingAuth.userToken } : {}),
-      ...(existingAuth?.cookie ? { cookie: existingAuth.cookie } : {}),
     };
 
     await context.secrets.store(secretKey, JSON.stringify(secretValue));
@@ -122,7 +118,10 @@ export class SnAuthService {
     );
 
     const normalizedUrl = normalizeInstanceUrl(connection.instanceUrl);
-    const username = connection.username?.trim() || "admin";
+    const username = connection.username?.trim();
+    if (!username) {
+      throw new Error(SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED);
+    }
     const validationUrl = `${normalizedUrl}/api/now/v2/table/sys_user?user_name=${encodeURIComponent(username)}&sysparm_fields=user_name,name`;
 
     try {
@@ -211,42 +210,20 @@ export class SnAuthService {
     const savedAuth = await this.getSavedAuth(context, workspaceFolderUri);
     const instanceUrl = savedAuth?.instanceUrl;
 
-    if (!instanceUrl) {
+    if (!instanceUrl || !savedAuth.username || !savedAuth.password) {
       throw new Error(SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED);
     }
 
-    const sessionHeaders = this.buildSessionHeaders(savedAuth);
-    if (Object.keys(sessionHeaders).length > 0) {
-      return {
-        instanceUrl,
-        headers: sessionHeaders,
-        username: savedAuth?.username,
-      };
-    }
-
-    const bearerHeaders = this.buildBearerHeaders(savedAuth);
-    if (Object.keys(bearerHeaders).length > 0) {
-      return {
-        instanceUrl,
-        headers: bearerHeaders,
-        username: savedAuth?.username,
-      };
-    }
-
-    if (savedAuth?.username && savedAuth.password) {
-      return {
-        instanceUrl,
-        headers: {
-          Authorization: buildBasicAuthHeader(
-            savedAuth.username,
-            savedAuth.password,
-          ),
-        },
-        username: savedAuth.username,
-      };
-    }
-
-    throw new Error(SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED);
+    return {
+      instanceUrl,
+      headers: {
+        Authorization: buildBasicAuthHeader(
+          savedAuth.username,
+          savedAuth.password,
+        ),
+      },
+      username: savedAuth.username,
+    };
   }
 
   private getSecretKey(
@@ -262,44 +239,10 @@ export class SnAuthService {
     }
 
     const candidate = value as Record<string, unknown>;
-    const hasBasicAuth =
-      typeof candidate.username === "string" &&
-      typeof candidate.password === "string";
-    const hasSessionAuth =
-      typeof candidate.userToken === "string" ||
-      typeof candidate.cookie === "string";
-    const hasBearerAuth = typeof candidate.bearer === "string";
-
     return (
       typeof candidate.instanceUrl === "string" &&
-      (hasBasicAuth || hasSessionAuth || hasBearerAuth)
+      typeof candidate.username === "string" &&
+      typeof candidate.password === "string"
     );
-  }
-
-  private buildSessionHeaders(
-    authConfig: SnAuthSecret,
-  ): Record<string, string> {
-    const userToken = authConfig.userToken?.trim();
-    const cookie = authConfig.cookie?.trim();
-
-    if (!userToken && !cookie) {
-      return {};
-    }
-
-    return {
-      ...(userToken ? { "X-UserToken": userToken } : {}),
-      ...(cookie ? { Cookie: cookie } : {}),
-    };
-  }
-
-  private buildBearerHeaders(authConfig: SnAuthSecret): Record<string, string> {
-    const bearer = authConfig.bearer?.trim();
-    if (!bearer) {
-      return {};
-    }
-
-    return {
-      Authorization: /^Bearer\s+/i.test(bearer) ? bearer : `Bearer ${bearer}`,
-    };
   }
 }

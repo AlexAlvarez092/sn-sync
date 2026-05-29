@@ -116,10 +116,7 @@ See `docs/error-handling.md` for the current code catalog and troubleshooting fl
 Service-level strategy:
 
 - Validate auth availability before network calls
-- Resolve auth deterministically from Secret Storage:
-  - session headers
-  - bearer
-  - basic credentials (`sn: auth`)
+- Resolve basic auth deterministically from Secret Storage (`sn: auth`)
 - Normalize HTTP failures into actionable messages
 - Keep business-specific edge handling inside services (for example report resolution notes)
 
@@ -127,7 +124,7 @@ Transport strategy:
 
 - snHttpService provides createGotFetchTransport as the shared fetch-compatible transport.
 - Pull/push/push-report/auth-validate use that common transport path.
-- This avoids behavior drift between commands and keeps timeout/cookie/response handling consistent.
+- This avoids behavior drift between commands and keeps timeout and response handling consistent.
 
 Configuration security strategy:
 
