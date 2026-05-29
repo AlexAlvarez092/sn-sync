@@ -79,6 +79,10 @@
         "title": "sn: reset auth"
       },
       {
+        "command": "sn-sync.open-active-in-instance",
+        "title": "sn: open active in instance"
+      },
+      {
         "command": "sn-sync.pull",
         "title": "sn: pull"
       },

@@ -8,6 +8,7 @@ export const SN_SYNC_COMMANDS = {
   AUTH: "sn-sync.auth",
   AUTH_VALIDATE: "sn-sync.auth-validate",
   RESET_AUTH: "sn-sync.reset-auth",
+  OPEN_ACTIVE_IN_INSTANCE: "sn-sync.open-active-in-instance",
   PULL: "sn-sync.pull",
   PULL_BY_SYS_ID: "sn-sync.pull-by-sys-id",
   RESET_INDEX: "sn-sync.reset-index",
@@ -39,6 +40,14 @@ export const SN_SYNC_MESSAGES = {
     "ServiceNow login validation failed before receiving a response:",
   RESET_AUTH_SUCCESS: "sn-sync auth reset completed.",
   RESET_AUTH_FAILED_PREFIX: "Failed to reset sn-sync auth:",
+  OPEN_ACTIVE_NO_EDITOR:
+    "No active file found. Open a file from this workspace and try again.",
+  OPEN_ACTIVE_NOT_INDEXED:
+    "Active file is not indexed. Run 'sn: pull' or 'sn: pull by sys_id' first.",
+  OPEN_ACTIVE_OPEN_FAILED: "Failed to open record in external browser.",
+  OPEN_ACTIVE_SUCCESS_PREFIX: "Opened ServiceNow record:",
+  OPEN_ACTIVE_FAILED_PREFIX:
+    "Failed to open active file in ServiceNow instance:",
   SN_REQUEST_HTTP_STATUS_PREFIX: "ServiceNow data request failed with status:",
   SN_REQUEST_INVALID_PATH_SEGMENT_PREFIX:
     "Invalid ServiceNow request path segment:",
@@ -101,6 +110,7 @@ export const SN_SYNC_ERROR_CODES = {
   AUTH_FAILED: "SN_AUTH_FAILED",
   AUTH_VALIDATE_FAILED: "SN_AUTH_VALIDATE_FAILED",
   INIT_FAILED: "SN_INIT_FAILED",
+  OPEN_ACTIVE_IN_INSTANCE_FAILED: "SN_OPEN_ACTIVE_IN_INSTANCE_FAILED",
   PULL_FAILED: "SN_PULL_FAILED",
   PULL_BY_SYS_ID_FAILED: "SN_PULL_BY_SYS_ID_FAILED",
   PUSH_ACTIVE_FAILED: "SN_PUSH_ACTIVE_FAILED",
