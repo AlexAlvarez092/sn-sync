@@ -17,6 +17,7 @@ sn-sync helps you work with ServiceNow scripts in a local workflow:
 - Authentication setup and validation.
 - Multiple authentication modes with deterministic priority.
 - Pull all configured records or pull by sys_id.
+- Open the active indexed file directly in ServiceNow.
 - Push only the active file or all modified files.
 - Safe conflict detection before pushing.
 - Push report with progress and markdown output.
@@ -49,6 +50,10 @@ Checks that your saved credentials are valid.
 ### `sn: reset auth`
 
 Removes the currently active instance credentials from VS Code Secret Storage.
+
+### `sn: open active in instance`
+
+Opens the indexed active file as its ServiceNow record in your browser.
 
 ### `sn: pull`
 
@@ -113,6 +118,7 @@ Technical and command-level docs are available in [docs/README.md](docs/README.m
 - [docs/sn-auth.md](docs/sn-auth.md)
 - [docs/sn-auth-validate.md](docs/sn-auth-validate.md)
 - [docs/sn-reset-auth.md](docs/sn-reset-auth.md)
+- [docs/sn-open-active-in-instance.md](docs/sn-open-active-in-instance.md)
 - [docs/sn-pull.md](docs/sn-pull.md)
 - [docs/sn-pull-by-sys-id.md](docs/sn-pull-by-sys-id.md)
 - [docs/sn-reset-index.md](docs/sn-reset-index.md)

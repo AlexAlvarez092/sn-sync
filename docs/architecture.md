@@ -29,6 +29,7 @@ Registered commands:
 - sn-sync.auth
 - sn-sync.auth-validate
 - sn-sync.reset-auth
+- sn-sync.open-active-in-instance
 - sn-sync.pull
 - sn-sync.pull-by-sys-id
 - sn-sync.reset-index
@@ -61,6 +62,12 @@ Registered commands:
 - Input: modified candidates
 - Process: scope/update-set resolution
 - Output: markdown report only (read-only behavior)
+
+### 5) Open active in instance flow
+
+- Input: active editor file + index entry + resolved instance URL
+- Process: local path -> index lookup -> record URL build -> open external browser
+- Output: browser navigation to the exact ServiceNow record
 
 ## Sync index model
 
@@ -166,6 +173,7 @@ flowchart TD
   CMD --> AUTH[sn: auth]
   CMD --> AUTHV[sn: auth validate]
   CMD --> AUTHR[sn: reset auth]
+  CMD --> OPEN[sn: open active in instance]
   CMD --> PULL[sn: pull]
   CMD --> PULLID[sn: pull by sys_id]
   CMD --> RESET[sn: reset index]
@@ -177,6 +185,8 @@ flowchart TD
   AUTH --> AUTHS[SnAuthService]
   AUTHV --> AUTHS
   AUTHR --> AUTHS
+  OPEN --> AUTHS
+  OPEN --> INDEX
 
   PULL --> CFG
   PULL --> PULLS[SnPullService]

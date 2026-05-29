@@ -20,6 +20,7 @@ Documented commands:
 - sn: auth -> sn-sync.auth
 - sn: auth validate -> sn-sync.auth-validate
 - sn: reset auth -> sn-sync.reset-auth
+- sn: open active in instance -> sn-sync.open-active-in-instance
 - sn: pull -> sn-sync.pull
 - sn: pull by sys_id -> sn-sync.pull-by-sys-id
 - sn: reset index -> sn-sync.reset-index
@@ -33,6 +34,7 @@ Files:
 - sn-auth.md
 - sn-auth-validate.md
 - sn-reset-auth.md
+- sn-open-active-in-instance.md
 - sn-pull.md
 - sn-pull-by-sys-id.md
 - sn-reset-index.md
