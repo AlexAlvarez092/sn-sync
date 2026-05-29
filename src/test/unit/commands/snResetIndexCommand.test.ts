@@ -42,6 +42,7 @@ suite("snResetIndexCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => undefined,
+        askConfirmation: async () => true,
         showErrorMessage: async (message: string) => {
           shownErrors.push(message);
           return undefined;
@@ -78,6 +79,17 @@ suite("snResetIndexCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => workspaceUri,
+        askConfirmation: async (message: string, actionLabel: string) => {
+          assert.strictEqual(
+            message,
+            SN_SYNC_MESSAGES.RESET_INDEX_CONFIRM_PROMPT,
+          );
+          assert.strictEqual(
+            actionLabel,
+            SN_SYNC_MESSAGES.RESET_INDEX_CONFIRM_ACTION,
+          );
+          return true;
+        },
         showErrorMessage: async () => undefined,
         showInformationMessage: async (message: string) => {
           shownInfos.push(message);
@@ -88,6 +100,40 @@ suite("snResetIndexCommand", () => {
 
     assert.strictEqual(clearCalls, 1);
     assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.RESET_INDEX_SUCCESS]);
+  });
+
+  test("cancels reset when confirmation is dismissed", async () => {
+    const shownInfos: string[] = [];
+    let clearCalls = 0;
+
+    await runSnResetIndexCommand(
+      {} as vscode.ExtensionContext,
+      {
+        clearIndex: async () => {
+          clearCalls += 1;
+        },
+        recordPullFiles: async () => undefined,
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        updateBaseHashes: async () => undefined,
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("reset-index-cancel"),
+        askConfirmation: async () => false,
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async (message: string) => {
+          shownInfos.push(message);
+          return undefined;
+        },
+      },
+    );
+
+    assert.strictEqual(clearCalls, 0);
+    assert.deepStrictEqual(shownInfos, [
+      SN_SYNC_MESSAGES.RESET_INDEX_CANCELLED,
+    ]);
   });
 
   test("shows detailed error when reset fails", async () => {
@@ -113,6 +159,7 @@ suite("snResetIndexCommand", () => {
       {
         getWorkspaceFolderUri: () =>
           createTempWorkspaceUri("reset-index-failure"),
+        askConfirmation: async () => true,
         showErrorMessage: async (message: string) => {
           shownErrors.push(message);
           return undefined;
@@ -146,6 +193,7 @@ suite("snResetIndexCommand", () => {
       {
         getWorkspaceFolderUri: () =>
           createTempWorkspaceUri("reset-index-missing-clear"),
+        askConfirmation: async () => true,
         showErrorMessage: async (message: string) => {
           shownErrors.push(message);
           return undefined;
@@ -166,27 +214,32 @@ suite("snResetIndexCommand", () => {
     await withPatchedWorkspaceFolders(
       [{ uri: workspaceUri, name: "tmp", index: 0 }],
       async () => {
-        await withPatchedWindowMessages(
-          async (_message: string) => undefined,
-          async (message: string) => {
-            shownInfos.push(message);
-            return undefined;
-          },
+        await withPatchedWarningMessage(
+          SN_SYNC_MESSAGES.RESET_INDEX_CONFIRM_ACTION,
           async () => {
-            await runSnResetIndexCommand(
-              {
-                workspaceState: {
-                  get: () => undefined,
-                  update: async () => undefined,
-                },
-              } as unknown as vscode.ExtensionContext,
-              {
-                clearIndex: async () => undefined,
-                recordPullFiles: async () => undefined,
-                findEntryByLocalPath: async () => undefined,
-                toWorkspaceRelativePath: () => "",
-                getModifiedCandidates: async () => [],
-                updateBaseHashes: async () => undefined,
+            await withPatchedWindowMessages(
+              async (_message: string) => undefined,
+              async (message: string) => {
+                shownInfos.push(message);
+                return undefined;
+              },
+              async () => {
+                await runSnResetIndexCommand(
+                  {
+                    workspaceState: {
+                      get: () => undefined,
+                      update: async () => undefined,
+                    },
+                  } as unknown as vscode.ExtensionContext,
+                  {
+                    clearIndex: async () => undefined,
+                    recordPullFiles: async () => undefined,
+                    findEntryByLocalPath: async () => undefined,
+                    toWorkspaceRelativePath: () => "",
+                    getModifiedCandidates: async () => [],
+                    updateBaseHashes: async () => undefined,
+                  },
+                );
               },
             );
           },
@@ -216,6 +269,28 @@ function withPatchedRegisterCommand(run: () => void): void {
     run();
   } finally {
     commandsObject.registerCommand = originalRegisterCommand;
+  }
+}
+
+async function withPatchedWarningMessage(
+  response: string | undefined,
+  run: () => Promise<void>,
+): Promise<void> {
+  const windowObject = vscode.window as unknown as {
+    showWarningMessage: (
+      message: string,
+      options: vscode.MessageOptions,
+      ...items: string[]
+    ) => Thenable<string | undefined>;
+  };
+
+  const originalShowWarningMessage = windowObject.showWarningMessage;
+  windowObject.showWarningMessage = async () => response;
+
+  try {
+    await run();
+  } finally {
+    windowObject.showWarningMessage = originalShowWarningMessage;
   }
 }
 
