@@ -61,6 +61,7 @@ Execute a targeted pull for a single ServiceNow record (by sys_id), using a tabl
 ## Error and cancellation model
 
 - UI cancellations are treated as expected exits (informational message).
+- Invalid table path segments from sync settings fail before network calls.
 - Infrastructure/API/filesystem problems are surfaced as command failures.
 
 ## Direct dependencies
@@ -126,3 +127,7 @@ sequenceDiagram
 - Symptom: Pull succeeds but no indexed entries are added
   - Cause: onFileWritten metadata is incomplete.
   - Resolution: Verify pull service emits localPath/table/sysId/fieldName/baseHash.
+
+- Symptom: Pull by sys_id fails with an invalid path segment error
+  - Cause: The selected sync setting contains a malformed table name for the ServiceNow Table API path.
+  - Resolution: Fix the selected setting in `.snsyncrc` and retry.

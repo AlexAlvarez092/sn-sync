@@ -67,6 +67,7 @@ The command delegates all resolution to SnPushReportService, which:
 2. Resolves scope per record.
 3. Resolves update set metadata by scope using service rules.
 4. Adds resolution notes for partial failure paths (for example 404 cases).
+5. Validates and encodes dynamic Table API path segments before outbound requests.
 
 ## Side effects
 
@@ -78,6 +79,7 @@ The command delegates all resolution to SnPushReportService, which:
 ## Error handling
 
 - Missing workspace errors.
+- Invalid ServiceNow request path segments in candidate or update set identifiers.
 - Auth/API errors while building report data.
 - Document open/render errors.
 
@@ -137,3 +139,7 @@ sequenceDiagram
 - Symptom: Report opens but update set fields are empty
   - Cause: Scope/update set resolution returned no match.
   - Resolution: Verify update set/user preference configuration in ServiceNow.
+
+- Symptom: Report fails with an invalid path segment error
+  - Cause: A candidate table/sys_id or a resolved update set id is malformed for Table API path construction.
+  - Resolution: Refresh the underlying index data and verify the related ServiceNow identifiers before rerunning the report.

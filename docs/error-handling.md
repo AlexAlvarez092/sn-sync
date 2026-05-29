@@ -26,6 +26,8 @@ The normalized error model classifies errors into one of:
 Commands provide a stable `code` and `command` identifier.
 When category is not explicitly set, it is inferred from the error message.
 
+Validation errors can also occur before any network call when sn-sync rejects malformed ServiceNow path segments used to build Table API URLs.
+
 ## Diagnostics output
 
 Diagnostics are written as structured JSON lines to the VS Code output channel:
@@ -79,7 +81,7 @@ Current standardized command failure codes:
    - auth: re-run `sn: auth` / `sn: auth validate`
    - conflict: run pull, merge, and retry
    - network: retry and verify instance/network availability
-   - validation: verify command inputs and workspace preconditions
+   - validation: verify command inputs, workspace preconditions, and indexed/configured ServiceNow identifiers
 5. If unresolved, open a bug report and include:
    - error code
    - command

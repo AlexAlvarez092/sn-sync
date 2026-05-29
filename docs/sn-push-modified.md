@@ -58,6 +58,11 @@ Push all locally modified indexed files as a batch, with a remote conflict pre-c
 - Remote writes to multiple ServiceNow records/fields.
 - Batch local index baseline updates.
 
+## Request safety model
+
+- Each candidate request validates and encodes dynamic ServiceNow path segments before any remote GET/PATCH call.
+- If one candidate carries malformed table or `sys_id` values, the command fails fast instead of sending a malformed outbound request.
+
 ## Direct dependencies
 
 - SnPushService
@@ -121,3 +126,7 @@ sequenceDiagram
 - Symptom: Upload stops mid-run with failure prefix
   - Cause: Network/API failure on one candidate.
   - Resolution: Resolve connectivity/API issue and rerun command.
+
+- Symptom: Batch push fails with an invalid path segment error
+  - Cause: At least one indexed candidate has a malformed table name or `sys_id`.
+  - Resolution: Rebuild or inspect index entries with `sn: pull` / `sn: pull by sys_id` before retrying.

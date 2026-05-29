@@ -659,6 +659,51 @@ suite("snPullService", () => {
     );
   });
 
+  test("rejects invalid table path segments before network calls", async () => {
+    let fetchCalls = 0;
+
+    const service = new SnPullService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "secret",
+        }),
+      } as unknown as never,
+      (async (): Promise<Response> => {
+        fetchCalls += 1;
+        return new Response("{}", { status: 200 });
+      }) as typeof fetch,
+    );
+
+    await assert.rejects(
+      () =>
+        service.pullConfiguredScripts(
+          {} as vscode.ExtensionContext,
+          vscode.Uri.file("/tmp/ws"),
+          [
+            {
+              folder: "security_rules",
+              table: "../sys_security_acl",
+              query: "active=true",
+              key: "name",
+              fields: [{ extension: "js", field_name: "script" }],
+            },
+          ],
+        ),
+      (error: unknown) => {
+        assert.strictEqual(
+          (error as Error).message,
+          `${SN_SYNC_MESSAGES.SN_REQUEST_INVALID_PATH_SEGMENT_PREFIX} table name.`,
+        );
+        return true;
+      },
+    );
+
+    assert.strictEqual(fetchCalls, 0);
+  });
+
   test("supports pagination when results reach request limit", async () => {
     await withTempDir("sn-sync-pull-", async (tempDir) => {
       const workspaceUri = vscode.Uri.file(tempDir);

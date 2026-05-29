@@ -832,6 +832,70 @@ suite("snPushReportService", () => {
     assert.strictEqual(report.files[0].updateSetName, undefined);
   });
 
+  test("rejects invalid update set id path segments before follow-up lookup", async () => {
+    let fetchCalls = 0;
+
+    const service = new SnPushReportService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "pwd",
+        }),
+      } as unknown as never,
+      (async (input: unknown) => {
+        fetchCalls += 1;
+        const url = String(input);
+
+        if (url.includes("/api/now/table/sys_script/abc")) {
+          return new Response(
+            JSON.stringify({
+              result: {
+                "sys_scope.scope": "x_app_one",
+                "sys_scope.name": "App One",
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url.includes("/api/now/table/sys_user_preference?")) {
+          return new Response(
+            JSON.stringify({
+              result: [
+                {
+                  value: "../us-from-pref",
+                },
+              ],
+            }),
+            { status: 200 },
+          );
+        }
+
+        return new Response("{}", { status: 200 });
+      }) as typeof fetch,
+    );
+
+    await assert.rejects(
+      () =>
+        service.buildPushReport(
+          {} as vscode.ExtensionContext,
+          vscode.Uri.file("/tmp/ws"),
+          [createCandidate("src/a.js", "sys_script", "abc")],
+        ),
+      (error: unknown) => {
+        assert.strictEqual(
+          (error as Error).message,
+          `${SN_SYNC_MESSAGES.SN_REQUEST_INVALID_PATH_SEGMENT_PREFIX} update set id.`,
+        );
+        return true;
+      },
+    );
+
+    assert.strictEqual(fetchCalls, 2);
+  });
+
   test("isNotFoundError handles non-Error values", () => {
     const service = new SnPushReportService(
       {

@@ -5,9 +5,9 @@ import {
   SN_SYNC_SERVICENOW,
 } from "@shared/constants/snSyncConstants.js";
 import {
+  buildServiceNowTableApiUrl,
   createGotFetchTransport,
   handleHttpError,
-  normalizeInstanceUrl,
   resolveConnectionHeaders,
 } from "@shared/services/snHttpService.js";
 import type { SnSyncIndexEntry } from "@shared/models/syncIndex.js";
@@ -48,7 +48,12 @@ export class SnPushService implements SnPushServiceApi {
     const headers = resolveConnectionHeaders(connection);
 
     const response = await this.fetchApi(
-      `${normalizeInstanceUrl(connection.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${entry.table}/${entry.sysId}?sysparm_fields=${encodeURIComponent(entry.fieldName)}`,
+      buildServiceNowTableApiUrl(connection.instanceUrl, entry.table, {
+        pathSegments: [{ value: entry.sysId, label: "sys_id" }],
+        queryParams: {
+          sysparm_fields: entry.fieldName,
+        },
+      }),
       {
         method: "GET",
         headers: {
@@ -83,7 +88,9 @@ export class SnPushService implements SnPushServiceApi {
     const headers = resolveConnectionHeaders(connection);
 
     const response = await this.fetchApi(
-      `${normalizeInstanceUrl(connection.instanceUrl)}${SN_SYNC_SERVICENOW.TABLE_API_PATH}/${entry.table}/${entry.sysId}`,
+      buildServiceNowTableApiUrl(connection.instanceUrl, entry.table, {
+        pathSegments: [{ value: entry.sysId, label: "sys_id" }],
+      }),
       {
         method: "PATCH",
         headers: {

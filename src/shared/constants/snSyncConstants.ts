@@ -39,6 +39,8 @@ export const SN_SYNC_MESSAGES = {
   RESET_AUTH_SUCCESS: "sn-sync auth reset completed.",
   RESET_AUTH_FAILED_PREFIX: "Failed to reset sn-sync auth:",
   SN_REQUEST_HTTP_STATUS_PREFIX: "ServiceNow data request failed with status:",
+  SN_REQUEST_INVALID_PATH_SEGMENT_PREFIX:
+    "Invalid ServiceNow request path segment:",
   PULL_PROGRESS_TITLE: "Pulling scripts from ServiceNow...",
   PULL_NO_SETTINGS:
     "No sync settings found in extension config. Nothing to pull.",
