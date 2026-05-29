@@ -45,6 +45,19 @@
           ],
           "default": "ask",
           "description": "Controls whether sn-sync asks, deletes, or keeps local files before pull commands."
+        },
+        "sn-sync.auth.allowCustomHosts": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow non-ServiceNow hosts for instance URL validation. Disabled by default for security."
+        },
+        "sn-sync.auth.customHosts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Exact custom hostnames allowed when sn-sync.auth.allowCustomHosts is enabled (for example: sn.company.com)."
         }
       }
     },

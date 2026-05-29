@@ -1,10 +1,16 @@
 export type SnPullClearBeforePull = "ask" | "delete" | "keep";
 
+export interface SnSyncResolvedAuthPreferences {
+  allowCustomHosts: boolean;
+  customHosts: string[];
+}
+
 export interface SnSyncResolvedPreferences {
   rootDir: string;
   pull: {
     clearBeforePull: SnPullClearBeforePull;
   };
+  auth: SnSyncResolvedAuthPreferences;
 }
 
 export interface ExtensionConfigField {

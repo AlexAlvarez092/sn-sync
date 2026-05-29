@@ -117,10 +117,11 @@ Service-level strategy:
 
 - Validate auth availability before network calls
 - Validate and encode dynamic ServiceNow path segments before URL assembly
-- Resolve auth deterministically from Secret Storage:
-  - session headers
-  - bearer
-  - basic credentials (`sn: auth`)
+- Resolve basic auth deterministically from Secret Storage (`sn: auth`)
+- Validate instance URL policy both at auth save time and at runtime auth resolution
+  - HTTPS only
+  - default host allowlist (`service-now.com`)
+  - optional custom host allowlist via settings
 - `validateAuth` uses resolved headers and validates against `sys_user` in ServiceNow.
 - Normalize HTTP failures into actionable messages
 - Keep business-specific edge handling inside services (for example report resolution notes)

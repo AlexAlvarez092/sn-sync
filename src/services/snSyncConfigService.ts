@@ -49,6 +49,15 @@ export class SnSyncConfigService {
             vscodeConfig.get<string>("pull.clearBeforePull"),
           ) ?? SN_SYNC_DEFAULTS.CLEAR_BEFORE_PULL,
       },
+      auth: {
+        allowCustomHosts:
+          vscodeConfig.get<boolean>("auth.allowCustomHosts") ??
+          SN_SYNC_DEFAULTS.AUTH_ALLOW_CUSTOM_HOSTS,
+        customHosts:
+          this.normalizeCustomHosts(
+            vscodeConfig.get<string[]>("auth.customHosts"),
+          ) ?? SN_SYNC_DEFAULTS.AUTH_CUSTOM_HOSTS,
+      },
     };
   }
 
@@ -195,5 +204,18 @@ export class SnSyncConfigService {
     allowEmpty = false,
   ): string | undefined {
     return normalizeOptionalString(value, allowEmpty);
+  }
+
+  private normalizeCustomHosts(
+    value: string[] | undefined,
+  ): string[] | undefined {
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+
+    return value
+      .map((host) => this.normalizeString(host))
+      .filter((host): host is string => Boolean(host))
+      .map((host) => host.toLowerCase());
   }
 }

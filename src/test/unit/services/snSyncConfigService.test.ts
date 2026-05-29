@@ -338,6 +338,10 @@ suite("snSyncConfigService", () => {
           pull: {
             clearBeforePull: "delete",
           },
+          auth: {
+            allowCustomHosts: false,
+            customHosts: [],
+          },
         });
       } finally {
         (vscode.workspace
@@ -391,6 +395,10 @@ suite("snSyncConfigService", () => {
           pull: {
             clearBeforePull: "ask",
           },
+          auth: {
+            allowCustomHosts: false,
+            customHosts: [],
+          },
         });
       } finally {
         (vscode.workspace
@@ -428,6 +436,49 @@ suite("snSyncConfigService", () => {
           pull: {
             clearBeforePull: "ask",
           },
+          auth: {
+            allowCustomHosts: false,
+            customHosts: [],
+          },
+        });
+      } finally {
+        (vscode.workspace
+          .getConfiguration as unknown as typeof vscode.workspace.getConfiguration) =
+          originalGetConfiguration;
+      }
+    });
+  });
+
+  test("getPreferences resolves auth host policy from vscode settings", async () => {
+    await withTempDir("sn-sync-test-", async (tempDir) => {
+      const workspaceFolderUri = vscode.Uri.file(tempDir);
+      const service = new SnSyncConfigService();
+      const originalGetConfiguration = vscode.workspace.getConfiguration;
+
+      (vscode.workspace.getConfiguration as unknown as (
+        section?: string,
+        scope?: vscode.ConfigurationScope | null,
+      ) => vscode.WorkspaceConfiguration) = () =>
+        ({
+          get: <T>(key: string) => {
+            if (key === "auth.allowCustomHosts") {
+              return true as T;
+            }
+
+            if (key === "auth.customHosts") {
+              return [" SN.COMPANY.COM ", "", "internal.example"] as T;
+            }
+
+            return undefined as T;
+          },
+        }) as unknown as vscode.WorkspaceConfiguration;
+
+      try {
+        const preferences = await service.getPreferences(workspaceFolderUri);
+
+        assert.deepStrictEqual(preferences.auth, {
+          allowCustomHosts: true,
+          customHosts: ["sn.company.com", "internal.example"],
         });
       } finally {
         (vscode.workspace

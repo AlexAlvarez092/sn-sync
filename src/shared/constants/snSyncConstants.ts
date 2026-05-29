@@ -28,6 +28,7 @@ export const SN_SYNC_MESSAGES = {
   AUTH_SUCCESS: "sn-sync auth saved successfully.",
   AUTH_FAILED_PREFIX: "Failed to save sn-sync auth:",
   AUTH_NOT_CONFIGURED: "No saved sn-sync auth found. Run 'sn: auth' first.",
+  AUTH_INVALID_INSTANCE_URL_PREFIX: "Invalid ServiceNow instance URL:",
   AUTH_INVALID_CREDENTIALS:
     "ServiceNow rejected the credentials. Please verify username and password.",
   AUTH_VALIDATE_SUCCESS: "ServiceNow login validated successfully.",
@@ -124,6 +125,8 @@ export const SN_SYNC_INPUTS = {
 export const SN_SYNC_DEFAULTS = {
   ROOT_DIR: "src",
   CLEAR_BEFORE_PULL: "ask" as SnPullClearBeforePull,
+  AUTH_ALLOW_CUSTOM_HOSTS: false,
+  AUTH_CUSTOM_HOSTS: [] as string[],
   SETTINGS: [
     {
       folder: "business_rules",

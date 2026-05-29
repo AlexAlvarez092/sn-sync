@@ -16,5 +16,9 @@ export async function resolvePreferences(
     pull: {
       clearBeforePull: SN_SYNC_DEFAULTS.CLEAR_BEFORE_PULL,
     },
+    auth: {
+      allowCustomHosts: SN_SYNC_DEFAULTS.AUTH_ALLOW_CUSTOM_HOSTS,
+      customHosts: SN_SYNC_DEFAULTS.AUTH_CUSTOM_HOSTS,
+    },
   };
 }
