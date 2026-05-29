@@ -3,6 +3,43 @@
 - Workflow file: `.github/workflows/release.yml`
 - Purpose: package the VS Code extension (`.vsix`) and create a GitHub Release automatically.
 
+## Versioning policy
+
+This repository uses Semantic Versioning 2.0.0.
+
+Version format:
+
+- `MAJOR.MINOR.PATCH`
+- Optional prerelease suffix: `-<identifier>` (for example `1.4.0-rc.1`)
+
+How to choose the bump:
+
+- MAJOR: breaking changes or incompatible behavior.
+- MINOR: new backward-compatible features.
+- PATCH: bug fixes, refactors, docs, tests, or internal changes with no user-facing breakage.
+
+Prerelease guidance:
+
+- Use prerelease versions for release candidates or validation builds before a stable release.
+- Typical flow:
+  - prerelease tag/version (`1.4.0-rc.1`)
+  - final stable release (`1.4.0`)
+
+Canonical version source:
+
+- The canonical extension version is `package.json` -> `version`.
+- Release tags must match that version with `v` prefix (for example `v1.4.0`).
+
+Keeping `package.json` and `package-lock.json` in sync:
+
+- If the version changes, commit both files together when `package-lock.json` exists.
+- Prefer `npm version <patch|minor|major|prerelease>` to update manifests consistently.
+- If needed, regenerate lockfile metadata with:
+
+```bash
+npm install --package-lock-only
+```
+
 ## Triggers
 
 The workflow can run in two ways:
