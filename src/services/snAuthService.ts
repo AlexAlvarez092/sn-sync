@@ -16,6 +16,8 @@ import {
   normalizeInstanceUrl,
 } from "@shared/services/snHttpService.js";
 import { getErrorMessage } from "@shared/services/errorMessageService.js";
+import { resolvePreferences } from "@shared/services/snPreferencesService.js";
+import { normalizeAndValidateInstanceUrl } from "@shared/services/snInstanceUrlPolicyService.js";
 
 export interface SnServiceNowConnectionAuth {
   instanceUrl: string;
@@ -57,6 +59,11 @@ export class SnAuthService {
     workspaceFolderUri: vscode.Uri,
     authInput: SnAuthInput,
   ): Promise<void> {
+    const instanceUrl = await this.resolveValidatedInstanceUrl(
+      workspaceFolderUri,
+      authInput.instanceUrl,
+    );
+
     await this.configService.setInstanceName(
       workspaceFolderUri,
       authInput.instanceName,
@@ -66,7 +73,7 @@ export class SnAuthService {
       authInput.instanceName,
     );
     const secretValue: SnAuthSecret = {
-      instanceUrl: authInput.instanceUrl,
+      instanceUrl,
       username: authInput.username,
       password: authInput.password,
     };
@@ -208,11 +215,16 @@ export class SnAuthService {
     workspaceFolderUri: vscode.Uri,
   ): Promise<SnServiceNowConnectionAuth> {
     const savedAuth = await this.getSavedAuth(context, workspaceFolderUri);
-    const instanceUrl = savedAuth?.instanceUrl;
+    const rawInstanceUrl = savedAuth?.instanceUrl;
 
-    if (!instanceUrl || !savedAuth.username || !savedAuth.password) {
+    if (!rawInstanceUrl || !savedAuth.username || !savedAuth.password) {
       throw new Error(SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED);
     }
+
+    const instanceUrl = await this.resolveValidatedInstanceUrl(
+      workspaceFolderUri,
+      rawInstanceUrl,
+    );
 
     return {
       instanceUrl,
@@ -224,6 +236,18 @@ export class SnAuthService {
       },
       username: savedAuth.username,
     };
+  }
+
+  private async resolveValidatedInstanceUrl(
+    workspaceFolderUri: vscode.Uri,
+    rawInstanceUrl: string,
+  ): Promise<string> {
+    const preferences = await resolvePreferences(
+      this.configService,
+      workspaceFolderUri,
+    );
+
+    return normalizeAndValidateInstanceUrl(rawInstanceUrl, preferences.auth);
   }
 
   private getSecretKey(
