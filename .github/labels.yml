@@ -26,6 +26,54 @@
   color: "E11D21"
   description: Security improvements and vulnerability fixes.
 
+- name: "status: needs-triage"
+  color: "EDEDED"
+  description: New issue awaiting maintainer triage.
+
+- name: "status: ready"
+  color: "0E8A16"
+  description: Issue is actionable and ready to be worked on.
+
+- name: "status: needs-info"
+  color: "D876E3"
+  description: Waiting for reporter input before work can continue.
+
+- name: "status: blocked"
+  color: "B60205"
+  description: Blocked by an external dependency or prerequisite.
+
+- name: "status: in-progress"
+  color: "FBCA04"
+  description: Work has started on this issue.
+
+- name: "priority: p0"
+  color: "B60205"
+  description: Critical impact requiring immediate attention.
+
+- name: "priority: p1"
+  color: "D93F0B"
+  description: High impact issue to prioritize in near-term planning.
+
+- name: "priority: p2"
+  color: "FBCA04"
+  description: Normal priority enhancement, bug, or cleanup.
+
+- name: "duplicate"
+  color: "CFD3D7"
+  description: This issue or pull request already exists.
+
+- name: "wontfix"
+  color: "FFFFFF"
+  description: This will not be worked on.
+
+- name: "good first issue"
+  color: "7057FF"
+  description: Good for newcomers.
+
+- name: "help wanted"
+  color: "008672"
+  description: Extra attention is needed.
+
 - name: "area: auth"
   color: "1D76DB"
   description: Authentication and credentials handling.
@@ -41,6 +89,10 @@
 - name: "area: report"
   color: "1D76DB"
   description: Reporting command and report generation.
+
+- name: "area: open-in-instance"
+  color: "1D76DB"
+  description: Open-in-instance command behavior and record navigation.
 
 - name: "area: index"
   color: "1D76DB"
