@@ -103,5 +103,5 @@ sequenceDiagram
   - Resolution: Run `sn: auth` to save fresh credentials.
 
 - Symptom: Nothing happened when running reset auth
-	- Cause: Confirmation dialog was dismissed or cancelled.
-	- Resolution: Run the command again and confirm the warning prompt.
+  - Cause: Confirmation dialog was dismissed or cancelled.
+  - Resolution: Run the command again and confirm the warning prompt.

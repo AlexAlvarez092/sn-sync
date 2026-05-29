@@ -91,5 +91,5 @@ sequenceDiagram
   - Resolution: Run sn: pull or sn: pull by sys_id to repopulate index.
 
 - Symptom: Nothing happened when running reset index
-	- Cause: Confirmation dialog was dismissed or cancelled.
-	- Resolution: Run the command again and confirm the warning prompt.
+  - Cause: Confirmation dialog was dismissed or cancelled.
+  - Resolution: Run the command again and confirm the warning prompt.
