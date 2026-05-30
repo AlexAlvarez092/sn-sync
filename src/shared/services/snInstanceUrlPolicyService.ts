@@ -74,24 +74,44 @@ function parseInstanceUrl(rawInstanceUrl: string): URL {
 }
 
 function normalizeConfiguredHost(rawHost: string): string | undefined {
-  const trimmed = rawHost.trim().toLowerCase();
-  if (!trimmed || trimmed.includes("/") || trimmed.includes("@")) {
+  const trimmed = rawHost.trim();
+  if (!trimmed) {
     return undefined;
   }
 
-  if (trimmed.startsWith(".") || trimmed.endsWith(".")) {
+  const normalizedFromUrl = tryNormalizeHostFromUrl(trimmed);
+  const normalized = normalizedFromUrl ?? trimmed.toLowerCase();
+
+  if (!normalized || normalized.includes("/") || normalized.includes("@")) {
+    return undefined;
+  }
+
+  if (normalized.startsWith(".") || normalized.endsWith(".")) {
     return undefined;
   }
 
   if (
-    trimmed === "localhost" ||
-    trimmed.endsWith(".localhost") ||
-    isIP(trimmed) !== 0
+    normalized === "localhost" ||
+    normalized.endsWith(".localhost") ||
+    isIP(normalized) !== 0
   ) {
     return undefined;
   }
 
-  return trimmed;
+  return normalized;
+}
+
+function tryNormalizeHostFromUrl(rawValue: string): string | undefined {
+  try {
+    const parsed = new URL(rawValue);
+    if (parsed.username || parsed.password) {
+      return undefined;
+    }
+
+    return parsed.hostname.trim().toLowerCase();
+  } catch {
+    return undefined;
+  }
 }
 
 function throwInvalidInstanceUrl(reason: string): never {

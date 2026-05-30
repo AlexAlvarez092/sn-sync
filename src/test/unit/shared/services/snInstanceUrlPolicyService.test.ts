@@ -87,9 +87,9 @@ suite("snInstanceUrlPolicyService", () => {
   test("rejects hosts outside default policy when custom hosts are disabled", () => {
     assert.throws(
       () =>
-        normalizeAndValidateInstanceUrl("https://sn.company.com", {
+        normalizeAndValidateInstanceUrl("https://sn.example.net", {
           allowCustomHosts: false,
-          customHosts: ["sn.company.com"],
+          customHosts: ["sn.example.net"],
         }),
       (error: unknown) =>
         error instanceof Error &&
@@ -100,26 +100,38 @@ suite("snInstanceUrlPolicyService", () => {
 
   test("allows custom host when enabled and included in allowlist", () => {
     const normalized = normalizeAndValidateInstanceUrl(
-      "https://SN.Company.com",
+      "https://SN.Example.net",
       {
         allowCustomHosts: true,
-        customHosts: ["sn.company.com"],
+        customHosts: ["sn.example.net"],
       },
     );
 
-    assert.strictEqual(normalized, "https://sn.company.com");
+    assert.strictEqual(normalized, "https://sn.example.net");
+  });
+
+  test("allows custom host when allowlist entry is provided as full URL", () => {
+    const normalized = normalizeAndValidateInstanceUrl(
+      "https://portal-dev.example.net",
+      {
+        allowCustomHosts: true,
+        customHosts: ["https://portal-dev.example.net/"],
+      },
+    );
+
+    assert.strictEqual(normalized, "https://portal-dev.example.net");
   });
 
   test("ignores malformed custom-host entries and keeps host policy enforced", () => {
     assert.throws(
       () =>
-        normalizeAndValidateInstanceUrl("https://custom.company.com", {
+        normalizeAndValidateInstanceUrl("https://custom.example.net", {
           allowCustomHosts: true,
           customHosts: [
-            "https://custom.company.com/path",
-            "user@custom.company.com",
-            ".custom.company.com",
-            "custom.company.com.",
+            "https://custom.example.net/path",
+            "user@custom.example.net",
+            ".custom.example.net",
+            "custom.example.net.",
             "localhost",
             "127.0.0.1",
           ],
