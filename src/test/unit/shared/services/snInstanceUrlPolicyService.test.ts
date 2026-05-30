@@ -125,7 +125,7 @@ suite("snInstanceUrlPolicyService", () => {
   test("ignores malformed custom-host entries and keeps host policy enforced", () => {
     assert.throws(
       () =>
-        normalizeAndValidateInstanceUrl("https://custom.example.net", {
+        normalizeAndValidateInstanceUrl("https://other.example.net", {
           allowCustomHosts: true,
           customHosts: [
             "https://custom.example.net/path",
@@ -135,6 +135,34 @@ suite("snInstanceUrlPolicyService", () => {
             "localhost",
             "127.0.0.1",
           ],
+        }),
+      (error: unknown) =>
+        error instanceof Error &&
+        error.message ===
+          `${SN_SYNC_MESSAGES.AUTH_INVALID_INSTANCE_URL_PREFIX} Host is not allowed. Enable 'sn-sync.auth.allowCustomHosts' and add the exact hostname to 'sn-sync.auth.customHosts'.`,
+    );
+  });
+
+  test("ignores custom-host URL entries that include embedded credentials", () => {
+    assert.throws(
+      () =>
+        normalizeAndValidateInstanceUrl("https://custom.example.net", {
+          allowCustomHosts: true,
+          customHosts: ["https://user:secret@custom.example.net"],
+        }),
+      (error: unknown) =>
+        error instanceof Error &&
+        error.message ===
+          `${SN_SYNC_MESSAGES.AUTH_INVALID_INSTANCE_URL_PREFIX} Host is not allowed. Enable 'sn-sync.auth.allowCustomHosts' and add the exact hostname to 'sn-sync.auth.customHosts'.`,
+    );
+  });
+
+  test("ignores empty custom-host entries and keeps host policy enforced", () => {
+    assert.throws(
+      () =>
+        normalizeAndValidateInstanceUrl("https://custom.example.net", {
+          allowCustomHosts: true,
+          customHosts: ["   "],
         }),
       (error: unknown) =>
         error instanceof Error &&
