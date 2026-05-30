@@ -466,7 +466,7 @@ suite("snSyncConfigService", () => {
             }
 
             if (key === "auth.customHosts") {
-              return [" SN.COMPANY.COM ", "", "internal.example"] as T;
+              return [" SN.EXAMPLE.NET ", "", "internal.example"] as T;
             }
 
             return undefined as T;
@@ -478,7 +478,7 @@ suite("snSyncConfigService", () => {
 
         assert.deepStrictEqual(preferences.auth, {
           allowCustomHosts: true,
-          customHosts: ["sn.company.com", "internal.example"],
+          customHosts: ["sn.example.net", "internal.example"],
         });
       } finally {
         (vscode.workspace

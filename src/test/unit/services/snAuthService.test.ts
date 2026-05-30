@@ -767,7 +767,7 @@ suite("snAuthService", () => {
             secrets: {
               get: async () =>
                 JSON.stringify({
-                  instanceUrl: "https://sn.company.com",
+                  instanceUrl: "https://sn.example.net",
                   username: "admin",
                   password: "secret",
                 }),
@@ -793,7 +793,7 @@ suite("snAuthService", () => {
         pull: { clearBeforePull: "ask" },
         auth: {
           allowCustomHosts: true,
-          customHosts: ["sn.company.com"],
+          customHosts: ["sn.example.net"],
         },
       }),
     } as unknown as never);
@@ -803,7 +803,7 @@ suite("snAuthService", () => {
         secrets: {
           get: async () =>
             JSON.stringify({
-              instanceUrl: "https://SN.company.com/path",
+              instanceUrl: "https://SN.example.net/path",
               username: "admin",
               password: "secret",
             }),
@@ -812,7 +812,7 @@ suite("snAuthService", () => {
       vscode.Uri.file("/tmp/ws"),
     );
 
-    assert.strictEqual(resolved.instanceUrl, "https://sn.company.com");
+    assert.strictEqual(resolved.instanceUrl, "https://sn.example.net");
     assert.strictEqual(
       resolved.headers.Authorization,
       `Basic ${Buffer.from("admin:secret", "utf-8").toString("base64")}`,
