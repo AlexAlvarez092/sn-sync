@@ -41,15 +41,15 @@ The command delegates to SnSyncConfigService.initialize, which:
 2. Creates the file if it does not exist.
 3. Writes default structure when creating:
    - `instance`: empty string
-	- `settings`: default sync settings for common script-bearing artifacts
-	  - business rules (`sys_script`)
-	  - script includes (`sys_script_include`)
-	  - client scripts (`sys_script_client`)
-	  - UI actions (`sys_ui_action`)
-	  - ACL scripts (`sys_security_acl`)
-	  - scheduled jobs (`sysauto_script`)
-	  - script actions (`sysevent_script_action`)
-	  - widgets (`sp_widget`)
+   - `settings`: default sync settings for common script-bearing artifacts
+     - business rules (`sys_script`)
+     - script includes (`sys_script_include`)
+     - client scripts (`sys_script_client`)
+     - UI actions (`sys_ui_action`)
+     - ACL scripts (`sys_security_acl`)
+     - scheduled jobs (`sysauto_script`)
+     - script actions (`sysevent_script_action`)
+     - widgets (`sp_widget`)
 4. Sanitizes existing `.snsyncrc` content by stripping legacy auth fields, keeping only non-sensitive configuration.
 
 After initialization, the command stores the provided instance name (when present) through SnSyncConfigService.setInstanceName.
