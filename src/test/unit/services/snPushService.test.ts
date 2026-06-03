@@ -432,6 +432,134 @@ suite("snPushService", () => {
     assert.strictEqual(stored, "");
   });
 
+  test("pushRecordFields sends one PATCH with all fields and maps stored values", async () => {
+    const calls: Array<{ method: string; body: string | null; url: string }> =
+      [];
+
+    const service = new SnPushService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "pwd",
+        }),
+      } as unknown as never,
+      (async (input: unknown, init?: RequestInit) => {
+        calls.push({
+          method: init?.method ?? "",
+          body: (init?.body as string | null) ?? null,
+          url: String(input),
+        });
+
+        return new Response(
+          JSON.stringify({
+            result: {
+              script: "stored-script",
+              description: null,
+            },
+          }),
+          { status: 200 },
+        );
+      }) as typeof fetch,
+    );
+
+    const stored = await service.pushRecordFields(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      "sys_script",
+      "abc",
+      {
+        script: "new-script",
+        description: "new-description",
+      },
+    );
+
+    assert.strictEqual(calls.length, 1);
+    assert.strictEqual(calls[0].method, "PATCH");
+    assert.strictEqual(
+      calls[0].body,
+      JSON.stringify({
+        script: "new-script",
+        description: "new-description",
+      }),
+    );
+    assert.ok(calls[0].url.includes("sysparm_fields=script%2Cdescription"));
+    assert.deepStrictEqual(stored, {
+      script: "stored-script",
+      description: "",
+    });
+  });
+
+  test("pushRecordFields returns empty map and skips network when field map is empty", async () => {
+    let fetchCalls = 0;
+
+    const service = new SnPushService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "pwd",
+        }),
+      } as unknown as never,
+      (async () => {
+        fetchCalls += 1;
+        return new Response("{}", { status: 200 });
+      }) as typeof fetch,
+    );
+
+    const stored = await service.pushRecordFields(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      "sys_script",
+      "abc",
+      {},
+    );
+
+    assert.deepStrictEqual(stored, {});
+    assert.strictEqual(fetchCalls, 0);
+  });
+
+  test("pushFieldContent falls back to empty string when grouped map omits the field", async () => {
+    const service = new SnPushService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "pwd",
+        }),
+      } as unknown as never,
+      (async () => new Response("{}", { status: 200 })) as typeof fetch,
+    );
+
+    const pushRecordFieldsStub = async (): Promise<
+      Record<string, string>
+    > => ({});
+    (
+      service as unknown as {
+        pushRecordFields: typeof pushRecordFieldsStub;
+      }
+    ).pushRecordFields = pushRecordFieldsStub;
+
+    const stored = await service.pushFieldContent(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      {
+        localPath: "src/a.js",
+        table: "sys_script",
+        sysId: "abc",
+        fieldName: "script",
+        baseHash: "sha256:x",
+        updatedAt: new Date().toISOString(),
+      },
+      "new-content",
+    );
+
+    assert.strictEqual(stored, "");
+  });
+
   test("throws when auth is missing for pushFieldContent", async () => {
     const service = new SnPushService(
       {

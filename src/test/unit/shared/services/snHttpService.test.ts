@@ -45,6 +45,15 @@ suite("snHttpService", () => {
     );
   });
 
+  test("buildServiceNowTableApiUrl returns base table url when options are omitted", () => {
+    const url = buildServiceNowTableApiUrl(
+      "https://dev.service-now.com/",
+      "sys_script",
+    );
+
+    assert.strictEqual(url, "https://dev.service-now.com/api/now/table/sys_script");
+  });
+
   test("buildServiceNowTableApiUrl rejects unsafe path segments", () => {
     assert.throws(
       () =>
