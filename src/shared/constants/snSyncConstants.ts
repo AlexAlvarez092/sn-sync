@@ -96,8 +96,12 @@ export const SN_SYNC_MESSAGES = {
   PUSH_REPORT_FAILED_PREFIX: "Failed to generate push report:",
   PUSH_REPORT_NO_UPDATE_SET: "(none found)",
   PUSH_REPORT_RECORD_NOT_FOUND_NOTE: "Record not found in instance (404).",
+  PUSH_REPORT_RECORD_RESOLUTION_FAILED_NOTE_PREFIX:
+    "Record metadata could not be resolved:",
   PUSH_REPORT_UPDATE_SET_TABLE_UNAVAILABLE_NOTE:
     "Update set table is not available (404).",
+  PUSH_REPORT_UPDATE_SET_RESOLUTION_FAILED_NOTE_PREFIX:
+    "Update set metadata could not be resolved:",
   PUSH_MODIFIED_CONFLICTS_PREFIX:
     "Push aborted: remote conflicts detected. No files were uploaded.",
   PUSH_MODIFIED_SUCCESS_PREFIX: "sn-sync push modified completed.",

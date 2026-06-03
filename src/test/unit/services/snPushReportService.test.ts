@@ -667,7 +667,7 @@ suite("snPushReportService", () => {
     assert.strictEqual(report.files[0].resolutionNote, undefined);
   });
 
-  test("throws when record scope lookup fails with non-404", async () => {
+  test("continues when record scope lookup fails with non-404", async () => {
     const service = new SnPushReportService(
       {
         resolveConnectionAuth: async () => ({
@@ -691,22 +691,28 @@ suite("snPushReportService", () => {
       }) as typeof fetch,
     );
 
-    await assert.rejects(
-      () =>
-        service.buildPushReport(
-          {} as vscode.ExtensionContext,
-          vscode.Uri.file("/tmp/ws"),
-          [createCandidate("src/a.js", "sys_script", "boom")],
-        ),
-      (error: unknown) =>
-        error instanceof Error &&
-        error.message.includes(
-          "ServiceNow data request failed with status: 500",
-        ),
+    const report = await service.buildPushReport(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      [createCandidate("src/a.js", "sys_script", "boom")],
+    );
+
+    assert.strictEqual(report.files.length, 1);
+    assert.strictEqual(report.files[0].scopeId, "unknown");
+    assert.strictEqual(report.files[0].scopeName, "unknown");
+    assert.ok(
+      report.files[0].resolutionNote?.includes(
+        "Record metadata could not be resolved:",
+      ),
+    );
+    assert.ok(
+      report.files[0].resolutionNote?.includes(
+        "ServiceNow data request failed with status: 500",
+      ),
     );
   });
 
-  test("throws when update set lookup fails with non-404", async () => {
+  test("continues when update set lookup fails with non-404", async () => {
     const service = new SnPushReportService(
       {
         resolveConnectionAuth: async () => ({
@@ -755,18 +761,105 @@ suite("snPushReportService", () => {
       }) as typeof fetch,
     );
 
-    await assert.rejects(
-      () =>
-        service.buildPushReport(
-          {} as vscode.ExtensionContext,
-          vscode.Uri.file("/tmp/ws"),
-          [createCandidate("src/a.js", "sys_script", "abc")],
-        ),
-      (error: unknown) =>
-        error instanceof Error &&
-        error.message.includes(
-          "ServiceNow data request failed with status: 500",
-        ),
+    const report = await service.buildPushReport(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      [createCandidate("src/a.js", "sys_script", "abc")],
+    );
+
+    assert.strictEqual(report.files.length, 1);
+    assert.strictEqual(report.files[0].scopeId, "x_app_one");
+    assert.strictEqual(report.files[0].updateSetId, "us-from-pref");
+    assert.strictEqual(report.files[0].updateSetName, undefined);
+    assert.ok(
+      report.files[0].resolutionNote?.includes(
+        "Update set metadata could not be resolved:",
+      ),
+    );
+    assert.ok(
+      report.files[0].resolutionNote?.includes(
+        "ServiceNow data request failed with status: 500",
+      ),
+    );
+  });
+
+  test("returns mixed partial results when one candidate fails and another succeeds", async () => {
+    const service = new SnPushReportService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "pwd",
+        }),
+      } as unknown as never,
+      (async (input: unknown) => {
+        const url = String(input);
+
+        if (url.includes("/api/now/table/sys_script/good")) {
+          return new Response(
+            JSON.stringify({
+              result: {
+                "sys_scope.scope": "x_app_one",
+                "sys_scope.name": "App One",
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url.includes("/api/now/table/sys_script/bad")) {
+          return new Response("{}", {
+            status: 500,
+            statusText: "Internal Server Error",
+          });
+        }
+
+        if (url.includes("/api/now/table/sys_user_preference?")) {
+          return new Response(
+            JSON.stringify({
+              result: [],
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url.includes("/api/now/table/sys_update_set?")) {
+          return new Response(
+            JSON.stringify({
+              result: [],
+            }),
+            { status: 200 },
+          );
+        }
+
+        return new Response("{}", { status: 200 });
+      }) as typeof fetch,
+    );
+
+    const report = await service.buildPushReport(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      [
+        createCandidate("src/good.js", "sys_script", "good"),
+        createCandidate("src/bad.js", "sys_script", "bad"),
+      ],
+    );
+
+    assert.strictEqual(report.files.length, 2);
+    const goodFile = report.files.find((file) => file.localPath === "src/good.js");
+    const badFile = report.files.find((file) => file.localPath === "src/bad.js");
+
+    assert.ok(goodFile);
+    assert.strictEqual(goodFile?.scopeId, "x_app_one");
+    assert.strictEqual(goodFile?.resolutionNote, undefined);
+
+    assert.ok(badFile);
+    assert.strictEqual(badFile?.scopeId, "unknown");
+    assert.ok(
+      badFile?.resolutionNote?.includes(
+        "Record metadata could not be resolved:",
+      ),
     );
   });
 
@@ -832,7 +925,7 @@ suite("snPushReportService", () => {
     assert.strictEqual(report.files[0].updateSetName, undefined);
   });
 
-  test("rejects invalid update set id path segments before follow-up lookup", async () => {
+  test("continues when update set id path segment is invalid in user preference", async () => {
     let fetchCalls = 0;
 
     const service = new SnPushReportService(
@@ -877,23 +970,149 @@ suite("snPushReportService", () => {
       }) as typeof fetch,
     );
 
-    await assert.rejects(
-      () =>
-        service.buildPushReport(
-          {} as vscode.ExtensionContext,
-          vscode.Uri.file("/tmp/ws"),
-          [createCandidate("src/a.js", "sys_script", "abc")],
-        ),
-      (error: unknown) => {
-        assert.strictEqual(
-          (error as Error).message,
-          `${SN_SYNC_MESSAGES.SN_REQUEST_INVALID_PATH_SEGMENT_PREFIX} update set id.`,
-        );
-        return true;
-      },
+    const report = await service.buildPushReport(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      [createCandidate("src/a.js", "sys_script", "abc")],
     );
 
+    assert.strictEqual(report.files.length, 1);
+    assert.strictEqual(report.files[0].scopeId, "x_app_one");
+    assert.strictEqual(report.files[0].updateSetId, "../us-from-pref");
+    assert.ok(
+      report.files[0].resolutionNote?.includes(
+        "Update set metadata could not be resolved:",
+      ),
+    );
+    assert.ok(
+      report.files[0].resolutionNote?.includes(
+        `${SN_SYNC_MESSAGES.SN_REQUEST_INVALID_PATH_SEGMENT_PREFIX} update set id.`,
+      ),
+    );
     assert.strictEqual(fetchCalls, 2);
+  });
+
+  test("continues when user preference lookup fails and default update set lookup also fails", async () => {
+    const service = new SnPushReportService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "pwd",
+        }),
+      } as unknown as never,
+      (async (input: unknown) => {
+        const url = String(input);
+
+        if (url.includes("/api/now/table/sys_script/abc")) {
+          return new Response(
+            JSON.stringify({
+              result: {
+                "sys_scope.scope": "x_app_one",
+                "sys_scope.name": "App One",
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url.includes("/api/now/table/sys_user_preference?")) {
+          return new Response("{}", {
+            status: 500,
+            statusText: "Internal Server Error",
+          });
+        }
+
+        if (url.includes("/api/now/table/sys_update_set?")) {
+          return new Response("{}", {
+            status: 500,
+            statusText: "Internal Server Error",
+          });
+        }
+
+        return new Response("{}", { status: 200 });
+      }) as typeof fetch,
+    );
+
+    const report = await service.buildPushReport(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      [createCandidate("src/a.js", "sys_script", "abc")],
+    );
+
+    assert.strictEqual(report.files.length, 1);
+    assert.ok(
+      report.files[0].resolutionNote?.includes(
+        "Update set metadata could not be resolved:",
+      ),
+    );
+    assert.ok(
+      report.files[0].resolutionNote?.includes(
+        "ServiceNow data request failed with status: 500",
+      ),
+    );
+  });
+
+  test("continues when default update set lookup fails with non-404", async () => {
+    const service = new SnPushReportService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "pwd",
+        }),
+      } as unknown as never,
+      (async (input: unknown) => {
+        const url = String(input);
+
+        if (url.includes("/api/now/table/sys_script/abc")) {
+          return new Response(
+            JSON.stringify({
+              result: {
+                "sys_scope.scope": "x_app_one",
+                "sys_scope.name": "App One",
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url.includes("/api/now/table/sys_user_preference?")) {
+          return new Response(
+            JSON.stringify({
+              result: [],
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url.includes("/api/now/table/sys_update_set?")) {
+          return new Response("{}", {
+            status: 500,
+            statusText: "Internal Server Error",
+          });
+        }
+
+        return new Response("{}", { status: 200 });
+      }) as typeof fetch,
+    );
+
+    const report = await service.buildPushReport(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      [createCandidate("src/a.js", "sys_script", "abc")],
+    );
+
+    assert.strictEqual(report.files.length, 1);
+    assert.strictEqual(report.files[0].scopeId, "x_app_one");
+    assert.strictEqual(report.files[0].updateSetId, undefined);
+    assert.ok(
+      report.files[0].resolutionNote?.includes(
+        "Update set metadata could not be resolved:",
+      ),
+    );
   });
 
   test("isNotFoundError handles non-Error values", () => {
@@ -919,6 +1138,56 @@ suite("snPushReportService", () => {
 
     assert.strictEqual(isNotFoundWithMixedCase, false);
     assert.strictEqual(isNotFoundWithLowerCase, true);
+  });
+
+  test("appendResolutionNote merges existing and incoming notes", () => {
+    const service = new SnPushReportService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "pwd",
+        }),
+      } as unknown as never,
+      fetch,
+    );
+
+    const merged = (
+      service as unknown as {
+        appendResolutionNote(
+          existing: string | undefined,
+          incoming: string | undefined,
+        ): string | undefined;
+      }
+    ).appendResolutionNote("first", "second");
+
+    assert.strictEqual(merged, "first second");
+  });
+
+  test("formatResolutionError handles non-Error and empty messages", () => {
+    const service = new SnPushReportService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "pwd",
+        }),
+      } as unknown as never,
+      fetch,
+    );
+
+    const plainString = (
+      service as unknown as { formatResolutionError(error: unknown): string }
+    ).formatResolutionError("plain error");
+
+    const emptyMessage = (
+      service as unknown as { formatResolutionError(error: unknown): string }
+    ).formatResolutionError("   ");
+
+    assert.strictEqual(plainString, "plain error");
+    assert.strictEqual(emptyMessage, "unknown");
   });
 
   test("reports progress while building report", async () => {
