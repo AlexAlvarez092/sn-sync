@@ -87,26 +87,81 @@ export async function runSnPushModifiedCommand(
       return;
     }
 
-    const storedContents: string[] = [];
+    const candidatesByRecord = new Map<
+      string,
+      {
+        table: string;
+        sysId: string;
+        candidates: SnSyncIndexCandidate[];
+      }
+    >();
+
+    for (const candidate of candidates) {
+      const key = `${candidate.entry.table}::${candidate.entry.sysId}`;
+      const existing = candidatesByRecord.get(key);
+
+      if (existing) {
+        existing.candidates.push(candidate);
+        continue;
+      }
+
+      candidatesByRecord.set(key, {
+        table: candidate.entry.table,
+        sysId: candidate.entry.sysId,
+        candidates: [candidate],
+      });
+    }
+
+    const recordGroups = [...candidatesByRecord.values()];
+    const storedContentsByLocalPath = new Map<string, string>();
 
     await runtime.withProgress(
       SN_SYNC_MESSAGES.PUSH_PROGRESS_TITLE,
       async (progress) => {
-        let processed = 0;
+        let processedGroups = 0;
 
-        for (const candidate of candidates) {
-          const storedContent = await pushService.pushFieldContent(
-            context,
-            workspaceFolderUri,
-            candidate.entry,
-            candidate.localContent,
-          );
-          storedContents.push(storedContent);
+        for (const group of recordGroups) {
+          const fieldMap: Record<string, string> = {};
 
-          processed += 1;
+          for (const candidate of group.candidates) {
+            fieldMap[candidate.entry.fieldName] = candidate.localContent;
+          }
+
+          if (pushService.pushRecordFields) {
+            const storedFieldMap = await pushService.pushRecordFields(
+              context,
+              workspaceFolderUri,
+              group.table,
+              group.sysId,
+              fieldMap,
+            );
+
+            for (const candidate of group.candidates) {
+              storedContentsByLocalPath.set(
+                candidate.entry.localPath,
+                storedFieldMap[candidate.entry.fieldName] ?? "",
+              );
+            }
+          } else {
+            for (const candidate of group.candidates) {
+              const storedContent = await pushService.pushFieldContent(
+                context,
+                workspaceFolderUri,
+                candidate.entry,
+                candidate.localContent,
+              );
+
+              storedContentsByLocalPath.set(
+                candidate.entry.localPath,
+                storedContent,
+              );
+            }
+          }
+
+          processedGroups += 1;
           progress.report({
-            increment: 100 / candidates.length,
-            message: `Uploading ${processed}/${candidates.length}: ${candidate.entry.localPath}`,
+            increment: 100 / recordGroups.length,
+            message: `Uploading record ${processedGroups}/${recordGroups.length}: ${group.table}/${group.sysId} (${group.candidates.length} files)`,
           });
         }
 
@@ -121,7 +176,9 @@ export async function runSnPushModifiedCommand(
         table: candidate.entry.table,
         sysId: candidate.entry.sysId,
         fieldName: candidate.entry.fieldName,
-        baseHash: hashText(storedContents[index]),
+        baseHash: hashText(
+          storedContentsByLocalPath.get(candidate.entry.localPath) ?? "",
+        ),
       })),
     );
 
