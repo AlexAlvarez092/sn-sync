@@ -10,6 +10,7 @@ import { registerSnResetIndexCommand } from "@commands/snResetIndexCommand.js";
 import { registerSnPushActiveCommand } from "@commands/snPushActiveCommand.js";
 import { registerSnPushModifiedCommand } from "@commands/snPushModifiedCommand.js";
 import { registerSnPushReportCommand } from "@commands/snPushReportCommand.js";
+import { registerSnStatusBar } from "@services/snStatusBarService.js";
 
 export function activate(context: vscode.ExtensionContext) {
   registerSnInitCommand(context);
@@ -23,6 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerSnPushActiveCommand(context);
   registerSnPushReportCommand(context);
   registerSnPushModifiedCommand(context);
+  registerSnStatusBar(context);
 }
 
 export function deactivate() {}

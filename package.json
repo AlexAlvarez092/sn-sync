@@ -58,6 +58,45 @@
           },
           "default": [],
           "description": "Exact custom hostnames allowed when sn-sync.auth.allowCustomHosts is enabled (for example: sn.company.com)."
+        },
+        "sn-sync.statusBar.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable sn-sync status bar shortcuts."
+        },
+        "sn-sync.statusBar.mode": {
+          "type": "string",
+          "enum": [
+            "minimal",
+            "expanded"
+          ],
+          "default": "minimal",
+          "description": "Status bar display mode: minimal uses one menu entry, expanded shows direct command buttons."
+        },
+        "sn-sync.statusBar.visibleCommands": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sn-sync.sn-init",
+              "sn-sync.auth",
+              "sn-sync.auth-validate",
+              "sn-sync.reset-auth",
+              "sn-sync.open-active-in-instance",
+              "sn-sync.pull",
+              "sn-sync.pull-by-sys-id",
+              "sn-sync.reset-index",
+              "sn-sync.push-active",
+              "sn-sync.push-modified",
+              "sn-sync.push-report"
+            ]
+          },
+          "default": [
+            "sn-sync.pull",
+            "sn-sync.push-active",
+            "sn-sync.push-modified"
+          ],
+          "description": "Commands shown in status bar or minimal menu. Use a subset of supported command IDs."
         }
       }
     },
