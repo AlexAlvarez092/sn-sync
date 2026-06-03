@@ -48,7 +48,9 @@ Opens a temporary Markdown document in VS Code containing:
 9. Format final data into Markdown via formatPushReport.
 10. Open markdown in editor through openMarkdownReport.
 11. Show SN_SYNC_MESSAGES.PUSH_REPORT_SUCCESS.
-12. On failure, show SN_SYNC_MESSAGES.PUSH_REPORT_FAILED_PREFIX + details.
+12. On fatal failure, show SN_SYNC_MESSAGES.PUSH_REPORT_FAILED_PREFIX + details.
+
+Fatal failure means the command cannot continue at all (for example missing workspace, missing auth, or runtime/document rendering failure). Per-record metadata failures are handled as partial results and surfaced as row notes in the report.
 
 ## Markdown formatting details
 
@@ -71,7 +73,7 @@ The command delegates all resolution to SnPushReportService, which:
 1. Processes modified candidates.
 2. Resolves scope per record.
 3. Resolves update set metadata by scope using service rules.
-4. Adds resolution notes for partial failure paths (for example 404 cases).
+4. Adds resolution notes for partial failure paths (for example 404, permissions, validation, or other HTTP failures).
 5. Validates and encodes dynamic Table API path segments before outbound requests.
 
 ## Side effects
@@ -84,11 +86,17 @@ The command delegates all resolution to SnPushReportService, which:
 ## Error handling
 
 - Missing workspace errors.
-- Invalid ServiceNow request path segments in candidate or update set identifiers.
-- Auth/API errors while building report data.
+- Missing/invalid auth configuration before report execution.
+- Invalid ServiceNow request path segments in candidate identifiers.
 - Document open/render errors.
 
-All are surfaced with SN_SYNC_MESSAGES.PUSH_REPORT_FAILED_PREFIX + reason.
+Best-effort behavior:
+
+- Per-record scope/update set resolution errors do not abort the command.
+- Partial failures are captured in `resolutionNote` and included in the final markdown report.
+- The command still returns successfully when at least partial report data can be produced.
+
+Only fatal errors are surfaced with SN_SYNC_MESSAGES.PUSH_REPORT_FAILED_PREFIX + reason.
 
 ## Direct dependencies
 
@@ -138,8 +146,12 @@ sequenceDiagram
   - Resolution: Confirm local edits are saved and indexed.
 
 - Symptom: Report fails with auth/HTTP error
-  - Cause: Invalid credentials or ServiceNow connectivity issue.
-  - Resolution: Run sn: auth validate and verify network access.
+   - Cause: Missing/invalid credentials or command-level runtime failure.
+   - Resolution: Run sn: auth validate, verify network access, and retry.
+
+- Symptom: Report opens with warnings in the Note column
+   - Cause: Partial metadata resolution failed for one or more records/scopes (for example permissions, table availability, invalid identifiers, or transient HTTP failures).
+   - Resolution: Review note text per row, fix the specific permission/config/data issue, then rerun report.
 
 - Symptom: Report opens but update set fields are empty
   - Cause: Scope/update set resolution returned no match.

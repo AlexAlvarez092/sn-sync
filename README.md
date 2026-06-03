@@ -78,6 +78,7 @@ Pushes all locally modified indexed files, stopping on conflicts and grouping re
 ### `sn: push report`
 
 Generates a markdown report of files that would be pushed.
+The report is best effort: if some metadata lookups fail, the command still returns partial results and adds details in the Note column.
 
 ## Keyboard shortcuts
 
