@@ -92,12 +92,69 @@ Default shortcuts for common sync workflows:
 
 These shortcuts are optional defaults. You can override or remove them in VS Code Keyboard Shortcuts.
 
+## Status bar shortcuts
+
+sn-sync can expose one-click status bar actions for common commands.
+
+- minimal mode: one `sn-sync` status bar item that opens a quick-pick menu.
+- expanded mode: direct command buttons.
+
+Status bar actions respect context:
+
+- hidden when no workspace is open.
+- editor-dependent actions (for example `sn: push active`) are hidden when there is no active editor.
+
 ## Configuration
 
 VS Code settings used by the extension:
 
 - `sn-sync.rootDir`
 - `sn-sync.pull.clearBeforePull`
+- `sn-sync.statusBar.enabled`
+- `sn-sync.statusBar.mode`
+- `sn-sync.statusBar.visibleCommands`
+
+Status bar setting details:
+
+- `sn-sync.statusBar.enabled`: enable or disable status bar shortcuts (`true` by default).
+- `sn-sync.statusBar.mode`: `minimal` or `expanded` (`minimal` by default).
+- `sn-sync.statusBar.visibleCommands`: subset of supported command IDs shown in status bar/menu.
+  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-validate`, `sn-sync.reset-auth`, `sn-sync.open-active-in-instance`, `sn-sync.pull`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push-active`, `sn-sync.push-modified`, `sn-sync.push-report`
+
+Recommended presets:
+
+Minimal workflow (focus on pull + push):
+
+```json
+{
+  "sn-sync.statusBar.enabled": true,
+  "sn-sync.statusBar.mode": "minimal",
+  "sn-sync.statusBar.visibleCommands": [
+    "sn-sync.pull",
+    "sn-sync.push-active",
+    "sn-sync.push-modified"
+  ]
+}
+```
+
+Expanded workflow (power users):
+
+```json
+{
+  "sn-sync.statusBar.enabled": true,
+  "sn-sync.statusBar.mode": "expanded",
+  "sn-sync.statusBar.visibleCommands": [
+    "sn-sync.auth",
+    "sn-sync.auth-validate",
+    "sn-sync.pull",
+    "sn-sync.pull-by-sys-id",
+    "sn-sync.push-active",
+    "sn-sync.push-modified",
+    "sn-sync.push-report",
+    "sn-sync.open-active-in-instance"
+  ]
+}
+```
 
 The workspace uses a `.snsyncrc` file only for non-sensitive sync configuration (`instance` selector + `settings`).
 

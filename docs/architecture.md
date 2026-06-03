@@ -22,6 +22,7 @@ sn-sync follows a command-service split:
 ## Activation and command registration
 
 On activation, the extension registers all command handlers from src/extension.ts.
+It also registers a status bar service that exposes quick command entry points.
 
 Registered commands:
 
@@ -36,6 +37,13 @@ Registered commands:
 - sn-sync.push-active
 - sn-sync.push-report
 - sn-sync.push-modified
+
+Status bar behavior:
+
+- Reads `sn-sync.statusBar.*` settings.
+- Supports `minimal` menu mode and `expanded` direct-button mode.
+- Reuses existing command IDs for execution (no duplicate command logic).
+- Updates visibility based on workspace/editor context and configuration changes.
 
 ## Core data flows
 
@@ -180,6 +188,7 @@ flowchart TD
   CMD --> PUSHA[sn: push active]
   CMD --> PUSHM[sn: push modified]
   CMD --> PUSHR[sn: push report]
+  EXT --> SB[SnStatusBarService]
 
   INIT --> CFG[SnSyncConfigService]
   AUTH --> AUTHS[SnAuthService]
@@ -208,6 +217,8 @@ flowchart TD
 
   PUSHR --> REP[SnPushReportService]
   PUSHR --> INDEX
+
+  SB --> CMD
 
   PULLS --> SN[ServiceNow API]
   PUSHS --> SN
