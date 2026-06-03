@@ -53,6 +53,12 @@ export interface SnPushReportBuildOptions {
   onProgress?: (progress: SnPushReportBuildProgress) => void;
 }
 
+interface SnPushReportUpdateSetResolution {
+  updateSetId?: string;
+  updateSetName?: string;
+  resolutionNote?: string;
+}
+
 export interface SnPushReportServiceApi {
   buildPushReport(
     context: vscode.ExtensionContext,
@@ -86,7 +92,7 @@ export class SnPushReportService implements SnPushReportServiceApi {
     >();
     const updateSetCache = new Map<
       string,
-      { updateSetId?: string; updateSetName?: string }
+      SnPushReportUpdateSetResolution
     >();
     const files: SnPushReportFileItem[] = [];
 
@@ -105,16 +111,17 @@ export class SnPushReportService implements SnPushReportServiceApi {
           );
           scopeCache.set(recordKey, scopeInfo);
         } catch (error) {
-          if (!this.isNotFoundError(error)) {
-            throw error;
-          }
-
           scopeInfo = {
             scopeId: SN_SYNC_VALUES.UNKNOWN,
             scopeName: SN_SYNC_VALUES.UNKNOWN,
           };
           scopeCache.set(recordKey, scopeInfo);
-          resolutionNote = SN_SYNC_MESSAGES.PUSH_REPORT_RECORD_NOT_FOUND_NOTE;
+          resolutionNote = this.appendResolutionNote(
+            resolutionNote,
+            this.isNotFoundError(error)
+              ? SN_SYNC_MESSAGES.PUSH_REPORT_RECORD_NOT_FOUND_NOTE
+              : `${SN_SYNC_MESSAGES.PUSH_REPORT_RECORD_RESOLUTION_FAILED_NOTE_PREFIX} ${this.formatResolutionError(error)}`,
+          );
         }
       }
 
@@ -128,19 +135,20 @@ export class SnPushReportService implements SnPushReportServiceApi {
           );
           updateSetCache.set(scopeInfo.scopeId, updateSetInfo);
         } catch (error) {
-          if (!this.isNotFoundError(error)) {
-            throw error;
-          }
-
-          updateSetInfo = {};
+          updateSetInfo = {
+            resolutionNote: this.isNotFoundError(error)
+              ? SN_SYNC_MESSAGES.PUSH_REPORT_UPDATE_SET_TABLE_UNAVAILABLE_NOTE
+              : `${SN_SYNC_MESSAGES.PUSH_REPORT_UPDATE_SET_RESOLUTION_FAILED_NOTE_PREFIX} ${this.formatResolutionError(error)}`,
+          };
           updateSetCache.set(scopeInfo.scopeId, updateSetInfo);
-          resolutionNote =
-            resolutionNote ??
-            SN_SYNC_MESSAGES.PUSH_REPORT_UPDATE_SET_TABLE_UNAVAILABLE_NOTE;
         }
       }
 
       const resolvedUpdateSetInfo = updateSetInfo ?? {};
+      resolutionNote = this.appendResolutionNote(
+        resolutionNote,
+        resolvedUpdateSetInfo.resolutionNote,
+      );
 
       files.push({
         localPath: candidate.entry.localPath,
@@ -237,13 +245,22 @@ export class SnPushReportService implements SnPushReportServiceApi {
     connection: SnServiceNowConnectionAuth,
     headers: Record<string, string>,
     scopeId: string,
-  ): Promise<{ updateSetId?: string; updateSetName?: string }> {
-    const preferredUpdateSetId =
-      await this.loadScopeUpdateSetFromUserPreference(
+  ): Promise<SnPushReportUpdateSetResolution> {
+    let resolutionNote: string | undefined;
+    let preferredUpdateSetId: string | undefined;
+
+    try {
+      preferredUpdateSetId = await this.loadScopeUpdateSetFromUserPreference(
         connection,
         headers,
         scopeId,
       );
+    } catch (error) {
+      resolutionNote = this.appendResolutionNote(
+        resolutionNote,
+        `${SN_SYNC_MESSAGES.PUSH_REPORT_UPDATE_SET_RESOLUTION_FAILED_NOTE_PREFIX} ${this.formatResolutionError(error)}`,
+      );
+    }
 
     if (preferredUpdateSetId) {
       let preferredUpdateSetName: string | undefined;
@@ -255,19 +272,19 @@ export class SnPushReportService implements SnPushReportServiceApi {
         );
       } catch (error) {
         if (!this.isNotFoundError(error)) {
-          throw error;
+          resolutionNote = this.appendResolutionNote(
+            resolutionNote,
+            `${SN_SYNC_MESSAGES.PUSH_REPORT_UPDATE_SET_RESOLUTION_FAILED_NOTE_PREFIX} ${this.formatResolutionError(error)}`,
+          );
         }
       }
 
       return {
         updateSetId: preferredUpdateSetId,
         updateSetName: preferredUpdateSetName,
+        resolutionNote,
       };
     }
-
-    const query = encodeURIComponent(
-      `sys_scope=${scopeId}^is_default=true^ORDERBYDESCsys_updated_on`,
-    );
 
     const response = await this.fetchApi(
       buildServiceNowTableApiUrl(connection.instanceUrl, "sys_update_set", {
@@ -293,12 +310,15 @@ export class SnPushReportService implements SnPushReportServiceApi {
     const row = rows[0];
 
     if (!row) {
-      return {};
+      return {
+        resolutionNote,
+      };
     }
 
     return {
       updateSetId: this.normalize(row.sys_id),
       updateSetName: this.normalize(row.name),
+      resolutionNote,
     };
   }
 
@@ -381,5 +401,29 @@ export class SnPushReportService implements SnPushReportServiceApi {
     const message =
       error instanceof Error ? error.message.toLowerCase() : String(error);
     return message.includes("404") && message.includes("not found");
+  }
+
+  private appendResolutionNote(
+    existing: string | undefined,
+    incoming: string | undefined,
+  ): string | undefined {
+    if (!incoming) {
+      return existing;
+    }
+
+    if (!existing) {
+      return incoming;
+    }
+
+    return `${existing} ${incoming}`;
+  }
+
+  private formatResolutionError(error: unknown): string {
+    const message =
+      error instanceof Error
+        ? this.normalize(error.message)
+        : this.normalize(String(error));
+
+    return message ?? SN_SYNC_VALUES.UNKNOWN;
   }
 }
