@@ -54,7 +54,7 @@ Registered commands:
 ### 3) Push modified flow
 
 - Input: all modified index candidates
-- Process: full conflict pre-check -> batch upload
+- Process: full conflict pre-check -> group by record identity (table + sys_id) -> one PATCH per record group
 - Output: batch remote writes + batch baseline updates
 
 ### 4) Push report flow
@@ -222,4 +222,5 @@ flowchart TD
 
 - The index is foundational for push safety. If index state is invalid, run sn: reset index followed by a pull.
 - Pull and push commands intentionally prioritize consistency and explicit conflict handling over maximum throughput.
+- push modified preserves all-or-nothing conflict semantics while reducing redundant PATCH requests when multiple fields of the same record are modified.
 - Command output messaging is centralized through constants to keep behavior predictable and testable.

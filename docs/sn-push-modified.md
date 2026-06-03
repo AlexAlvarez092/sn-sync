@@ -6,7 +6,7 @@
 
 ## Purpose
 
-Push all locally modified indexed files as a batch, with a remote conflict pre-check for each candidate.
+Push all locally modified indexed files as a batch, with a remote conflict pre-check for each candidate and grouped remote writes by record identity (table + sys_id).
 
 ## Default shortcut
 
@@ -18,8 +18,9 @@ Push all locally modified indexed files as a batch, with a remote conflict pre-c
 1. Discover modified candidates (local hash vs indexed baseHash).
 2. Validate remote conflicts for every candidate.
 3. If any conflict exists, abort the entire batch (all-or-nothing behavior).
-4. If no conflicts exist, upload all files with progress reporting.
-5. Update index baseline hashes for uploaded files.
+4. If no conflicts exist, group candidates by table + sys_id.
+5. Upload one PATCH per record group with all modified fields in the JSON body.
+6. Update index baseline hashes per field using the stored values returned from each grouped PATCH response.
 
 ## Preconditions
 
@@ -46,9 +47,12 @@ Push all locally modified indexed files as a batch, with a remote conflict pre-c
    - stop without uploading anything
 8. If no conflicts:
    - run withProgress(SN_SYNC_MESSAGES.PUSH_PROGRESS_TITLE)
-   - iterate candidates and call pushFieldContent for each
-   - report Uploading i/n progress messages and increments
-9. After uploads complete, call indexService.updateBaseHashes with hashes computed from values returned by pushFieldContent (stored ServiceNow values).
+   - group candidates by table + sys_id
+   - for each group, build field map: fieldName -> localContent
+   - call pushRecordFields once per group (single PATCH per record)
+   - map returned stored values back to each candidate field in the group
+   - report Uploading record i/n progress messages and increments, including record identity and file count in the group
+9. After grouped uploads complete, call indexService.updateBaseHashes with hashes computed per candidate from returned stored values.
 10. Show SN_SYNC_MESSAGES.PUSH_MODIFIED_SUCCESS_PREFIX + uploaded file count.
 11. On failure, show SN_SYNC_MESSAGES.PUSH_MODIFIED_FAILED_PREFIX + details.
 
@@ -60,13 +64,14 @@ Push all locally modified indexed files as a batch, with a remote conflict pre-c
 
 ## Side effects
 
-- Remote writes to multiple ServiceNow records/fields.
+- Remote writes to multiple ServiceNow records/fields (batched by record when several modified fields share the same table + sys_id).
 - Batch local index baseline updates.
 
 ## Request safety model
 
 - Each candidate request validates and encodes dynamic ServiceNow path segments before any remote GET/PATCH call.
 - If one candidate carries malformed table or `sys_id` values, the command fails fast instead of sending a malformed outbound request.
+- Grouped write requests preserve the same path-segment safety checks while reducing redundant PATCH traffic.
 
 ## Direct dependencies
 
@@ -105,13 +110,14 @@ sequenceDiagram
             C->>R: showErrorMessage(PUSH_MODIFIED_CONFLICTS_PREFIX + list)
          else No conflicts
             C->>R: withProgress(PUSH_PROGRESS_TITLE)
-            loop Upload each candidate
-               C->>P: pushFieldContent(entry, localContent)
-               P->>N: PATCH record field
-               N-->>P: stored field value
-               C->>R: progress.report(Uploading i/n)
+            C->>C: group candidates by table + sys_id
+            loop Upload each record group
+               C->>P: pushRecordFields(table, sys_id, fieldMap)
+               P->>N: PATCH record with grouped fields
+               N-->>P: stored field values
+               C->>R: progress.report(Uploading record i/n)
             end
-            C->>I: updateBaseHashes(hash(storedValue) per candidate)
+            C->>I: updateBaseHashes(hash(storedValue) per candidate field)
             C->>R: showInformationMessage(PUSH_MODIFIED_SUCCESS_PREFIX)
          end
       end
@@ -129,7 +135,7 @@ sequenceDiagram
   - Resolution: Confirm edits are saved and file is indexed.
 
 - Symptom: Upload stops mid-run with failure prefix
-  - Cause: Network/API failure on one candidate.
+   - Cause: Network/API failure while uploading one grouped record PATCH.
   - Resolution: Resolve connectivity/API issue and rerun command.
 
 - Symptom: Batch push fails with an invalid path segment error

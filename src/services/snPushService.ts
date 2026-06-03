@@ -18,6 +18,13 @@ export interface SnPushServiceApi {
     workspaceFolderUri: vscode.Uri,
     entry: SnSyncIndexEntry,
   ): Promise<string>;
+  pushRecordFields?(
+    context: vscode.ExtensionContext,
+    workspaceFolderUri: vscode.Uri,
+    table: string,
+    sysId: string,
+    fieldMap: Record<string, string>,
+  ): Promise<Record<string, string>>;
   pushFieldContent(
     context: vscode.ExtensionContext,
     workspaceFolderUri: vscode.Uri,
@@ -81,6 +88,31 @@ export class SnPushService implements SnPushServiceApi {
     entry: SnSyncIndexEntry,
     content: string,
   ): Promise<string> {
+    const storedFieldMap = await this.pushRecordFields(
+      context,
+      workspaceFolderUri,
+      entry.table,
+      entry.sysId,
+      {
+        [entry.fieldName]: content,
+      },
+    );
+
+    return storedFieldMap[entry.fieldName] ?? "";
+  }
+
+  public async pushRecordFields(
+    context: vscode.ExtensionContext,
+    workspaceFolderUri: vscode.Uri,
+    table: string,
+    sysId: string,
+    fieldMap: Record<string, string>,
+  ): Promise<Record<string, string>> {
+    const fieldNames = Object.keys(fieldMap);
+    if (fieldNames.length === 0) {
+      return {};
+    }
+
     const connection = await this.authService.resolveConnectionAuth(
       context,
       workspaceFolderUri,
@@ -88,8 +120,11 @@ export class SnPushService implements SnPushServiceApi {
     const headers = resolveConnectionHeaders(connection);
 
     const response = await this.fetchApi(
-      buildServiceNowTableApiUrl(connection.instanceUrl, entry.table, {
-        pathSegments: [{ value: entry.sysId, label: "sys_id" }],
+      buildServiceNowTableApiUrl(connection.instanceUrl, table, {
+        pathSegments: [{ value: sysId, label: "sys_id" }],
+        queryParams: {
+          sysparm_fields: fieldNames.join(","),
+        },
       }),
       {
         method: "PATCH",
@@ -98,16 +133,21 @@ export class SnPushService implements SnPushServiceApi {
           "Content-Type": SN_SYNC_SERVICENOW.CONTENT_TYPE_JSON,
           ...headers,
         },
-        body: JSON.stringify({
-          [entry.fieldName]: content,
-        }),
+        body: JSON.stringify(fieldMap),
       },
     );
 
     handleHttpError(response, SN_SYNC_MESSAGES.SN_REQUEST_HTTP_STATUS_PREFIX);
 
     const payload = (await response.json()) as SnRecordResponse;
-    const value = payload.result?.[entry.fieldName];
-    return value === undefined || value === null ? "" : String(value);
+    const storedFieldMap: Record<string, string> = {};
+
+    for (const fieldName of fieldNames) {
+      const value = payload.result?.[fieldName];
+      storedFieldMap[fieldName] =
+        value === undefined || value === null ? "" : String(value);
+    }
+
+    return storedFieldMap;
   }
 }

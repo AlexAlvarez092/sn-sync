@@ -73,7 +73,7 @@ Pushes only the active file in the editor, with conflict checks.
 
 ### `sn: push modified`
 
-Pushes all locally modified indexed files, stopping on conflicts.
+Pushes all locally modified indexed files, stopping on conflicts and grouping remote writes by record (table + sys_id) when possible.
 
 ### `sn: push report`
 

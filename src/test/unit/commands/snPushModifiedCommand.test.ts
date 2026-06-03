@@ -365,6 +365,261 @@ suite("snPushModifiedCommand", () => {
     ]);
   });
 
+  test("groups uploads by record and updates hashes per field", async () => {
+    const pushedRecords: Array<{
+      table: string;
+      sysId: string;
+      fieldMap: Record<string, string>;
+    }> = [];
+    const progressMessages: string[] = [];
+    const updatedHashes = new Map<string, string>();
+
+    await runSnPushModifiedCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getRemoteFieldContent: async () => "base",
+        pushFieldContent: async () => {
+          throw new Error(
+            "pushFieldContent should not be used when grouped API is available",
+          );
+        },
+        pushRecordFields: async (
+          _context,
+          _workspaceUri,
+          table,
+          sysId,
+          fieldMap,
+        ) => {
+          pushedRecords.push({ table, sysId, fieldMap });
+
+          if (sysId === "a") {
+            return {
+              script: "stored-script-a",
+              description: "stored-description-a",
+            };
+          }
+
+          return {
+            script: "stored-script-b",
+            description: "",
+          };
+        },
+      },
+      {
+        getModifiedCandidates: async () => [
+          {
+            entry: {
+              localPath: "src/a-script.js",
+              table: "sys_script",
+              sysId: "a",
+              fieldName: "script",
+              baseHash: hashText("base"),
+              updatedAt: "now",
+            },
+            localContent: "new-script-a",
+            localHash: hashText("new-script-a"),
+          },
+          {
+            entry: {
+              localPath: "src/a-description.js",
+              table: "sys_script",
+              sysId: "a",
+              fieldName: "description",
+              baseHash: hashText("base"),
+              updatedAt: "now",
+            },
+            localContent: "new-description-a",
+            localHash: hashText("new-description-a"),
+          },
+          {
+            entry: {
+              localPath: "src/b-script.js",
+              table: "sys_script",
+              sysId: "b",
+              fieldName: "script",
+              baseHash: hashText("base"),
+              updatedAt: "now",
+            },
+            localContent: "new-script-b",
+            localHash: hashText("new-script-b"),
+          },
+        ],
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async (_workspace, updates) => {
+          for (const update of updates) {
+            updatedHashes.set(update.localPath, update.baseHash);
+          }
+        },
+      },
+      {
+        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: ({ message }) => {
+              progressMessages.push(message ?? "");
+            },
+          }),
+      },
+    );
+
+    assert.strictEqual(pushedRecords.length, 2);
+    assert.deepStrictEqual(pushedRecords[0], {
+      table: "sys_script",
+      sysId: "a",
+      fieldMap: {
+        script: "new-script-a",
+        description: "new-description-a",
+      },
+    });
+    assert.deepStrictEqual(pushedRecords[1], {
+      table: "sys_script",
+      sysId: "b",
+      fieldMap: {
+        script: "new-script-b",
+      },
+    });
+    assert.strictEqual(
+      updatedHashes.get("src/a-script.js"),
+      hashText("stored-script-a"),
+    );
+    assert.strictEqual(
+      updatedHashes.get("src/a-description.js"),
+      hashText("stored-description-a"),
+    );
+    assert.strictEqual(
+      updatedHashes.get("src/b-script.js"),
+      hashText("stored-script-b"),
+    );
+    assert.strictEqual(progressMessages.length, 2);
+    assert.ok(
+      progressMessages[0].includes("Uploading record 1/2: sys_script/a"),
+    );
+    assert.ok(
+      progressMessages[1].includes("Uploading record 2/2: sys_script/b"),
+    );
+  });
+
+  test("uses empty stored value when grouped response omits a field", async () => {
+    const updatedHashes = new Map<string, string>();
+
+    await runSnPushModifiedCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getRemoteFieldContent: async () => "base",
+        pushFieldContent: async () => {
+          throw new Error(
+            "pushFieldContent should not be used when grouped API is available",
+          );
+        },
+        pushRecordFields: async () => ({
+          script: "stored-script",
+        }),
+      },
+      {
+        getModifiedCandidates: async () => [
+          {
+            entry: {
+              localPath: "src/a-script.js",
+              table: "sys_script",
+              sysId: "a",
+              fieldName: "script",
+              baseHash: hashText("base"),
+              updatedAt: "now",
+            },
+            localContent: "new-script-a",
+            localHash: hashText("new-script-a"),
+          },
+          {
+            entry: {
+              localPath: "src/a-description.js",
+              table: "sys_script",
+              sysId: "a",
+              fieldName: "description",
+              baseHash: hashText("base"),
+              updatedAt: "now",
+            },
+            localContent: "new-description-a",
+            localHash: hashText("new-description-a"),
+          },
+        ],
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async (_workspace, updates) => {
+          for (const update of updates) {
+            updatedHashes.set(update.localPath, update.baseHash);
+          }
+        },
+      },
+      {
+        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+      },
+    );
+
+    assert.strictEqual(
+      updatedHashes.get("src/a-script.js"),
+      hashText("stored-script"),
+    );
+    assert.strictEqual(updatedHashes.get("src/a-description.js"), hashText(""));
+  });
+
+  test("uses empty stored value when legacy push returns undefined", async () => {
+    const updatedHashes = new Map<string, string>();
+
+    await runSnPushModifiedCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getRemoteFieldContent: async () => "base",
+        pushFieldContent: async () => undefined as unknown as string,
+      },
+      {
+        getModifiedCandidates: async () => [
+          {
+            entry: {
+              localPath: "src/a.js",
+              table: "sys_script",
+              sysId: "a",
+              fieldName: "script",
+              baseHash: hashText("base"),
+              updatedAt: "now",
+            },
+            localContent: "new-a",
+            localHash: hashText("new-a"),
+          },
+        ],
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async (_workspace, updates) => {
+          for (const update of updates) {
+            updatedHashes.set(update.localPath, update.baseHash);
+          }
+        },
+      },
+      {
+        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+      },
+    );
+
+    assert.strictEqual(updatedHashes.get("src/a.js"), hashText(""));
+  });
+
   test("shows detailed error when push modified throws", async () => {
     const shownErrors: string[] = [];
 
