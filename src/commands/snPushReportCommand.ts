@@ -117,8 +117,8 @@ export function registerSnPushReportCommand(
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.PUSH_REPORT,
     () =>
-      runWithCommandStatus(() =>
-        runSnPushReportCommand(context, indexService, reportService),
+      runWithCommandStatus(
+        () => runSnPushReportCommand(context, indexService, reportService),
         {
           message: "sn-sync: building push report...",
         },

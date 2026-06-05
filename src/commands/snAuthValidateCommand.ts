@@ -9,6 +9,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
+  runWithCommandStatus,
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 
@@ -55,7 +56,13 @@ export function registerSnAuthValidateCommand(
 ): void {
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.AUTH_VALIDATE,
-    () => runSnAuthValidateCommand(context, authService),
+    () =>
+      runWithCommandStatus(
+        () => runSnAuthValidateCommand(context, authService),
+        {
+          message: "sn-sync: validating auth...",
+        },
+      ),
   );
 
   context.subscriptions.push(disposable);

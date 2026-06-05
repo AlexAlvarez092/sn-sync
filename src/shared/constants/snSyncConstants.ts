@@ -86,7 +86,7 @@ export const SN_SYNC_MESSAGES = {
   PUSH_ACTIVE_NO_LOCAL_CHANGES:
     "No local changes detected for the active file.",
   PUSH_ACTIVE_CONFLICT_PREFIX:
-    "Push aborted: remote changes detected for active file:",
+    "Push aborted: remote conflicts detected for active file. No files were uploaded:",
   PUSH_ACTIVE_SUCCESS: "sn-sync push active completed.",
   PUSH_ACTIVE_FAILED_PREFIX: "Failed to push active file to ServiceNow:",
   PUSH_MODIFIED_NO_LOCAL_CHANGES: "No modified local files detected to push.",
@@ -107,6 +107,32 @@ export const SN_SYNC_MESSAGES = {
   PUSH_MODIFIED_SUCCESS_PREFIX: "sn-sync push modified completed.",
   PUSH_MODIFIED_FAILED_PREFIX: "Failed to push modified files to ServiceNow:",
   CLEAR_SRC_CONFIRM_ACTION: "Clear src",
+} as const;
+
+export const SN_SYNC_PUSH_CONFLICT_UI = {
+  DIFF_TITLE_PREFIX: "Remote vs Local:",
+  PICK_TITLE_PREFIX: "Conflict detected:",
+  PICK_PLACEHOLDER: "Select how to resolve this conflict",
+  OVERWRITE_LABEL: "Overwrite remote",
+  OVERWRITE_DESCRIPTION: "Push local content to ServiceNow",
+  MERGE_LABEL: "Merge local and remote",
+  MERGE_DESCRIPTION: "Resolve with Merge Editor, then push merged result",
+  DISCARD_LABEL: "Discard local",
+  DISCARD_DESCRIPTION: "Pull remote content into local file",
+  SKIP_LABEL: "Skip file",
+  SKIP_DESCRIPTION: "Leave this file unresolved for now",
+  DISCARD_CONFIRM_PREFIX: "Discard local changes for",
+  DISCARD_CONFIRM_ACTION: "Discard local",
+  MERGE_PROMPT_PREFIX: "Resolve the merge for",
+  MERGE_PROMPT_SUFFIX: "save the file, then choose an action.",
+  MERGE_ACTION_PUSH: "Push merged",
+  MERGE_ACTION_SKIP: "Skip file",
+  MERGE_INPUT_LOCAL_TITLE: "Local",
+  MERGE_INPUT_LOCAL_DESCRIPTION: "Current local changes",
+  MERGE_INPUT_LOCAL_DETAIL: "Local",
+  MERGE_INPUT_REMOTE_TITLE: "Remote",
+  MERGE_INPUT_REMOTE_DESCRIPTION: "Latest content in ServiceNow",
+  MERGE_INPUT_REMOTE_DETAIL: "Remote",
 } as const;
 
 export const SN_SYNC_VALUES = {

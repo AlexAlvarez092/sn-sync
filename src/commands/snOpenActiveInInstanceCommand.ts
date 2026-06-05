@@ -13,6 +13,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
+  runWithCommandStatus,
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 import { normalizeInstanceUrl } from "@shared/services/snHttpService.js";
@@ -120,10 +121,16 @@ export function registerSnOpenActiveInInstanceCommand(
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.OPEN_ACTIVE_IN_INSTANCE,
     () =>
-      runSnOpenActiveInInstanceCommand(
-        context,
-        authService,
-        new SnSyncIndexService(context.workspaceState),
+      runWithCommandStatus(
+        () =>
+          runSnOpenActiveInInstanceCommand(
+            context,
+            authService,
+            new SnSyncIndexService(context.workspaceState),
+          ),
+        {
+          message: "sn-sync: opening active record in instance...",
+        },
       ),
   );
 

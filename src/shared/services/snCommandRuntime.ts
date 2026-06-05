@@ -29,6 +29,37 @@ export function withNotificationProgress<T>(
   );
 }
 
+const DEFAULT_COMMAND_STATUS_MESSAGE = "sn-sync: running command...";
+const DEFAULT_COMMAND_STATUS_DEBOUNCE_MS = 150;
+
+export interface RunWithCommandStatusOptions {
+  message?: string;
+  debounceMs?: number;
+}
+
+export function runWithCommandStatus<T>(
+  task: () => Thenable<T>,
+  options: RunWithCommandStatusOptions = {},
+): Promise<T> {
+  const statusMessage = options.message ?? DEFAULT_COMMAND_STATUS_MESSAGE;
+  const debounceMs = Math.max(
+    0,
+    options.debounceMs ?? DEFAULT_COMMAND_STATUS_DEBOUNCE_MS,
+  );
+
+  let status: vscode.Disposable | undefined;
+  const timer = setTimeout(() => {
+    status = vscode.window.setStatusBarMessage(`$(sync~spin) ${statusMessage}`);
+  }, debounceMs);
+
+  return Promise.resolve()
+    .then(task)
+    .finally(() => {
+      clearTimeout(timer);
+      status?.dispose();
+    });
+}
+
 export function getWorkspaceFolderOrShowError(
   runtime: SnBaseCommandRuntime,
 ): vscode.Uri | undefined {

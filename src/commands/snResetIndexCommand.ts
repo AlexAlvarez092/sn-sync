@@ -8,6 +8,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
+  runWithCommandStatus,
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 import {
@@ -80,7 +81,13 @@ export function registerSnResetIndexCommand(
 ): void {
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.RESET_INDEX,
-    () => runSnResetIndexCommand(context, indexService),
+    () =>
+      runWithCommandStatus(
+        () => runSnResetIndexCommand(context, indexService),
+        {
+          message: "sn-sync: resetting index...",
+        },
+      ),
   );
 
   context.subscriptions.push(disposable);
