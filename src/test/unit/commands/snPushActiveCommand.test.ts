@@ -1,4 +1,7 @@
 import * as assert from "assert";
+import * as fs from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
 import * as vscode from "vscode";
 import {
   registerSnPushActiveCommand,
@@ -295,6 +298,220 @@ suite("snPushActiveCommand", () => {
     ]);
   });
 
+  test("resolves active conflict by overwriting remote", async () => {
+    let pushedContent = "";
+    let updated = false;
+
+    await runSnPushActiveCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getRemoteFieldContent: async () => "remote-new",
+        pushFieldContent: async (_context, _workspace, _entry, content) => {
+          pushedContent = content;
+          return content;
+        },
+      },
+      {
+        findEntryByLocalPath: async () => ({
+          localPath: "src/a.js",
+          table: "sys_script",
+          sysId: "abc",
+          fieldName: "script",
+          baseHash: hashText("old"),
+          updatedAt: "now",
+        }),
+        toWorkspaceRelativePath: () => "src/a.js",
+        getModifiedCandidates: async () => [],
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => {
+          updated = true;
+        },
+      },
+      {
+        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+        getActiveTextEditor: () =>
+          ({
+            document: {
+              uri: vscode.Uri.file("/tmp/ws/src/a.js"),
+              getText: () => "local-new",
+            },
+          }) as unknown as vscode.TextEditor,
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async () => undefined,
+        resolveConflict: async () => ({ kind: "overwriteRemote" }),
+      },
+    );
+
+    assert.strictEqual(pushedContent, "local-new");
+    assert.strictEqual(updated, true);
+  });
+
+  test("resolves active conflict by pushing merged content", async () => {
+    let pushedContent = "";
+
+    await runSnPushActiveCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getRemoteFieldContent: async () => "remote-new",
+        pushFieldContent: async (_context, _workspace, _entry, content) => {
+          pushedContent = content;
+          return content;
+        },
+      },
+      {
+        findEntryByLocalPath: async () => ({
+          localPath: "src/a.js",
+          table: "sys_script",
+          sysId: "abc",
+          fieldName: "script",
+          baseHash: hashText("old"),
+          updatedAt: "now",
+        }),
+        toWorkspaceRelativePath: () => "src/a.js",
+        getModifiedCandidates: async () => [],
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+      },
+      {
+        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+        getActiveTextEditor: () =>
+          ({
+            document: {
+              uri: vscode.Uri.file("/tmp/ws/src/a.js"),
+              getText: () => "local-new",
+            },
+          }) as unknown as vscode.TextEditor,
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async () => undefined,
+        resolveConflict: async () => ({
+          kind: "merge",
+          mergedContent: "merged-content",
+        }),
+      },
+    );
+
+    assert.strictEqual(pushedContent, "merged-content");
+  });
+
+  test("resolves active conflict by discarding local and updating base hash", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sn-sync-active-"));
+    const workspaceUri = vscode.Uri.file(tempDir);
+    const localFilePath = path.join(tempDir, "a.js");
+    await fs.writeFile(localFilePath, "local-new", "utf8");
+
+    let pushed = false;
+    let updatedHash = "";
+    const shownInfos: string[] = [];
+
+    try {
+      await runSnPushActiveCommand(
+        {} as vscode.ExtensionContext,
+        {
+          getRemoteFieldContent: async () => "remote-new",
+          pushFieldContent: async () => {
+            pushed = true;
+            return "";
+          },
+        },
+        {
+          findEntryByLocalPath: async () => ({
+            localPath: "a.js",
+            table: "sys_script",
+            sysId: "abc",
+            fieldName: "script",
+            baseHash: hashText("old"),
+            updatedAt: "now",
+          }),
+          toWorkspaceRelativePath: () => "a.js",
+          getModifiedCandidates: async () => [],
+          recordPullFiles: async () => undefined,
+          updateBaseHashes: async (_workspace, updates) => {
+            updatedHash = updates[0]?.baseHash ?? "";
+          },
+        },
+        {
+          getWorkspaceFolderUri: () => workspaceUri,
+          getActiveTextEditor: () =>
+            ({
+              document: {
+                uri: vscode.Uri.file(localFilePath),
+                getText: () => "local-new",
+              },
+            }) as unknown as vscode.TextEditor,
+          showErrorMessage: async () => undefined,
+          showInformationMessage: async (message: string) => {
+            shownInfos.push(message);
+            return undefined;
+          },
+          resolveConflict: async () => ({ kind: "discardLocal" }),
+        },
+      );
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+
+    assert.strictEqual(pushed, false);
+    assert.strictEqual(updatedHash, hashText("remote-new"));
+    assert.strictEqual(shownInfos.length, 1);
+    assert.ok(shownInfos[0].includes("0 files uploaded"));
+    assert.ok(shownInfos[0].includes("Discarded: 1"));
+  });
+
+  test("skips active push when conflict resolver returns skip", async () => {
+    let pushed = false;
+    let updated = false;
+    const shownInfos: string[] = [];
+
+    await runSnPushActiveCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getRemoteFieldContent: async () => "remote-new",
+        pushFieldContent: async () => {
+          pushed = true;
+          return "";
+        },
+      },
+      {
+        findEntryByLocalPath: async () => ({
+          localPath: "src/a.js",
+          table: "sys_script",
+          sysId: "abc",
+          fieldName: "script",
+          baseHash: hashText("old"),
+          updatedAt: "now",
+        }),
+        toWorkspaceRelativePath: () => "src/a.js",
+        getModifiedCandidates: async () => [],
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => {
+          updated = true;
+        },
+      },
+      {
+        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+        getActiveTextEditor: () =>
+          ({
+            document: {
+              uri: vscode.Uri.file("/tmp/ws/src/a.js"),
+              getText: () => "local-new",
+            },
+          }) as unknown as vscode.TextEditor,
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async (message: string) => {
+          shownInfos.push(message);
+          return undefined;
+        },
+        resolveConflict: async () => ({ kind: "skip" }),
+      },
+    );
+
+    assert.strictEqual(pushed, false);
+    assert.strictEqual(updated, false);
+    assert.strictEqual(shownInfos.length, 1);
+    assert.ok(shownInfos[0].includes("0 files uploaded"));
+    assert.ok(shownInfos[0].includes("Skipped: 1"));
+  });
+
   test("shows detailed error when push active throws", async () => {
     const shownErrors: string[] = [];
 
@@ -391,7 +608,9 @@ suite("snPushActiveCommand", () => {
 
     assert.strictEqual(pushed, true);
     assert.strictEqual(updated, true);
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.PUSH_ACTIVE_SUCCESS]);
+    assert.deepStrictEqual(shownInfos, [
+      `${SN_SYNC_MESSAGES.PUSH_ACTIVE_SUCCESS} 1 file uploaded.`,
+    ]);
   });
 });
 
