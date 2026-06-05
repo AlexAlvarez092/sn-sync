@@ -34,6 +34,8 @@ interface TableQuickPickItem extends vscode.QuickPickItem {
   setting: ExtensionConfigSetting;
 }
 
+const SYS_ID_PATTERN = /^[0-9a-f]{32}$/i;
+
 export interface SnPullBySysIdRuntime
   extends SnBaseCommandRuntime, Pick<FolderClearRuntime, "createDirectory"> {
   showQuickPick<T extends vscode.QuickPickItem>(
@@ -107,10 +109,12 @@ export async function runSnPullBySysIdCommand(
       prompt: SN_SYNC_INPUTS.PULL_BY_SYS_ID_PROMPT,
       placeHolder: SN_SYNC_INPUTS.PULL_BY_SYS_ID_PLACEHOLDER,
       ignoreFocusOut: true,
-      validateInput: (value) =>
-        value.trim()
+      validateInput: (value) => {
+        const normalizedValue = value.trim();
+        return SYS_ID_PATTERN.test(normalizedValue)
           ? undefined
-          : SN_SYNC_MESSAGES.PULL_BY_SYS_ID_INVALID_SYS_ID,
+          : SN_SYNC_MESSAGES.PULL_BY_SYS_ID_INVALID_SYS_ID;
+      },
     });
 
     if (rawSysId === undefined) {
@@ -121,7 +125,7 @@ export async function runSnPullBySysIdCommand(
     }
 
     const sysId = rawSysId.trim();
-    if (!sysId) {
+    if (!SYS_ID_PATTERN.test(sysId)) {
       void runtime.showErrorMessage(
         SN_SYNC_MESSAGES.PULL_BY_SYS_ID_INVALID_SYS_ID,
       );
