@@ -1,5 +1,3 @@
-// Backward-compatible barrel module.
-// New code should prefer importing from specific files in this folder.
 export { SN_SYNC_COMMANDS } from "./snSyncCommands.js";
 export { SN_SYNC_DEFAULTS } from "./snSyncDefaults.js";
 export { SN_SYNC_DIAGNOSTICS } from "./snSyncDiagnostics.js";
