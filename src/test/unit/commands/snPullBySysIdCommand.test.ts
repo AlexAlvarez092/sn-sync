@@ -635,6 +635,54 @@ suite("snPullBySysIdCommand", () => {
       `${SN_SYNC_MESSAGES.PULL_BY_SYS_ID_FAILED_PREFIX} (SN_PULL_BY_SYS_ID_FAILED) pull-by-sys-id-fail`,
     ]);
   });
+
+  test("shows detailed error when rootDir escapes workspace before pull by sys_id", async () => {
+    const shownErrors: string[] = [];
+    let pullWasCalled = false;
+
+    await runSnPullBySysIdCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "script_includes",
+            table: "sys_script_include",
+            query: "active=true",
+            key: "api_name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+        getPreferences: async () => ({
+          rootDir: "../outside",
+          pull: { clearBeforePull: "ask" },
+        }),
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async () => {
+          pullWasCalled = true;
+          throw new Error("must-not-be-called");
+        },
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-by-sys-id-invalid-root-dir"),
+        showErrorMessage: async (message: string) => {
+          shownErrors.push(message);
+          return undefined;
+        },
+        showInformationMessage: async () => undefined,
+        showQuickPick: async (items) => items[0],
+        showInputBox: async () => VALID_SYS_ID,
+        createDirectory: async () => undefined,
+        withProgress: async (_title, task) => task({ report: () => undefined }),
+      },
+    );
+
+    assert.strictEqual(pullWasCalled, false);
+    assert.deepStrictEqual(shownErrors, [
+      `${SN_SYNC_MESSAGES.PULL_BY_SYS_ID_FAILED_PREFIX} (SN_PULL_BY_SYS_ID_FAILED) ${SN_SYNC_MESSAGES.WORKSPACE_PATH_INVALID_PREFIX} rootDir.`,
+    ]);
+  });
 });
 
 function withPatchedRegisterCommand(run: () => void): void {

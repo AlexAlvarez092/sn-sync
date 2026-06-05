@@ -29,6 +29,7 @@ import {
 } from "@shared/services/snFolderService.js";
 import { resolvePreferences } from "@shared/services/snPreferencesService.js";
 import { createPullFileWrittenHandler } from "@shared/services/snPullProgressService.js";
+import { resolveWorkspaceChildUri } from "@shared/services/snWorkspacePathService.js";
 
 interface TableQuickPickItem extends vscode.QuickPickItem {
   setting: ExtensionConfigSetting;
@@ -137,10 +138,15 @@ export async function runSnPullBySysIdCommand(
       workspaceFolderUri,
     );
 
-    await ensureDirectoryExists(
-      runtime,
-      vscode.Uri.joinPath(workspaceFolderUri, preferences.rootDir),
-    );
+    const rootDirUri = resolveWorkspaceChildUri(workspaceFolderUri, [
+      {
+        value: preferences.rootDir,
+        label: "rootDir",
+        allowHierarchy: true,
+      },
+    ]);
+
+    await ensureDirectoryExists(runtime, rootDirUri);
 
     const filteredSetting: ExtensionConfigSetting = {
       ...selected.setting,
