@@ -895,6 +895,33 @@ suite("snPullService", () => {
           return true;
         },
       );
+
+      await assert.rejects(
+        () =>
+          service.pullConfiguredScripts(
+            {} as vscode.ExtensionContext,
+            workspaceUri,
+            [
+              {
+                folder: "security_rules",
+                table: "sys_security_acl",
+                query: "active=true",
+                key: "name",
+                fields: [
+                  { extension: "js", field_name: "script" },
+                  { extension: "JS", field_name: "condition" },
+                ],
+              },
+            ],
+          ),
+        (error: unknown) => {
+          assert.strictEqual(
+            (error as Error).message,
+            `${SN_SYNC_MESSAGES.PULL_DUPLICATE_OUTPUT_FILE_PREFIX} security_rules/Can Read.JS`,
+          );
+          return true;
+        },
+      );
     });
   });
 

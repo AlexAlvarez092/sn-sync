@@ -158,12 +158,24 @@ export class SnPullService implements SnPullServiceApi {
     );
     await vscode.workspace.fs.createDirectory(targetDirUri);
 
+    const seenOutputFileNames = new Set<string>();
+
     for (const field of setting.fields) {
       const safeExtension = getWorkspacePathSegments({
         value: field.extension,
         label: "file extension",
       })[0];
       const fileName = `${safeKeyValue}.${safeExtension}`;
+      const comparableFileName = fileName.toLowerCase();
+
+      if (seenOutputFileNames.has(comparableFileName)) {
+        throw new Error(
+          `${SN_SYNC_MESSAGES.PULL_DUPLICATE_OUTPUT_FILE_PREFIX} ${setting.folder}/${fileName}`,
+        );
+      }
+
+      seenOutputFileNames.add(comparableFileName);
+
       const fileUri = resolveWorkspaceChildUri(workspaceFolderUri, [
         ...baseFragments,
         {

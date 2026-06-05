@@ -69,6 +69,8 @@ export const SN_SYNC_MESSAGES = {
   PULL_BY_SYS_ID_SUCCESS_PREFIX: "sn-sync pull by sys_id completed.",
   PULL_BY_SYS_ID_FAILED_PREFIX:
     "Failed to pull record by sys_id from ServiceNow:",
+  PULL_DUPLICATE_OUTPUT_FILE_PREFIX:
+    "Duplicate output file name detected in sync setting:",
   RESET_INDEX_SUCCESS: "sn-sync index reset completed.",
   RESET_INDEX_FAILED_PREFIX: "Failed to reset sn-sync index:",
   RESET_INDEX_CONFIRM_PROMPT: "This will clear the local sync index. Continue?",
