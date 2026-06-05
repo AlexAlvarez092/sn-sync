@@ -25,6 +25,40 @@ suite("snResetAuthCommand", () => {
     });
   });
 
+  test("register callback executes command with default runtime", async () => {
+    const shownErrors: string[] = [];
+    const context = {
+      subscriptions: [] as vscode.Disposable[],
+      workspaceState: {
+        get: () => undefined,
+        update: async () => undefined,
+      },
+    } as unknown as vscode.ExtensionContext;
+
+    await withCapturedRegisterCommand(async (invokeRegistered) => {
+      registerSnResetAuthCommand(context, {
+        resetAuth: async (): Promise<void> => {
+          throw new Error("must-not-be-called");
+        },
+      });
+
+      await withPatchedWorkspaceFolders(undefined, async () => {
+        await withPatchedWindowMessages(
+          async (message: string) => {
+            shownErrors.push(message);
+            return undefined;
+          },
+          async () => undefined,
+          async () => {
+            await invokeRegistered();
+          },
+        );
+      });
+    });
+
+    assert.deepStrictEqual(shownErrors, [SN_SYNC_MESSAGES.NO_WORKSPACE]);
+  });
+
   test("shows error when no workspace folder is open", async () => {
     const shownErrors: string[] = [];
 
@@ -194,6 +228,36 @@ function withPatchedRegisterCommand(run: () => void): void {
 
   try {
     run();
+  } finally {
+    commandsObject.registerCommand = originalRegisterCommand;
+  }
+}
+
+async function withCapturedRegisterCommand(
+  run: (invokeRegistered: () => Promise<void>) => Promise<void>,
+): Promise<void> {
+  const commandsObject = vscode.commands as unknown as {
+    registerCommand: (
+      command: string,
+      callback: (...args: unknown[]) => unknown,
+    ) => vscode.Disposable;
+  };
+  const originalRegisterCommand = commandsObject.registerCommand;
+
+  let registered: (() => unknown) | undefined;
+  commandsObject.registerCommand = (
+    _command: string,
+    callback: (...args: unknown[]) => unknown,
+  ) => {
+    registered = callback as () => unknown;
+    return new vscode.Disposable(() => undefined);
+  };
+
+  try {
+    await run(async () => {
+      assert.ok(registered);
+      await Promise.resolve(registered?.());
+    });
   } finally {
     commandsObject.registerCommand = originalRegisterCommand;
   }

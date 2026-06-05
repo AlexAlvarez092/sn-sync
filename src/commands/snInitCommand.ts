@@ -9,6 +9,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
+  runWithCommandStatus,
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 import { SnSyncConfigService } from "@services/snSyncConfigService.js";
@@ -77,7 +78,10 @@ export function registerSnInitCommand(
 ): void {
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.INIT,
-    () => runSnInitCommand(configService),
+    () =>
+      runWithCommandStatus(() => runSnInitCommand(configService), {
+        message: "sn-sync: initializing workspace...",
+      }),
   );
 
   context.subscriptions.push(disposable);

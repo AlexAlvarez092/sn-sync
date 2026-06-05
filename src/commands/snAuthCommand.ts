@@ -10,6 +10,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
+  runWithCommandStatus,
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 import type { SnAuthInput } from "@shared/models/auth.js";
@@ -62,7 +63,10 @@ export function registerSnAuthCommand(
 ): void {
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.AUTH,
-    () => runSnAuthCommand(context, authService),
+    () =>
+      runWithCommandStatus(() => runSnAuthCommand(context, authService), {
+        message: "sn-sync: saving auth...",
+      }),
   );
 
   context.subscriptions.push(disposable);

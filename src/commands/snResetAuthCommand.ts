@@ -9,6 +9,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
+  runWithCommandStatus,
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 
@@ -77,7 +78,10 @@ export function registerSnResetAuthCommand(
 ): void {
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.RESET_AUTH,
-    () => runSnResetAuthCommand(context, authService),
+    () =>
+      runWithCommandStatus(() => runSnResetAuthCommand(context, authService), {
+        message: "sn-sync: resetting auth...",
+      }),
   );
 
   context.subscriptions.push(disposable);

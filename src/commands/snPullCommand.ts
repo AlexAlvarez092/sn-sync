@@ -18,6 +18,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
+  runWithCommandStatus,
   showPrefixedCommandError,
   withNotificationProgress,
 } from "@shared/services/snCommandRuntime.js";
@@ -180,12 +181,18 @@ export function registerSnPullCommand(
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.PULL,
     () =>
-      runSnPullCommand(
-        context,
-        configService,
-        pullService,
-        defaultRuntime,
-        new SnSyncIndexService(context.workspaceState),
+      runWithCommandStatus(
+        () =>
+          runSnPullCommand(
+            context,
+            configService,
+            pullService,
+            defaultRuntime,
+            new SnSyncIndexService(context.workspaceState),
+          ),
+        {
+          message: "sn-sync: pulling changes...",
+        },
       ),
   );
 

@@ -1,4 +1,7 @@
 import * as assert from "assert";
+import * as fs from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
 import * as vscode from "vscode";
 import {
   registerSnPushModifiedCommand,
@@ -113,7 +116,7 @@ suite("snPushModifiedCommand", () => {
 
     assert.strictEqual(progressMessages.length, 1);
     assert.deepStrictEqual(shownInfos, [
-      `${SN_SYNC_MESSAGES.PUSH_MODIFIED_SUCCESS_PREFIX} 1 files uploaded.`,
+      `${SN_SYNC_MESSAGES.PUSH_MODIFIED_SUCCESS_PREFIX} 1 file uploaded.`,
     ]);
   });
 
@@ -285,6 +288,258 @@ suite("snPushModifiedCommand", () => {
 
     assert.strictEqual(shownErrors.length, 1);
     assert.ok(shownErrors[0].includes("(+1 more)"));
+  });
+
+  test("resolves conflict by overwriting remote when runtime provides resolver", async () => {
+    const shownInfos: string[] = [];
+    const pushedPaths: string[] = [];
+
+    await runSnPushModifiedCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getRemoteFieldContent: async () => "remote-changed",
+        pushFieldContent: async (_context, _workspaceUri, entry, content) => {
+          pushedPaths.push(entry.localPath);
+          return content;
+        },
+      },
+      {
+        getModifiedCandidates: async () => [
+          {
+            entry: {
+              localPath: "src/a.js",
+              table: "sys_script",
+              sysId: "abc",
+              fieldName: "script",
+              baseHash: hashText("base"),
+              updatedAt: "now",
+            },
+            localContent: "local-changed",
+            localHash: hashText("local-changed"),
+          },
+        ],
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+      },
+      {
+        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async (message: string) => {
+          shownInfos.push(message);
+          return undefined;
+        },
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+        resolveConflict: async () => ({
+          kind: "overwriteRemote",
+        }),
+      },
+    );
+
+    assert.deepStrictEqual(pushedPaths, ["src/a.js"]);
+    assert.strictEqual(shownInfos.length, 1);
+    assert.ok(shownInfos[0].includes("1 file uploaded"));
+    assert.ok(shownInfos[0].includes("Overwrite: 1"));
+  });
+
+  test("continues pushing non-conflicting files when conflicted file is skipped", async () => {
+    const pushedPaths: string[] = [];
+    const shownInfos: string[] = [];
+
+    await runSnPushModifiedCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getRemoteFieldContent: async (_context, _workspaceUri, entry) =>
+          entry.localPath === "src/a.js" ? "remote-changed" : "base",
+        pushFieldContent: async (_context, _workspaceUri, entry, content) => {
+          pushedPaths.push(entry.localPath);
+          return content;
+        },
+      },
+      {
+        getModifiedCandidates: async () => [
+          {
+            entry: {
+              localPath: "src/a.js",
+              table: "sys_script",
+              sysId: "a",
+              fieldName: "script",
+              baseHash: hashText("base"),
+              updatedAt: "now",
+            },
+            localContent: "local-a",
+            localHash: hashText("local-a"),
+          },
+          {
+            entry: {
+              localPath: "src/b.js",
+              table: "sys_script",
+              sysId: "b",
+              fieldName: "script",
+              baseHash: hashText("base"),
+              updatedAt: "now",
+            },
+            localContent: "local-b",
+            localHash: hashText("local-b"),
+          },
+        ],
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+      },
+      {
+        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async (message: string) => {
+          shownInfos.push(message);
+          return undefined;
+        },
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+        resolveConflict: async () => ({
+          kind: "skip",
+        }),
+      },
+    );
+
+    assert.deepStrictEqual(pushedPaths, ["src/b.js"]);
+    assert.strictEqual(shownInfos.length, 1);
+    assert.ok(shownInfos[0].includes("1 file uploaded"));
+    assert.ok(shownInfos[0].includes("Skipped: 1"));
+  });
+
+  test("resolves conflict by merge and pushes merged content", async () => {
+    const pushedContents: string[] = [];
+    const shownInfos: string[] = [];
+
+    await runSnPushModifiedCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getRemoteFieldContent: async () => "remote-changed",
+        pushFieldContent: async (_context, _workspaceUri, _entry, content) => {
+          pushedContents.push(content);
+          return content;
+        },
+      },
+      {
+        getModifiedCandidates: async () => [
+          {
+            entry: {
+              localPath: "src/a.js",
+              table: "sys_script",
+              sysId: "a",
+              fieldName: "script",
+              baseHash: hashText("base"),
+              updatedAt: "now",
+            },
+            localContent: "local-a",
+            localHash: hashText("local-a"),
+          },
+        ],
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+      },
+      {
+        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async (message: string) => {
+          shownInfos.push(message);
+          return undefined;
+        },
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+        resolveConflict: async () => ({
+          kind: "merge",
+          mergedContent: "merged-content",
+        }),
+      },
+    );
+
+    assert.deepStrictEqual(pushedContents, ["merged-content"]);
+    assert.strictEqual(shownInfos.length, 1);
+    assert.ok(shownInfos[0].includes("Merged: 1"));
+  });
+
+  test("resolves conflict by discard and reports zero uploaded summary", async () => {
+    const shownInfos: string[] = [];
+    const updatedHashes: string[] = [];
+    let pushed = false;
+    let localFileContent = "";
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sn-sync-test-"));
+    const workspaceUri = vscode.Uri.file(tempDir);
+    const localFilePath = path.join(tempDir, "a.js");
+
+    try {
+      await runSnPushModifiedCommand(
+        {} as vscode.ExtensionContext,
+        {
+          getRemoteFieldContent: async () => "remote-changed",
+          pushFieldContent: async () => {
+            pushed = true;
+            return "";
+          },
+        },
+        {
+          getModifiedCandidates: async () => [
+            {
+              entry: {
+                localPath: "a.js",
+                table: "sys_script",
+                sysId: "a",
+                fieldName: "script",
+                baseHash: hashText("base"),
+                updatedAt: "now",
+              },
+              localContent: "local-a",
+              localHash: hashText("local-a"),
+            },
+          ],
+          findEntryByLocalPath: async () => undefined,
+          toWorkspaceRelativePath: () => "",
+          recordPullFiles: async () => undefined,
+          updateBaseHashes: async (_workspace, updates) => {
+            updatedHashes.push(...updates.map((update) => update.baseHash));
+          },
+        },
+        {
+          getWorkspaceFolderUri: () => workspaceUri,
+          showErrorMessage: async () => undefined,
+          showInformationMessage: async (message: string) => {
+            shownInfos.push(message);
+            return undefined;
+          },
+          withProgress: async (_title, task) =>
+            task({
+              report: () => undefined,
+            }),
+          resolveConflict: async () => ({
+            kind: "discardLocal",
+          }),
+        },
+      );
+
+      localFileContent = await fs.readFile(localFilePath, "utf8");
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+
+    assert.strictEqual(pushed, false);
+    assert.strictEqual(localFileContent, "remote-changed");
+    assert.deepStrictEqual(updatedHashes, [hashText("remote-changed")]);
+    assert.strictEqual(shownInfos.length, 1);
+    assert.ok(shownInfos[0].includes("0 files uploaded"));
+    assert.ok(shownInfos[0].includes("Discarded: 1"));
   });
 
   test("pushes modified files and updates base hashes", async () => {

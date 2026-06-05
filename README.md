@@ -8,7 +8,7 @@ sn-sync helps you work with ServiceNow scripts in a local workflow:
 
 - Pull records from ServiceNow into your project.
 - Edit scripts locally with your usual tools.
-- Push updates back with conflict checks.
+- Push updates back with interactive conflict resolution.
 - Generate a report before pushing modified files.
 
 ## Features
@@ -19,8 +19,9 @@ sn-sync helps you work with ServiceNow scripts in a local workflow:
 - Pull all configured records or pull by sys_id.
 - Open the active indexed file directly in ServiceNow.
 - Push only the active file or all modified files.
-- Safe conflict detection before pushing.
+- Interactive conflict actions per file: overwrite, merge, discard local, skip.
 - Push report with progress and markdown output.
+- Immediate command feedback in status bar with debounced spinner.
 
 ## Quick start
 
@@ -69,11 +70,11 @@ Resets the local sync index if you need a clean state.
 
 ### `sn: push active`
 
-Pushes only the active file in the editor, with conflict checks.
+Pushes only the active file in the editor, with interactive conflict resolution.
 
 ### `sn: push modified`
 
-Pushes all locally modified indexed files, stopping on conflicts and grouping remote writes by record (table + sys_id) when possible.
+Pushes all locally modified indexed files, resolves conflicts file-by-file, and groups remote writes by record (table + sys_id) when possible.
 
 ### `sn: push report`
 
@@ -180,6 +181,7 @@ HTTP transport strategy:
 Command runtime strategy:
 
 - Commands share common runtime helpers for workspace resolution, progress notifications, and prefixed error reporting.
+- All registered commands also use immediate status-bar execution feedback with a short debounce to avoid flicker on very fast commands.
 
 ## Need more detailed documentation?
 

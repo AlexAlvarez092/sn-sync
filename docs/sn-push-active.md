@@ -6,22 +6,27 @@
 
 ## Purpose
 
-Push exactly the currently active editor file to ServiceNow, with remote conflict verification against indexed baseline state.
+Push exactly the active editor file to ServiceNow with remote baseline verification and interactive conflict resolution.
 
 ## Default shortcut
 
 - macOS: `cmd+alt+u`
 - Windows/Linux: `ctrl+alt+u`
 
+## Execution feedback
+
+When the command starts, sn-sync shows an immediate status-bar spinner with command-specific text.
+The spinner is debounced to avoid flicker on very fast executions.
+
 ## Write safety model
 
-The command prevents accidental overwrite by enforcing three guards:
+The command enforces these guards before remote upload:
 
-1. File must be indexed.
-2. File must contain real local changes.
-3. Remote content must still match local baseline (baseHash).
+1. File is indexed.
+2. File has local changes.
+3. Remote baseline is verified against indexed baseHash.
 
-Push is executed only if all three conditions are satisfied.
+If guard 3 detects a mismatch, the command opens interactive conflict resolution.
 
 ## Preconditions
 
@@ -42,16 +47,21 @@ Push is executed only if all three conditions are satisfied.
 8. Read active editor text and compute localHash.
 9. If localHash equals entry.baseHash, show SN_SYNC_MESSAGES.PUSH_ACTIVE_NO_LOCAL_CHANGES.
 10. Fetch remote field content and compute remoteHash.
-11. If remoteHash differs from entry.baseHash, abort with SN_SYNC_MESSAGES.PUSH_ACTIVE_CONFLICT_PREFIX + path.
+11. If remoteHash differs from entry.baseHash, resolve conflict interactively:
+    - Overwrite remote: push current local content.
+    - Merge: open merge editor (or conflict-marker fallback), then push merged content.
+    - Discard local: write remote content to local file and update baseline hash without push.
+    - Skip: keep both sides unchanged and exit without push.
 12. If no conflict, push local content via pushFieldContent.
-13. Update entry baseline hash using the value returned by pushFieldContent (actual content stored in ServiceNow), then persist with indexService.updateBaseHashes.
-14. Show SN_SYNC_MESSAGES.PUSH_ACTIVE_SUCCESS.
+13. Update baseline hash from returned stored content and persist with indexService.updateBaseHashes.
+14. Show success with uploaded count and conflict summary.
 15. On any thrown error, show SN_SYNC_MESSAGES.PUSH_ACTIVE_FAILED_PREFIX + details.
 
 ## Side effects
 
 - Remote write to one ServiceNow record field.
-- Baseline hash update for one index entry.
+- Baseline hash update for one index entry when push succeeds.
+- For discard-local decision, local file content is replaced with remote and baseline is updated without remote write.
 
 ## Request safety model
 
@@ -60,20 +70,28 @@ Push is executed only if all three conditions are satisfied.
 
 ## Conflict handling
 
-Compares:
+Conflict detection compares:
 
 - Known local baseline (entry.baseHash)
 - Current remote state (remoteHash)
 
-If they differ, command exits without uploading.
+When mismatched, command offers:
+
+- Overwrite remote
+- Merge local and remote
+- Discard local
+- Skip file
+
+Final message includes a conflict summary with counters.
 
 ## Direct dependencies
 
 - SnPushService
 - SnSyncIndexService
 - hashText
+- snPushConflictResolutionService
 - SN_SYNC_MESSAGES
-- snCommandRuntime helpers (getWorkspaceFolderOrShowError, showPrefixedCommandError)
+- snCommandRuntime helpers (runWithCommandStatus, getWorkspaceFolderOrShowError, showPrefixedCommandError)
 
 ## Sequence diagram
 
@@ -108,13 +126,23 @@ sequenceDiagram
 					N-->>P: remote content
 					C->>C: hash remote content
 					alt Conflict detected
-						C->>R: showErrorMessage(PUSH_ACTIVE_CONFLICT_PREFIX + path)
+						C->>C: resolveConflictInteractive()
+						alt Overwrite remote
+							C->>P: pushFieldContent(entry, localContent)
+						else Merge
+							C->>P: pushFieldContent(entry, mergedContent)
+						else Discard local
+							C->>I: updateBaseHashes(hash(remoteContent))
+							C->>R: showInformationMessage(PUSH_ACTIVE_SUCCESS + summary)
+						else Skip
+							C->>R: showInformationMessage(PUSH_ACTIVE_SUCCESS + summary)
+						end
 					else No conflict
 						C->>P: pushFieldContent(entry, localContent)
 						P->>N: PATCH record field
 						N-->>P: stored field value
 						C->>I: updateBaseHashes(hash(storedValue))
-						C->>R: showInformationMessage(PUSH_ACTIVE_SUCCESS)
+						C->>R: showInformationMessage(PUSH_ACTIVE_SUCCESS + summary)
 					end
 				end
 			end
@@ -130,7 +158,11 @@ sequenceDiagram
 
 - Symptom: Conflict error appears
   - Cause: Remote baseline changed since last local baseline.
-  - Resolution: Pull latest remote state, merge manually, then retry.
+  - Resolution: Use one of the interactive options (overwrite, merge, discard, skip).
+
+- Symptom: Command finishes with 0 files uploaded and conflict counters
+  - Cause: You selected Skip or Discard local.
+  - Resolution: Expected behavior. Re-run after editing if you still want to push.
 
 - Symptom: Push succeeds but file still appears modified
   - Cause: Local content changed again after the push or index state is stale.

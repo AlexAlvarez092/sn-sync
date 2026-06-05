@@ -13,6 +13,7 @@ Transport and runtime summary:
 
 - ServiceNow HTTP traffic is centralized in a shared got-based transport helper.
 - Command handlers share runtime helpers for workspace resolution, notification progress, and prefixed error reporting.
+- Command registrations provide immediate status-bar execution feedback with per-command messages and debounce.
 
 Documented commands:
 

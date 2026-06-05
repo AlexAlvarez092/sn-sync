@@ -56,14 +56,14 @@ Status bar behavior:
 ### 2) Push active flow
 
 - Input: active editor file + index entry
-- Process: local change check -> remote conflict check -> push
-- Output: one remote write + one baseline update
+- Process: local change check -> remote conflict check -> interactive resolve (overwrite/merge/discard/skip) -> push when applicable
+- Output: one remote write + one baseline update, or local discard + baseline update
 
 ### 3) Push modified flow
 
 - Input: all modified index candidates
-- Process: full conflict pre-check -> group by record identity (table + sys_id) -> one PATCH per record group
-- Output: batch remote writes + batch baseline updates
+- Process: full conflict pre-check -> interactive per-file resolution -> group selected files by record identity -> one PATCH per record group
+- Output: batch remote writes + batch baseline updates for uploaded files + optional local discard updates
 
 ### 4) Push report flow
 
@@ -109,6 +109,7 @@ Current shared runtime helpers:
 
 - getWorkspaceFolderOrShowError: standard workspace precondition and NO_WORKSPACE message.
 - withNotificationProgress: consistent notification progress UI across commands.
+- runWithCommandStatus: immediate status-bar command execution feedback with per-command message and debounce.
 - showPrefixedCommandError: standardized prefixed command error output.
 
 ## Error strategy
@@ -232,6 +233,6 @@ flowchart TD
 ## Operational notes for developers
 
 - The index is foundational for push safety. If index state is invalid, run sn: reset index followed by a pull.
-- Pull and push commands intentionally prioritize consistency and explicit conflict handling over maximum throughput.
-- push modified preserves all-or-nothing conflict semantics while reducing redundant PATCH requests when multiple fields of the same record are modified.
+- Pull and push commands prioritize explicit conflict handling and safe remote writes.
+- push modified resolves conflicts per file and still reduces redundant PATCH requests when multiple fields of the same record are modified.
 - Command output messaging is centralized through constants to keep behavior predictable and testable.

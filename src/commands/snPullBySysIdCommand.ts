@@ -19,6 +19,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
+  runWithCommandStatus,
   showPrefixedCommandError,
   withNotificationProgress,
 } from "@shared/services/snCommandRuntime.js";
@@ -199,12 +200,18 @@ export function registerSnPullBySysIdCommand(
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.PULL_BY_SYS_ID,
     () =>
-      runSnPullBySysIdCommand(
-        context,
-        configService,
-        pullService,
-        defaultRuntime,
-        new SnSyncIndexService(context.workspaceState),
+      runWithCommandStatus(
+        () =>
+          runSnPullBySysIdCommand(
+            context,
+            configService,
+            pullService,
+            defaultRuntime,
+            new SnSyncIndexService(context.workspaceState),
+          ),
+        {
+          message: "sn-sync: pulling record by sys_id...",
+        },
       ),
   );
 
