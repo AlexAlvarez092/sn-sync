@@ -29,10 +29,13 @@ import {
 } from "@shared/services/snFolderService.js";
 import { resolvePreferences } from "@shared/services/snPreferencesService.js";
 import { createPullFileWrittenHandler } from "@shared/services/snPullProgressService.js";
+import { resolveWorkspaceChildUri } from "@shared/services/snWorkspacePathService.js";
 
 interface TableQuickPickItem extends vscode.QuickPickItem {
   setting: ExtensionConfigSetting;
 }
+
+const SYS_ID_PATTERN = /^[0-9a-f]{32}$/i;
 
 export interface SnPullBySysIdRuntime
   extends SnBaseCommandRuntime, Pick<FolderClearRuntime, "createDirectory"> {
@@ -107,10 +110,12 @@ export async function runSnPullBySysIdCommand(
       prompt: SN_SYNC_INPUTS.PULL_BY_SYS_ID_PROMPT,
       placeHolder: SN_SYNC_INPUTS.PULL_BY_SYS_ID_PLACEHOLDER,
       ignoreFocusOut: true,
-      validateInput: (value) =>
-        value.trim()
+      validateInput: (value) => {
+        const normalizedValue = value.trim();
+        return SYS_ID_PATTERN.test(normalizedValue)
           ? undefined
-          : SN_SYNC_MESSAGES.PULL_BY_SYS_ID_INVALID_SYS_ID,
+          : SN_SYNC_MESSAGES.PULL_BY_SYS_ID_INVALID_SYS_ID;
+      },
     });
 
     if (rawSysId === undefined) {
@@ -121,7 +126,7 @@ export async function runSnPullBySysIdCommand(
     }
 
     const sysId = rawSysId.trim();
-    if (!sysId) {
+    if (!SYS_ID_PATTERN.test(sysId)) {
       void runtime.showErrorMessage(
         SN_SYNC_MESSAGES.PULL_BY_SYS_ID_INVALID_SYS_ID,
       );
@@ -133,10 +138,15 @@ export async function runSnPullBySysIdCommand(
       workspaceFolderUri,
     );
 
-    await ensureDirectoryExists(
-      runtime,
-      vscode.Uri.joinPath(workspaceFolderUri, preferences.rootDir),
-    );
+    const rootDirUri = resolveWorkspaceChildUri(workspaceFolderUri, [
+      {
+        value: preferences.rootDir,
+        label: "rootDir",
+        allowHierarchy: true,
+      },
+    ]);
+
+    await ensureDirectoryExists(runtime, rootDirUri);
 
     const filteredSetting: ExtensionConfigSetting = {
       ...selected.setting,

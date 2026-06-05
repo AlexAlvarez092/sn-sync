@@ -30,6 +30,7 @@ import {
   type SnPushConflictDecision,
   type SnPushConflictResolverInput,
 } from "@shared/services/snPushConflictResolutionService.js";
+import { resolveWorkspaceChildUri } from "@shared/services/snWorkspacePathService.js";
 
 export interface SnPushModifiedRuntime extends SnBaseCommandRuntime {
   withProgress<T>(
@@ -146,10 +147,13 @@ export async function runSnPushModifiedCommand(
         }
 
         if (decision.kind === "discardLocal") {
-          const localUri = vscode.Uri.joinPath(
-            workspaceFolderUri,
-            candidate.entry.localPath,
-          );
+          const localUri = resolveWorkspaceChildUri(workspaceFolderUri, [
+            {
+              value: candidate.entry.localPath,
+              label: "local path",
+              allowHierarchy: true,
+            },
+          ]);
 
           await vscode.workspace.fs.writeFile(
             localUri,

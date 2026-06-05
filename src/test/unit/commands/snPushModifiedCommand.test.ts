@@ -542,6 +542,59 @@ suite("snPushModifiedCommand", () => {
     assert.ok(shownInfos[0].includes("Discarded: 1"));
   });
 
+  test("shows detailed error when discard local path escapes workspace", async () => {
+    const shownErrors: string[] = [];
+
+    await runSnPushModifiedCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getRemoteFieldContent: async () => "remote-changed",
+        pushFieldContent: async () => {
+          throw new Error("must-not-be-called");
+        },
+      },
+      {
+        getModifiedCandidates: async () => [
+          {
+            entry: {
+              localPath: "../outside.js",
+              table: "sys_script",
+              sysId: "a",
+              fieldName: "script",
+              baseHash: hashText("base"),
+              updatedAt: "now",
+            },
+            localContent: "local-a",
+            localHash: hashText("local-a"),
+          },
+        ],
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+      },
+      {
+        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+        showErrorMessage: async (message: string) => {
+          shownErrors.push(message);
+          return undefined;
+        },
+        showInformationMessage: async () => undefined,
+        withProgress: async (_title, task) =>
+          task({
+            report: () => undefined,
+          }),
+        resolveConflict: async () => ({
+          kind: "discardLocal",
+        }),
+      },
+    );
+
+    assert.deepStrictEqual(shownErrors, [
+      `${SN_SYNC_MESSAGES.PUSH_MODIFIED_FAILED_PREFIX} (SN_PUSH_MODIFIED_FAILED) ${SN_SYNC_MESSAGES.WORKSPACE_PATH_INVALID_PREFIX} local path.`,
+    ]);
+  });
+
   test("pushes modified files and updates base hashes", async () => {
     const shownInfos: string[] = [];
     const pushedPaths: string[] = [];

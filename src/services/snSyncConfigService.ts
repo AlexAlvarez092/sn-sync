@@ -151,7 +151,13 @@ export class SnSyncConfigService {
     const fields = this.normalizeSyncFields(setting.fields);
     const subDirPattern = this.normalizeString(setting.subDirPattern, true);
 
-    if (!folder || !table || key === undefined || fields.length === 0) {
+    if (
+      !folder ||
+      !table ||
+      key === undefined ||
+      fields.length === 0 ||
+      this.hasDuplicateFieldExtensions(fields)
+    ) {
       return undefined;
     }
 
@@ -217,5 +223,20 @@ export class SnSyncConfigService {
       .map((host) => this.normalizeString(host))
       .filter((host): host is string => Boolean(host))
       .map((host) => host.toLowerCase());
+  }
+
+  private hasDuplicateFieldExtensions(fields: ExtensionConfigField[]): boolean {
+    const seenExtensions = new Set<string>();
+
+    for (const field of fields) {
+      const normalizedExtension = field.extension.toLowerCase();
+      if (seenExtensions.has(normalizedExtension)) {
+        return true;
+      }
+
+      seenExtensions.add(normalizedExtension);
+    }
+
+    return false;
   }
 }

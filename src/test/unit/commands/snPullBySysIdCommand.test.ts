@@ -7,6 +7,8 @@ import {
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 import { createTempWorkspaceUri } from "@test/helpers/testRuntime.js";
 
+const VALID_SYS_ID = "0123456789abcdef0123456789abcdef";
+
 suite("snPullBySysIdCommand", () => {
   test("registers command and stores disposable in context subscriptions", () => {
     const context = {
@@ -246,9 +248,53 @@ suite("snPullBySysIdCommand", () => {
         showInformationMessage: async () => undefined,
         showQuickPick: async (items) => items[0],
         showInputBox: async (options) => {
-          await options.validateInput?.("abc123");
+          await options.validateInput?.(VALID_SYS_ID);
           await options.validateInput?.("   ");
           return "   ";
+        },
+        withProgress: async (_title, task) => task({ report: () => undefined }),
+      },
+    );
+
+    assert.deepStrictEqual(shownErrors, [
+      SN_SYNC_MESSAGES.PULL_BY_SYS_ID_INVALID_SYS_ID,
+    ]);
+  });
+
+  test("shows error when sys_id input format is invalid", async () => {
+    const shownErrors: string[] = [];
+
+    await runSnPullBySysIdCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "script_includes",
+            table: "sys_script_include",
+            query: "active=true",
+            key: "api_name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async () => {
+          throw new Error("must-not-be-called");
+        },
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-by-sys-id-invalid-format"),
+        showErrorMessage: async (message: string) => {
+          shownErrors.push(message);
+          return undefined;
+        },
+        showInformationMessage: async () => undefined,
+        showQuickPick: async (items) => items[0],
+        showInputBox: async (options) => {
+          await options.validateInput?.("abc123");
+          await options.validateInput?.("abc123^active=true");
+          return "abc123^active=true";
         },
         withProgress: async (_title, task) => task({ report: () => undefined }),
       },
@@ -315,7 +361,7 @@ suite("snPullBySysIdCommand", () => {
             fileName: "new_si.js",
             localPath: "app/script_includes/new_si.js",
             table: "sys_script_include",
-            sysId: "abc123",
+            sysId: VALID_SYS_ID,
             fieldName: "script",
             baseHash: "sha256:abc",
           });
@@ -336,7 +382,7 @@ suite("snPullBySysIdCommand", () => {
           return undefined;
         },
         showQuickPick: async (items) => items[0],
-        showInputBox: async () => "  abc123  ",
+        showInputBox: async () => `  ${VALID_SYS_ID}  `,
         withProgress: async (_title, task) => task({ report: () => undefined }),
       },
       {
@@ -350,13 +396,13 @@ suite("snPullBySysIdCommand", () => {
       },
     );
 
-    assert.deepStrictEqual(pulledQueries, ["sys_id=abc123"]);
+    assert.deepStrictEqual(pulledQueries, [`sys_id=${VALID_SYS_ID}`]);
     assert.deepStrictEqual(usedRootDirs, ["app"]);
     assert.deepStrictEqual(recordedUpdates, [
       {
         localPath: "app/script_includes/new_si.js",
         table: "sys_script_include",
-        sysId: "abc123",
+        sysId: VALID_SYS_ID,
         fieldName: "script",
         baseHash: "sha256:abc",
       },
@@ -408,7 +454,7 @@ suite("snPullBySysIdCommand", () => {
         showErrorMessage: async () => undefined,
         showInformationMessage: async () => undefined,
         showQuickPick: async (items) => items[0],
-        showInputBox: async () => "abc123",
+        showInputBox: async () => VALID_SYS_ID,
         createDirectory: async () => undefined,
         withProgress: async (_title, task) => task({ report: () => undefined }),
       },
@@ -470,7 +516,7 @@ suite("snPullBySysIdCommand", () => {
         showErrorMessage: async () => undefined,
         showInformationMessage: async () => undefined,
         showQuickPick: async (items) => items[0],
-        showInputBox: async () => "abc123",
+        showInputBox: async () => VALID_SYS_ID,
         createDirectory: async () => undefined,
         withProgress: async (_title, task) => task({ report: () => undefined }),
       },
@@ -505,7 +551,7 @@ suite("snPullBySysIdCommand", () => {
             return undefined;
           },
           async (items) => items[0],
-          async () => "abc123",
+          async () => VALID_SYS_ID,
           async (options, task) => {
             progressTitles.push(options.title ?? "");
             return task({ report: () => undefined });
@@ -580,13 +626,61 @@ suite("snPullBySysIdCommand", () => {
         },
         showInformationMessage: async () => undefined,
         showQuickPick: async (items) => items[0],
-        showInputBox: async () => "abc123",
+        showInputBox: async () => VALID_SYS_ID,
         withProgress: async (_title, task) => task({ report: () => undefined }),
       },
     );
 
     assert.deepStrictEqual(shownErrors, [
       `${SN_SYNC_MESSAGES.PULL_BY_SYS_ID_FAILED_PREFIX} (SN_PULL_BY_SYS_ID_FAILED) pull-by-sys-id-fail`,
+    ]);
+  });
+
+  test("shows detailed error when rootDir escapes workspace before pull by sys_id", async () => {
+    const shownErrors: string[] = [];
+    let pullWasCalled = false;
+
+    await runSnPullBySysIdCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "script_includes",
+            table: "sys_script_include",
+            query: "active=true",
+            key: "api_name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+        getPreferences: async () => ({
+          rootDir: "../outside",
+          pull: { clearBeforePull: "ask" },
+        }),
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async () => {
+          pullWasCalled = true;
+          throw new Error("must-not-be-called");
+        },
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-by-sys-id-invalid-root-dir"),
+        showErrorMessage: async (message: string) => {
+          shownErrors.push(message);
+          return undefined;
+        },
+        showInformationMessage: async () => undefined,
+        showQuickPick: async (items) => items[0],
+        showInputBox: async () => VALID_SYS_ID,
+        createDirectory: async () => undefined,
+        withProgress: async (_title, task) => task({ report: () => undefined }),
+      },
+    );
+
+    assert.strictEqual(pullWasCalled, false);
+    assert.deepStrictEqual(shownErrors, [
+      `${SN_SYNC_MESSAGES.PULL_BY_SYS_ID_FAILED_PREFIX} (SN_PULL_BY_SYS_ID_FAILED) ${SN_SYNC_MESSAGES.WORKSPACE_PATH_INVALID_PREFIX} rootDir.`,
     ]);
   });
 });

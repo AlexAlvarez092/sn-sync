@@ -292,6 +292,22 @@ suite("snSyncConfigService", () => {
             key: "name",
             fields: [],
           },
+          {
+            folder: "widgets",
+            table: "sp_widget",
+            query: "active=true",
+            key: "id",
+            fields: [
+              {
+                extension: "client.js",
+                field_name: "client_script",
+              },
+              {
+                extension: "CLIENT.js",
+                field_name: "script",
+              },
+            ],
+          },
         ],
       });
 
