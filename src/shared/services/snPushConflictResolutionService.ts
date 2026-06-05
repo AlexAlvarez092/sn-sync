@@ -155,7 +155,8 @@ export async function resolvePushConflictInteractive({
 
 export function formatConflictList(localPaths: string[]): string {
   const listed = localPaths.slice(0, 5).join(", ");
-  const suffix = localPaths.length > 5 ? ` (+${localPaths.length - 5} more)` : "";
+  const suffix =
+    localPaths.length > 5 ? ` (+${localPaths.length - 5} more)` : "";
   return `${listed}${suffix}`;
 }
 
@@ -190,14 +191,9 @@ function buildMergeWithConflictMarkers(local: string, remote: string): string {
     return local;
   }
 
-  return [
-    "<<<<<<< LOCAL",
-    local,
-    "=======",
-    remote,
-    ">>>>>>> REMOTE",
-    "",
-  ].join("\n");
+  return ["<<<<<<< LOCAL", local, "=======", remote, ">>>>>>> REMOTE", ""].join(
+    "\n",
+  );
 }
 
 async function openMergeEditor(
@@ -254,6 +250,9 @@ async function writeTempMergeInput(
     path.join(os.tmpdir(), `sn-sync-merge-${label}-${randomUUID()}.txt`),
   );
 
-  await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(content));
+  await vscode.workspace.fs.writeFile(
+    fileUri,
+    new TextEncoder().encode(content),
+  );
   return fileUri;
 }
