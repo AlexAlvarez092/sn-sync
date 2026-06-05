@@ -16,17 +16,34 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
+  runWithCommandStatus,
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 import { hashText } from "@shared/services/hashService.js";
+import {
+  formatConflictSummary,
+  formatUploadedFilesCount,
+  resolvePushConflictInteractive,
+  type SnPushConflictDecision,
+  type SnPushConflictResolverInput,
+} from "@shared/services/snPushConflictResolutionService.js";
 
 export interface SnPushActiveRuntime extends SnBaseCommandRuntime {
   getActiveTextEditor(): vscode.TextEditor | undefined;
+  resolveConflict?(args: {
+    workspaceFolderUri: vscode.Uri;
+    candidate: {
+      localPath: string;
+      localContent: string;
+    };
+    remoteContent: string;
+  }): Thenable<SnPushConflictDecision>;
 }
 
 const defaultRuntime: SnPushActiveRuntime = {
   ...defaultBaseRuntime,
   getActiveTextEditor: () => vscode.window.activeTextEditor,
+  resolveConflict: resolvePushConflictInteractive,
 };
 
 export async function runSnPushActiveCommand(
@@ -80,18 +97,92 @@ export async function runSnPushActiveCommand(
     );
     const remoteHash = hashText(remoteContent);
 
-    if (remoteHash !== entry.baseHash) {
+    let contentToPush = localContent;
+    let conflictCount = 0;
+    let overwriteCount = 0;
+    let mergedCount = 0;
+    let discardedCount = 0;
+    let skippedCount = 0;
+
+    if (remoteHash !== entry.baseHash && !runtime.resolveConflict) {
       void runtime.showErrorMessage(
         `${SN_SYNC_MESSAGES.PUSH_ACTIVE_CONFLICT_PREFIX} ${entry.localPath}`,
       );
       return;
     }
 
+    if (remoteHash !== entry.baseHash && runtime.resolveConflict) {
+      conflictCount = 1;
+      const decisionInput: SnPushConflictResolverInput = {
+        workspaceFolderUri,
+        candidate: {
+          localPath: entry.localPath,
+          localContent,
+        },
+        remoteContent,
+      };
+      const decision = await runtime.resolveConflict(decisionInput);
+
+      if (decision.kind === "skip") {
+        skippedCount = 1;
+        void runtime.showInformationMessage(
+          `${SN_SYNC_MESSAGES.PUSH_ACTIVE_SUCCESS} ${formatUploadedFilesCount(0)}${formatConflictSummary(
+            {
+              conflicts: conflictCount,
+              overwrite: overwriteCount,
+              merged: mergedCount,
+              discarded: discardedCount,
+              skipped: skippedCount,
+            },
+          )}`,
+        );
+        return;
+      }
+
+      if (decision.kind === "discardLocal") {
+        discardedCount = 1;
+        await vscode.workspace.fs.writeFile(
+          activeEditor.document.uri,
+          new TextEncoder().encode(remoteContent),
+        );
+
+        await indexService.updateBaseHashes(workspaceFolderUri, [
+          {
+            localPath: entry.localPath,
+            table: entry.table,
+            sysId: entry.sysId,
+            fieldName: entry.fieldName,
+            baseHash: hashText(remoteContent),
+          },
+        ]);
+
+        void runtime.showInformationMessage(
+          `${SN_SYNC_MESSAGES.PUSH_ACTIVE_SUCCESS} ${formatUploadedFilesCount(0)}${formatConflictSummary(
+            {
+              conflicts: conflictCount,
+              overwrite: overwriteCount,
+              merged: mergedCount,
+              discarded: discardedCount,
+              skipped: skippedCount,
+            },
+          )}`,
+        );
+        return;
+      }
+
+      if (decision.kind === "merge") {
+        mergedCount = 1;
+        contentToPush = decision.mergedContent;
+      } else if (decision.kind === "overwriteRemote") {
+        overwriteCount = 1;
+      }
+    }
+
     const storedContent = await pushService.pushFieldContent(
       context,
       workspaceFolderUri,
       entry,
-      localContent,
+      contentToPush,
     );
 
     await indexService.updateBaseHashes(workspaceFolderUri, [
@@ -104,7 +195,17 @@ export async function runSnPushActiveCommand(
       },
     ]);
 
-    void runtime.showInformationMessage(SN_SYNC_MESSAGES.PUSH_ACTIVE_SUCCESS);
+    void runtime.showInformationMessage(
+      `${SN_SYNC_MESSAGES.PUSH_ACTIVE_SUCCESS} ${formatUploadedFilesCount(1)}${formatConflictSummary(
+        {
+          conflicts: conflictCount,
+          overwrite: overwriteCount,
+          merged: mergedCount,
+          discarded: discardedCount,
+          skipped: skippedCount,
+        },
+      )}`,
+    );
   } catch (error) {
     showPrefixedCommandError(
       runtime,
@@ -125,10 +226,16 @@ export function registerSnPushActiveCommand(
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.PUSH_ACTIVE,
     () =>
-      runSnPushActiveCommand(
-        context,
-        pushService,
-        new SnSyncIndexService(context.workspaceState),
+      runWithCommandStatus(
+        () =>
+          runSnPushActiveCommand(
+            context,
+            pushService,
+            new SnSyncIndexService(context.workspaceState),
+          ),
+        {
+          message: "sn-sync: pushing active file...",
+        },
       ),
   );
 

@@ -16,11 +16,20 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
+  runWithCommandStatus,
   showPrefixedCommandError,
   withNotificationProgress,
 } from "@shared/services/snCommandRuntime.js";
 import type { SnSyncIndexCandidate } from "@services/snSyncIndexService.js";
 import { hashText } from "@shared/services/hashService.js";
+import {
+  formatConflictList,
+  formatConflictSummary,
+  formatUploadedFilesCount,
+  resolvePushConflictInteractive,
+  type SnPushConflictDecision,
+  type SnPushConflictResolverInput,
+} from "@shared/services/snPushConflictResolutionService.js";
 
 export interface SnPushModifiedRuntime extends SnBaseCommandRuntime {
   withProgress<T>(
@@ -29,11 +38,20 @@ export interface SnPushModifiedRuntime extends SnBaseCommandRuntime {
       progress: vscode.Progress<{ message?: string; increment?: number }>,
     ) => Thenable<T>,
   ): Thenable<T>;
+  resolveConflict?(args: {
+    workspaceFolderUri: vscode.Uri;
+    candidate: {
+      localPath: string;
+      localContent: string;
+    };
+    remoteContent: string;
+  }): Thenable<SnPushConflictDecision>;
 }
 
 const defaultRuntime: SnPushModifiedRuntime = {
   ...defaultBaseRuntime,
   withProgress: withNotificationProgress,
+  resolveConflict: resolvePushConflictInteractive,
 };
 
 export async function runSnPushModifiedCommand(
@@ -58,7 +76,15 @@ export async function runSnPushModifiedCommand(
       return;
     }
 
-    const conflicts: SnSyncIndexCandidate[] = [];
+    const conflictCandidates: Array<{
+      candidate: SnSyncIndexCandidate;
+      remoteContent: string;
+    }> = [];
+    const candidatesToPush: SnSyncIndexCandidate[] = [];
+    let discardedCount = 0;
+    let mergedCount = 0;
+    let skippedCount = 0;
+    let overwriteCount = 0;
 
     for (const candidate of candidates) {
       const remoteContent = await pushService.getRemoteFieldContent(
@@ -69,20 +95,96 @@ export async function runSnPushModifiedCommand(
       const remoteHash = hashText(remoteContent);
 
       if (remoteHash !== candidate.entry.baseHash) {
-        conflicts.push(candidate);
+        conflictCandidates.push({
+          candidate,
+          remoteContent,
+        });
+        continue;
+      }
+
+      candidatesToPush.push(candidate);
+    }
+
+    if (conflictCandidates.length > 0 && !runtime.resolveConflict) {
+      const conflictList = conflictCandidates.map(
+        (conflict) => conflict.candidate.entry.localPath,
+      );
+
+      void runtime.showErrorMessage(
+        `${SN_SYNC_MESSAGES.PUSH_MODIFIED_CONFLICTS_PREFIX} ${formatConflictList(conflictList)}`,
+      );
+      return;
+    }
+
+    if (runtime.resolveConflict) {
+      for (const { candidate, remoteContent } of conflictCandidates) {
+        const decisionInput: SnPushConflictResolverInput = {
+          workspaceFolderUri,
+          candidate: {
+            localPath: candidate.entry.localPath,
+            localContent: candidate.localContent,
+          },
+          remoteContent,
+        };
+
+        const decision = await runtime.resolveConflict(decisionInput);
+
+        if (decision.kind === "overwriteRemote") {
+          overwriteCount += 1;
+          candidatesToPush.push(candidate);
+          continue;
+        }
+
+        if (decision.kind === "merge") {
+          mergedCount += 1;
+          candidatesToPush.push({
+            ...candidate,
+            localContent: decision.mergedContent,
+            localHash: hashText(decision.mergedContent),
+          });
+          continue;
+        }
+
+        if (decision.kind === "discardLocal") {
+          const localUri = vscode.Uri.joinPath(
+            workspaceFolderUri,
+            candidate.entry.localPath,
+          );
+
+          await vscode.workspace.fs.writeFile(
+            localUri,
+            new TextEncoder().encode(remoteContent),
+          );
+
+          await indexService.updateBaseHashes(workspaceFolderUri, [
+            {
+              localPath: candidate.entry.localPath,
+              table: candidate.entry.table,
+              sysId: candidate.entry.sysId,
+              fieldName: candidate.entry.fieldName,
+              baseHash: hashText(remoteContent),
+            },
+          ]);
+
+          discardedCount += 1;
+          continue;
+        }
+
+        skippedCount += 1;
       }
     }
 
-    if (conflicts.length > 0) {
-      const conflictList = conflicts
-        .slice(0, 5)
-        .map((conflict) => conflict.entry.localPath)
-        .join(", ");
-      const suffix =
-        conflicts.length > 5 ? ` (+${conflicts.length - 5} more)` : "";
-
-      void runtime.showErrorMessage(
-        `${SN_SYNC_MESSAGES.PUSH_MODIFIED_CONFLICTS_PREFIX} ${conflictList}${suffix}`,
+    if (candidatesToPush.length === 0) {
+      void runtime.showInformationMessage(
+        `${SN_SYNC_MESSAGES.PUSH_MODIFIED_SUCCESS_PREFIX} ${formatUploadedFilesCount(0)}${formatConflictSummary(
+          {
+            conflicts: conflictCandidates.length,
+            overwrite: overwriteCount,
+            merged: mergedCount,
+            discarded: discardedCount,
+            skipped: skippedCount,
+          },
+        )}`,
       );
       return;
     }
@@ -96,7 +198,7 @@ export async function runSnPushModifiedCommand(
       }
     >();
 
-    for (const candidate of candidates) {
+    for (const candidate of candidatesToPush) {
       const key = `${candidate.entry.table}::${candidate.entry.sysId}`;
       const existing = candidatesByRecord.get(key);
 
@@ -171,7 +273,7 @@ export async function runSnPushModifiedCommand(
 
     await indexService.updateBaseHashes(
       workspaceFolderUri,
-      candidates.map((candidate, index) => ({
+      candidatesToPush.map((candidate) => ({
         localPath: candidate.entry.localPath,
         table: candidate.entry.table,
         sysId: candidate.entry.sysId,
@@ -183,7 +285,15 @@ export async function runSnPushModifiedCommand(
     );
 
     void runtime.showInformationMessage(
-      `${SN_SYNC_MESSAGES.PUSH_MODIFIED_SUCCESS_PREFIX} ${candidates.length} files uploaded.`,
+      `${SN_SYNC_MESSAGES.PUSH_MODIFIED_SUCCESS_PREFIX} ${formatUploadedFilesCount(candidatesToPush.length)}${formatConflictSummary(
+        {
+          conflicts: conflictCandidates.length,
+          overwrite: overwriteCount,
+          merged: mergedCount,
+          discarded: discardedCount,
+          skipped: skippedCount,
+        },
+      )}`,
     );
   } catch (error) {
     showPrefixedCommandError(
@@ -205,10 +315,16 @@ export function registerSnPushModifiedCommand(
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.PUSH_MODIFIED,
     () =>
-      runSnPushModifiedCommand(
-        context,
-        pushService,
-        new SnSyncIndexService(context.workspaceState),
+      runWithCommandStatus(
+        () =>
+          runSnPushModifiedCommand(
+            context,
+            pushService,
+            new SnSyncIndexService(context.workspaceState),
+          ),
+        {
+          message: "sn-sync: pushing modified files...",
+        },
       ),
   );
 
