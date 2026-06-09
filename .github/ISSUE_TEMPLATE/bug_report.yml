@@ -92,6 +92,7 @@ body:
         - "sn: push active"
         - "sn: push modified"
         - "sn: push report"
+        - "sn: script background"
         - "Other / unknown"
     validations:
       required: true

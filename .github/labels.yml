@@ -109,3 +109,7 @@
 - name: "area: cicd"
   color: "1D76DB"
   description: CI/CD workflows and release process.
+
+- name: "area: script-background"
+  color: "1D76DB"
+  description: Background script behavior and performance.
