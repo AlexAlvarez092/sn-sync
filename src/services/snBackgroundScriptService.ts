@@ -427,15 +427,8 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
       return undefined;
     }
 
-    let payload: unknown;
-    try {
-      payload = JSON.parse(await response.text()) as { result?: unknown };
-    } catch {
-      return undefined;
-    }
-
-    const result = (payload as { result?: unknown })?.result;
-    if (!Array.isArray(result) || result.length === 0) {
+    const result = await this.parseApiResponseArray(response);
+    if (!result || result.length === 0) {
       return undefined;
     }
 
@@ -535,15 +528,8 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
       return [];
     }
 
-    let payload: unknown;
-    try {
-      payload = JSON.parse(await response.text()) as { result?: unknown };
-    } catch {
-      return [];
-    }
-
-    const result = (payload as { result?: unknown })?.result;
-    if (!Array.isArray(result)) {
+    const result = await this.parseApiResponseArray(response);
+    if (!result) {
       return [];
     }
 
@@ -670,6 +656,20 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
     }
 
     return undefined;
+  }
+
+  private async parseApiResponseArray(
+    response: Response,
+  ): Promise<unknown[] | undefined> {
+    let payload: unknown;
+    try {
+      payload = JSON.parse(await response.text()) as { result?: unknown };
+    } catch {
+      return undefined;
+    }
+
+    const result = (payload as { result?: unknown })?.result;
+    return Array.isArray(result) ? result : undefined;
   }
 
   private normalizeScopeValue(value: unknown): string | undefined {

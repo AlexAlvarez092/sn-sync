@@ -55,10 +55,7 @@ export async function runSnRunBackgroundScriptCommand(
       return;
     }
 
-    const selectedScript = editor?.document.getText(editor.selection) ?? "";
-    const scriptContent = selectedScript.trim()
-      ? selectedScript
-      : (editor?.document.getText() ?? "");
+    const scriptContent = resolveScriptContent(editor);
     if (!scriptContent.trim()) {
       void runtime.showErrorMessage(
         SN_SYNC_MESSAGES.RUN_BACKGROUND_SCRIPT_EMPTY_FILE,
@@ -184,6 +181,13 @@ function showResultInNewTab(rawHtml: string, instanceUrl: string): void {
       backgroundScriptResultPanel = undefined;
     }
   });
+}
+
+function resolveScriptContent(editor: vscode.TextEditor): string {
+  const selectedScript = editor?.document.getText(editor.selection) ?? "";
+  return selectedScript.trim()
+    ? selectedScript
+    : (editor?.document.getText() ?? "");
 }
 
 async function promptExecutionScope(): Promise<string | undefined> {

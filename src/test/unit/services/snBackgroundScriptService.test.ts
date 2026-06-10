@@ -640,4 +640,126 @@ suite("snBackgroundScriptService", () => {
     const decodedBody = decodeURIComponent(calls[2].body.replace(/\+/g, "%20"));
     assert.ok(decodedBody.includes("sys_scope=global_sys_id"));
   });
+
+  test("resolveScopeOptions gracefully handles API errors and returns fallback", async () => {
+    const service = new SnBackgroundScriptService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceUrl: "https://dev.service-now.com",
+          headers: { Authorization: "Basic x" },
+        }),
+      } as unknown as never,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body><select name='sys_scope'><option value='current' selected>Current</option><option value='other'>Other</option></select></body></html>",
+          },
+          { ok: false, status: 500, statusText: "Internal Server Error", text: "" },
+        ],
+        [],
+      ),
+    );
+
+    const resolution = await service.resolveScopeOptions(
+      {} as vscode.ExtensionContext,
+      createTempWorkspaceUri("bg-scope-options-api-error"),
+    );
+
+    assert.strictEqual(resolution.defaultScopeId, "current");
+    assert.ok(resolution.options.some((opt) => opt.id === "current"));
+    assert.ok(resolution.options.some((opt) => opt.id === "global"));
+  });
+
+  test("resolveScopeOptions handles invalid JSON in API response", async () => {
+    const service = new SnBackgroundScriptService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceUrl: "https://dev.service-now.com",
+          headers: { Authorization: "Basic x" },
+        }),
+      } as unknown as never,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body></body></html>",
+          },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "{ not: valid json }",
+          },
+        ],
+        [],
+      ),
+    );
+
+    const resolution = await service.resolveScopeOptions(
+      {} as vscode.ExtensionContext,
+      createTempWorkspaceUri("bg-scope-options-invalid-json"),
+    );
+
+    assert.strictEqual(resolution.defaultScopeId, "global");
+    assert.deepStrictEqual(resolution.options, [
+      { id: "global", label: "Global" },
+    ]);
+  });
+
+  test("scope resolution accepts direct sys_id when lookup API is unavailable", async () => {
+    const calls: FakeFetchCall[] = [];
+    const customSysId = "aaaa1111bbbb2222cccc3333dddd4444";
+    const service = new SnBackgroundScriptService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceUrl: "https://dev.service-now.com",
+          headers: { Authorization: "Basic x" },
+        }),
+      } as unknown as never,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: buildScriptsPageHtml(
+              "<option value='global'>Global</option>",
+            ),
+          },
+          {
+            ok: false,
+            status: 500,
+            statusText: "Internal Server Error",
+            text: "",
+          },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body><pre>Done</pre></body></html>",
+          },
+        ],
+        calls,
+      ),
+    );
+
+    const result = await service.runBackgroundScript(
+      {} as vscode.ExtensionContext,
+      createTempWorkspaceUri("bg-script-direct-sysid"),
+      "gs.print('test')",
+      customSysId,
+    );
+
+    const decodedBody = decodeURIComponent(calls[3].body.replace(/\+/g, "%20"));
+    assert.ok(decodedBody.includes(`sys_scope=${customSysId}`));
+    assert.ok(result.output);
+  });
 });

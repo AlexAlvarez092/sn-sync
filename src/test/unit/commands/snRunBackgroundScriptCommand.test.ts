@@ -678,6 +678,110 @@ suite("snRunBackgroundScriptCommand", () => {
       SN_SYNC_MESSAGES.RUN_BACKGROUND_SCRIPT_CANCELLED,
     ]);
   });
+
+  test("resolves script from selection when selection has content", async () => {
+    const shownInfos: string[] = [];
+    let observedScriptContent: string | undefined;
+
+    await withPatchedWindowForScopePrompt(
+      {
+        quickPick: { label: "Global", value: "global" },
+      },
+      async () => {
+        await runSnRunBackgroundScriptCommand(
+          {} as vscode.ExtensionContext,
+          {
+            resolveExecutionContext: async () => ({
+              instanceUrl: "https://dev.service-now.com",
+            }),
+            runBackgroundScript: async (
+              _context,
+              _workspace,
+              content,
+            ) => {
+              observedScriptContent = content;
+              return {
+                output: "done",
+                rawResponse: "<pre>ok</pre>",
+              };
+            },
+          },
+          {
+            getWorkspaceFolderUri: () =>
+              createTempWorkspaceUri("bg-command-selection"),
+            getActiveTextEditor: () =>
+              createEditorStub(
+                "full document text here",
+                "javascript",
+                new vscode.Selection(new vscode.Position(0, 5), new vscode.Position(0, 12))
+              ),
+            showErrorMessage: async () => undefined,
+            showInformationMessage: async (message: string) => {
+              shownInfos.push(message);
+              return undefined;
+            },
+          },
+        );
+      },
+    );
+
+    assert.strictEqual(observedScriptContent, "documen");
+    assert.deepStrictEqual(shownInfos, [
+      SN_SYNC_MESSAGES.RUN_BACKGROUND_SCRIPT_SUCCESS,
+    ]);
+  });
+
+  test("falls back to full document when selection is empty", async () => {
+    const shownInfos: string[] = [];
+    let observedScriptContent: string | undefined;
+
+    await withPatchedWindowForScopePrompt(
+      {
+        quickPick: { label: "Global", value: "global" },
+      },
+      async () => {
+        await runSnRunBackgroundScriptCommand(
+          {} as vscode.ExtensionContext,
+          {
+            resolveExecutionContext: async () => ({
+              instanceUrl: "https://dev.service-now.com",
+            }),
+            runBackgroundScript: async (
+              _context,
+              _workspace,
+              content,
+            ) => {
+              observedScriptContent = content;
+              return {
+                output: "done",
+                rawResponse: "<pre>ok</pre>",
+              };
+            },
+          },
+          {
+            getWorkspaceFolderUri: () =>
+              createTempWorkspaceUri("bg-command-fallback-doc"),
+            getActiveTextEditor: () =>
+              createEditorStub(
+                "full script content",
+                "typescript",
+                new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 0))
+              ),
+            showErrorMessage: async () => undefined,
+            showInformationMessage: async (message: string) => {
+              shownInfos.push(message);
+              return undefined;
+            },
+          },
+        );
+      },
+    );
+
+    assert.strictEqual(observedScriptContent, "full script content");
+    assert.deepStrictEqual(shownInfos, [
+      SN_SYNC_MESSAGES.RUN_BACKGROUND_SCRIPT_SUCCESS,
+    ]);
+  });
 });
 
 function withPatchedRegisterCommand(run: () => void): void {
