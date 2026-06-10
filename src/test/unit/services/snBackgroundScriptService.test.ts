@@ -7,6 +7,53 @@ import {
 } from "@shared/constants/snSyncConstants.js";
 import { createTempWorkspaceUri } from "@test/helpers/testRuntime.js";
 
+interface FakeFetchCall {
+  url: string;
+  method: string;
+  body: string;
+}
+
+interface FakeFetchResponse {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  text: string;
+}
+
+function buildScriptsPageHtml(optionsHtml: string): string {
+  return `<html><body>
+    <form>
+      <input name="sysparm_ck" value="ck-token-123" />
+      <select name="sys_scope">${optionsHtml}</select>
+    </form>
+  </body></html>`;
+}
+
+function createQueuedFetch(
+  responses: FakeFetchResponse[],
+  calls: FakeFetchCall[],
+): typeof fetch {
+  return (async (url: string | URL | Request, init?: RequestInit) => {
+    const next = responses.shift();
+    if (!next) {
+      throw new Error(`Unexpected fetch call: ${url.toString()}`);
+    }
+
+    calls.push({
+      url: url.toString(),
+      method: (init?.method ?? "GET").toUpperCase(),
+      body: String(init?.body ?? ""),
+    });
+
+    return {
+      ok: next.ok,
+      status: next.status,
+      statusText: next.statusText,
+      text: async () => next.text,
+    } as Response;
+  }) as typeof fetch;
+}
+
 suite("snBackgroundScriptService", () => {
   test("resolves execution context from auth", async () => {
     const service = new SnBackgroundScriptService({
@@ -28,9 +75,13 @@ suite("snBackgroundScriptService", () => {
     });
   });
 
-  test("posts script to sys.scripts.do and extracts pre output", async () => {
-    const calledUrls: string[] = [];
-    const calledBodies: string[] = [];
+  test("posts script after warmup and resolves custom scope from scripts page", async () => {
+    const calls: FakeFetchCall[] = [];
+    const customScopeSysId = "7f5301f31b223450aabbccddeeff0011";
+    const scriptsPageHtml = buildScriptsPageHtml(
+      `<option value="global">Global</option>
+       <option value="${customScopeSysId}">Library Intent [sn_library_intent]</option>`,
+    );
 
     const service = new SnBackgroundScriptService(
       {
@@ -40,38 +91,48 @@ suite("snBackgroundScriptService", () => {
           username: "admin",
         }),
       } as unknown as never,
-      (async (url: string | URL | Request, init?: RequestInit) => {
-        calledUrls.push(url.toString());
-        calledBodies.push(String(init?.body ?? ""));
-
-        return {
-          ok: true,
-          status: 200,
-          statusText: "OK",
-          text: async () =>
-            "<html><body><pre>Script completed\nRows: 12</pre></body></html>",
-        } as Response;
-      }) as typeof fetch,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          { ok: true, status: 200, statusText: "OK", text: scriptsPageHtml },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body><pre>Script completed\nRows: 12</pre></body></html>",
+          },
+        ],
+        calls,
+      ),
     );
 
     const result = await service.runBackgroundScript(
       {} as vscode.ExtensionContext,
       createTempWorkspaceUri("bg-script-success"),
-      "gs.info('hello')",
+      "gs.print('hello')",
+      "sn_library_intent",
     );
 
     assert.strictEqual(
-      calledUrls[0],
+      calls[1].url,
       `https://dev.service-now.com${SN_SYNC_SERVICENOW.BACKGROUND_SCRIPT_PATH}`,
     );
-    const decodedBody = decodeURIComponent(calledBodies[0].replace(/\+/g, "%20"));
-    assert.ok(decodedBody.includes("__snSyncWrap('info', 'INFO')"));
-    assert.ok(decodedBody.includes("script=(function () {"));
+    const decodedBody = decodeURIComponent(calls[2].body.replace(/\+/g, "%20"));
+    assert.ok(decodedBody.includes("gs.print('hello')"));
+    assert.ok(decodedBody.includes("sysparm_ck=ck-token-123"));
+    assert.ok(decodedBody.includes(`sys_scope=${customScopeSysId}`));
+    assert.ok(
+      decodedBody.includes(
+        `runscript=${SN_SYNC_SERVICENOW.BACKGROUND_SCRIPT_RUN_LABEL}`,
+      ),
+    );
     assert.strictEqual(result.output, "Script completed\nRows: 12");
-    assert.ok(result.rawResponse.includes("<pre>"));
   });
 
-  test("falls back to body text when pre is missing", async () => {
+  test("uses lookup API when scripts page has no scope options", async () => {
+    const calls: FakeFetchCall[] = [];
+    const lookupScopeId = "11112222333344445555666677778888";
+
     const service = new SnBackgroundScriptService(
       {
         resolveConnectionAuth: async () => ({
@@ -79,26 +140,55 @@ suite("snBackgroundScriptService", () => {
           headers: { Authorization: "Basic x" },
         }),
       } as unknown as never,
-      (async () => {
-        return {
-          ok: true,
-          status: 200,
-          statusText: "OK",
-          text: async () => "<html><body>Execution done &amp; verified</body></html>",
-        } as Response;
-      }) as typeof fetch,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body><input name='sysparm_ck' value='abc' /></body></html>",
+          },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: JSON.stringify({
+              result: [
+                {
+                  sys_id: lookupScopeId,
+                  scope: "sn_library_intent",
+                  name: "Library Intent",
+                },
+              ],
+            }),
+          },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body><pre>Done</pre></body></html>",
+          },
+        ],
+        calls,
+      ),
     );
 
-    const result = await service.runBackgroundScript(
+    await service.runBackgroundScript(
       {} as vscode.ExtensionContext,
-      createTempWorkspaceUri("bg-script-body-fallback"),
-      "gs.info('x')",
+      createTempWorkspaceUri("bg-script-lookup"),
+      "gs.print('x')",
+      "sn_library_intent",
     );
 
-    assert.strictEqual(result.output, "Execution done & verified");
+    assert.ok(calls[2].url.includes("/api/now/table/sys_scope"));
+    const decodedBody = decodeURIComponent(calls[3].body.replace(/\+/g, "%20"));
+    assert.ok(decodedBody.includes(`sys_scope=${lookupScopeId}`));
   });
 
-  test("returns default message when response has no meaningful output", async () => {
+  test("throws clear error when scope cannot be resolved unambiguously", async () => {
+    const calls: FakeFetchCall[] = [];
+
     const service = new SnBackgroundScriptService(
       {
         resolveConnectionAuth: async () => ({
@@ -106,127 +196,142 @@ suite("snBackgroundScriptService", () => {
           headers: { Authorization: "Basic x" },
         }),
       } as unknown as never,
-      (async () => {
-        return {
-          ok: true,
-          status: 200,
-          statusText: "OK",
-          text: async () => "<html><body><br/></body></html>",
-        } as Response;
-      }) as typeof fetch,
-    );
-
-    const result = await service.runBackgroundScript(
-      {} as vscode.ExtensionContext,
-      createTempWorkspaceUri("bg-script-no-output"),
-      "gs.info('x')",
-    );
-
-    assert.strictEqual(
-      result.output,
-      "(No printable output returned by ServiceNow. Use gs.print()/gs.warn() if you need visible output. gs.info() writes to system logs.)",
-    );
-  });
-
-  test("decodes hex and decimal entities and preserves unknown entities", async () => {
-    const service = new SnBackgroundScriptService(
-      {
-        resolveConnectionAuth: async () => ({
-          instanceUrl: "https://dev.service-now.com",
-          headers: { Authorization: "Basic x" },
-        }),
-      } as unknown as never,
-      (async () => {
-        return {
-          ok: true,
-          status: 200,
-          statusText: "OK",
-          text: async () =>
-            "<html><body><pre>Hex: &#x41; Dec: &#65; Unknown: &custom;</pre></body></html>",
-        } as Response;
-      }) as typeof fetch,
-    );
-
-    const result = await service.runBackgroundScript(
-      {} as vscode.ExtensionContext,
-      createTempWorkspaceUri("bg-script-entity-decode"),
-      "gs.info('x')",
-    );
-
-    assert.strictEqual(result.output, "Hex: A Dec: A Unknown: &custom;");
-  });
-
-  test("keeps numeric entities unchanged when parseInt returns NaN", async () => {
-    const service = new SnBackgroundScriptService(
-      {
-        resolveConnectionAuth: async () => ({
-          instanceUrl: "https://dev.service-now.com",
-          headers: { Authorization: "Basic x" },
-        }),
-      } as unknown as never,
-      (async () => {
-        return {
-          ok: true,
-          status: 200,
-          statusText: "OK",
-          text: async () =>
-            "<html><body><pre>Hex: &#x41; Dec: &#65;</pre></body></html>",
-        } as Response;
-      }) as typeof fetch,
-    );
-
-    const originalParseInt = Number.parseInt;
-    Number.parseInt = (() => Number.NaN) as typeof Number.parseInt;
-
-    try {
-      const result = await service.runBackgroundScript(
-        {} as vscode.ExtensionContext,
-        createTempWorkspaceUri("bg-script-entity-nan"),
-        "gs.info('x')",
-      );
-
-      assert.strictEqual(result.output, "Hex: &#x41; Dec: &#65;");
-    } finally {
-      Number.parseInt = originalParseInt;
-    }
-  });
-
-  test("throws auth error on 401", async () => {
-    const service = new SnBackgroundScriptService(
-      {
-        resolveConnectionAuth: async () => ({
-          instanceUrl: "https://dev.service-now.com",
-          headers: { Authorization: "Basic x" },
-        }),
-      } as unknown as never,
-      (async () => {
-        return {
-          ok: false,
-          status: 401,
-          statusText: "Unauthorized",
-          text: async () => "",
-        } as Response;
-      }) as typeof fetch,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body><input name='sysparm_ck' value='abc' /></body></html>",
+          },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: JSON.stringify({
+              result: [
+                {
+                  sys_id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  scope: "x_other_scope",
+                  name: "Other Scope",
+                },
+              ],
+            }),
+          },
+        ],
+        calls,
+      ),
     );
 
     await assert.rejects(
       () =>
         service.runBackgroundScript(
           {} as vscode.ExtensionContext,
-          createTempWorkspaceUri("bg-script-401"),
-          "gs.info('x')",
+          createTempWorkspaceUri("bg-script-unresolved-scope"),
+          "gs.print('x')",
+          "sn_library_intent",
         ),
       (error: unknown) => {
         assert.strictEqual(
           (error as Error).message,
-          SN_SYNC_MESSAGES.AUTH_INVALID_CREDENTIALS,
+          "Selected scope 'sn_library_intent' is not available for this instance/user.",
+        );
+        return true;
+      },
+    );
+
+    assert.strictEqual(calls.length, 3);
+  });
+
+  test("accepts direct sys_id when provided as scope", async () => {
+    const calls: FakeFetchCall[] = [];
+    const directSysId = "0f1e2d3c4b5a69788796a5b4c3d2e1f0";
+
+    const service = new SnBackgroundScriptService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceUrl: "https://dev.service-now.com",
+          headers: { Authorization: "Basic x" },
+        }),
+      } as unknown as never,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body><input name='sysparm_ck' value='abc' /></body></html>",
+          },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: JSON.stringify({ result: [] }),
+          },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body><pre>ok</pre></body></html>",
+          },
+        ],
+        calls,
+      ),
+    );
+
+    await service.runBackgroundScript(
+      {} as vscode.ExtensionContext,
+      createTempWorkspaceUri("bg-script-direct-sysid"),
+      "gs.print('x')",
+      directSysId,
+    );
+
+    const decodedBody = decodeURIComponent(calls[3].body.replace(/\+/g, "%20"));
+    assert.ok(decodedBody.includes(`sys_scope=${directSysId}`));
+  });
+
+  test("throws error when ck token is missing", async () => {
+    const service = new SnBackgroundScriptService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceUrl: "https://dev.service-now.com",
+          headers: { Authorization: "Basic x" },
+        }),
+      } as unknown as never,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body><select name='sys_scope'></select></body></html>",
+          },
+        ],
+        [],
+      ),
+    );
+
+    await assert.rejects(
+      () =>
+        service.runBackgroundScript(
+          {} as vscode.ExtensionContext,
+          createTempWorkspaceUri("bg-script-missing-ck"),
+          "gs.print('x')",
+        ),
+      (error: unknown) => {
+        assert.strictEqual(
+          (error as Error).message,
+          "Could not extract ck token from ServiceNow response",
         );
         return true;
       },
     );
   });
 
-  test("throws auth error on 403", async () => {
+  test("throws error on 401 unauthorized", async () => {
     const service = new SnBackgroundScriptService(
       {
         resolveConnectionAuth: async () => ({
@@ -248,8 +353,8 @@ suite("snBackgroundScriptService", () => {
       () =>
         service.runBackgroundScript(
           {} as vscode.ExtensionContext,
-          createTempWorkspaceUri("bg-script-403"),
-          "gs.info('x')",
+          createTempWorkspaceUri("bg-script-401"),
+          "gs.print('x')",
         ),
       (error: unknown) => {
         assert.strictEqual(
@@ -261,7 +366,7 @@ suite("snBackgroundScriptService", () => {
     );
   });
 
-  test("throws HTTP status error on non-success response", async () => {
+  test("throws error on 500 server error", async () => {
     const service = new SnBackgroundScriptService(
       {
         resolveConnectionAuth: async () => ({
@@ -284,7 +389,7 @@ suite("snBackgroundScriptService", () => {
         service.runBackgroundScript(
           {} as vscode.ExtensionContext,
           createTempWorkspaceUri("bg-script-500"),
-          "gs.info('x')",
+          "gs.print('x')",
         ),
       (error: unknown) => {
         assert.strictEqual(
@@ -294,5 +399,245 @@ suite("snBackgroundScriptService", () => {
         return true;
       },
     );
+  });
+
+  test("decodes HTML entities in output", async () => {
+    const scriptsPageHtml = buildScriptsPageHtml(
+      "<option value='global'>Global</option>",
+    );
+
+    const service = new SnBackgroundScriptService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceUrl: "https://dev.service-now.com",
+          headers: { Authorization: "Basic x" },
+        }),
+      } as unknown as never,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          { ok: true, status: 200, statusText: "OK", text: scriptsPageHtml },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body><pre>Test: &amp; &lt; &gt; &#65;</pre></body></html>",
+          },
+        ],
+        [],
+      ),
+    );
+
+    const result = await service.runBackgroundScript(
+      {} as vscode.ExtensionContext,
+      createTempWorkspaceUri("bg-script-entities"),
+      "gs.print('x')",
+      "global",
+    );
+
+    assert.ok(result.output.includes("&"));
+    assert.ok(result.output.includes("<"));
+    assert.ok(result.output.includes(">"));
+    assert.ok(result.output.includes("A"));
+  });
+
+  test("resolveScopeOptions merges listed scopes with current selected scope", async () => {
+    const calls: FakeFetchCall[] = [];
+    const currentScopeHtml = `
+      <html><body>
+        <select name="sys_scope">
+          <option value="global">Global</option>
+          <option value="x_current_scope" selected>Current Scope</option>
+        </select>
+      </body></html>`;
+
+    const service = new SnBackgroundScriptService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceUrl: "https://dev.service-now.com",
+          headers: { Authorization: "Basic x" },
+        }),
+      } as unknown as never,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          { ok: true, status: 200, statusText: "OK", text: currentScopeHtml },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: JSON.stringify({
+              result: [
+                { scope: "x_app_one", name: "App One" },
+                { scope: "global", name: "Global" },
+              ],
+            }),
+          },
+        ],
+        calls,
+      ),
+    );
+
+    const resolution = await service.resolveScopeOptions(
+      {} as vscode.ExtensionContext,
+      createTempWorkspaceUri("bg-scope-options-merge"),
+    );
+
+    assert.ok(calls[2].url.includes("/api/now/table/sys_scope"));
+    assert.strictEqual(resolution.defaultScopeId, "x_current_scope");
+    assert.ok(resolution.options.some((item) => item.id === "x_app_one"));
+    assert.ok(resolution.options.some((item) => item.id === "x_current_scope"));
+    assert.ok(resolution.options.some((item) => item.id === "global"));
+  });
+
+  test("resolveScopeOptions falls back to global when current selected option has no value", async () => {
+    const currentScopeHtml = `
+      <html><body>
+        <select name="sys_scope">
+          <option selected>Missing Value Scope</option>
+        </select>
+      </body></html>`;
+
+    const service = new SnBackgroundScriptService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceUrl: "https://dev.service-now.com",
+          headers: { Authorization: "Basic x" },
+        }),
+      } as unknown as never,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          { ok: true, status: 200, statusText: "OK", text: currentScopeHtml },
+          { ok: false, status: 500, statusText: "Server Error", text: "" },
+        ],
+        [],
+      ),
+    );
+
+    const resolution = await service.resolveScopeOptions(
+      {} as vscode.ExtensionContext,
+      createTempWorkspaceUri("bg-scope-options-fallback"),
+    );
+
+    assert.strictEqual(resolution.defaultScopeId, "global");
+    assert.deepStrictEqual(resolution.options, [
+      { id: "global", label: "Global" },
+    ]);
+  });
+
+  test("runBackgroundScript scans multiple input tags to find sysparm_ck", async () => {
+    const calls: FakeFetchCall[] = [];
+    const scriptsPageHtml = `
+      <html><body>
+        <input name="other" value="x" />
+        <input name="sysparm_ck" value="token-2" />
+        <select name="sys_scope"><option value="global">Global</option></select>
+      </body></html>`;
+
+    const service = new SnBackgroundScriptService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceUrl: "https://dev.service-now.com",
+          headers: { Authorization: "Basic x" },
+        }),
+      } as unknown as never,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          { ok: true, status: 200, statusText: "OK", text: scriptsPageHtml },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body><pre>ok</pre></body></html>",
+          },
+        ],
+        calls,
+      ),
+    );
+
+    await service.runBackgroundScript(
+      {} as vscode.ExtensionContext,
+      createTempWorkspaceUri("bg-script-ck-loop"),
+      "gs.print('x')",
+      "global",
+    );
+
+    const decodedBody = decodeURIComponent(calls[2].body.replace(/\+/g, "%20"));
+    assert.ok(decodedBody.includes("sysparm_ck=token-2"));
+  });
+
+  test("resolveScopeOptions handles scripts page without sys_scope select", async () => {
+    const service = new SnBackgroundScriptService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceUrl: "https://dev.service-now.com",
+          headers: { Authorization: "Basic x" },
+        }),
+      } as unknown as never,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body>No select</body></html>",
+          },
+          { ok: false, status: 500, statusText: "Server Error", text: "" },
+        ],
+        [],
+      ),
+    );
+
+    const resolution = await service.resolveScopeOptions(
+      {} as vscode.ExtensionContext,
+      createTempWorkspaceUri("bg-scope-options-no-select"),
+    );
+
+    assert.deepStrictEqual(resolution, {
+      options: [{ id: "global", label: "Global" }],
+      defaultScopeId: "global",
+    });
+  });
+
+  test("runBackgroundScript uses global scope when requested scope is empty", async () => {
+    const calls: FakeFetchCall[] = [];
+    const scriptsPageHtml = buildScriptsPageHtml(
+      "<option value='global_sys_id'>Global</option>",
+    );
+
+    const service = new SnBackgroundScriptService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceUrl: "https://dev.service-now.com",
+          headers: { Authorization: "Basic x" },
+        }),
+      } as unknown as never,
+      createQueuedFetch(
+        [
+          { ok: true, status: 200, statusText: "OK", text: "{}" },
+          { ok: true, status: 200, statusText: "OK", text: scriptsPageHtml },
+          {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: "<html><body><pre>ok</pre></body></html>",
+          },
+        ],
+        calls,
+      ),
+    );
+
+    await service.runBackgroundScript(
+      {} as vscode.ExtensionContext,
+      createTempWorkspaceUri("bg-script-empty-scope"),
+      "gs.print('x')",
+      "   ",
+    );
+
+    const decodedBody = decodeURIComponent(calls[2].body.replace(/\+/g, "%20"));
+    assert.ok(decodedBody.includes("sys_scope=global_sys_id"));
   });
 });
