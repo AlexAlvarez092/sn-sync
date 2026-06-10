@@ -17,8 +17,7 @@ export const SN_SYNC_MESSAGES = {
     "OAuth token is expired and cannot be refreshed. Run 'sn: auth' and choose oauth again.",
   AUTH_OAUTH_TOKEN_EXCHANGE_FAILED_PREFIX:
     "Failed to complete OAuth token exchange:",
-  AUTH_OAUTH_TOKEN_REFRESH_FAILED_PREFIX:
-    "Failed to refresh OAuth token:",
+  AUTH_OAUTH_TOKEN_REFRESH_FAILED_PREFIX: "Failed to refresh OAuth token:",
   AUTH_VALIDATE_SUCCESS: "ServiceNow login validated successfully.",
   AUTH_VALIDATE_FAILED_PREFIX: "Failed to validate ServiceNow login:",
   AUTH_VALIDATE_HTTP_STATUS_PREFIX:

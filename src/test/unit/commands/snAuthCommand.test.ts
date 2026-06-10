@@ -66,7 +66,8 @@ suite("snAuthCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("auth-cancel-method"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("auth-cancel-method"),
         askChoice: async () => undefined,
         askInput: async () => undefined,
         openExternal: async () => true,
@@ -148,7 +149,8 @@ suite("snAuthCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("auth-cancel-instance"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("auth-cancel-instance"),
         askChoice: async () => ({ label: "basic", authType: "basic" }),
         askInput: async () => undefined,
         openExternal: async () => true,
@@ -179,7 +181,8 @@ suite("snAuthCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("auth-cancel-username"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("auth-cancel-username"),
         askChoice: async () => ({ label: "basic", authType: "basic" }),
         askInput: async () => {
           const value = answers[askInputCall];
@@ -214,7 +217,8 @@ suite("snAuthCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("auth-cancel-instance-url"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("auth-cancel-instance-url"),
         askChoice: async () => ({ label: "basic", authType: "basic" }),
         askInput: async () => {
           const value = answers[askInputCall];
@@ -235,7 +239,12 @@ suite("snAuthCommand", () => {
 
   test("shows cancelled info when basic password prompt is dismissed", async () => {
     const shownInfos: string[] = [];
-    const answers = ["dev1", "https://dev1.service-now.com", "admin", undefined];
+    const answers = [
+      "dev1",
+      "https://dev1.service-now.com",
+      "admin",
+      undefined,
+    ];
     let askInputCall = 0;
 
     await runSnAuthCommand(
@@ -249,7 +258,8 @@ suite("snAuthCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("auth-cancel-password"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("auth-cancel-password"),
         askChoice: async () => ({ label: "basic", authType: "basic" }),
         askInput: async () => {
           const value = answers[askInputCall];
@@ -280,11 +290,13 @@ suite("snAuthCommand", () => {
     ];
     let askInputCall = 0;
     let receivedAuthInput: unknown;
-    let oauthBeginArgs: {
-      workspaceFolderUri: vscode.Uri;
-      instanceUrl: string;
-      clientId: string;
-    } | undefined;
+    let oauthBeginArgs:
+      | {
+          workspaceFolderUri: vscode.Uri;
+          instanceUrl: string;
+          clientId: string;
+        }
+      | undefined;
 
     await runSnAuthCommand(
       {} as vscode.ExtensionContext,
@@ -336,7 +348,10 @@ suite("snAuthCommand", () => {
       oauthBeginArgs?.workspaceFolderUri.toString(),
       workspaceUri.toString(),
     );
-    assert.strictEqual(oauthBeginArgs?.instanceUrl, "https://dev1.service-now.com");
+    assert.strictEqual(
+      oauthBeginArgs?.instanceUrl,
+      "https://dev1.service-now.com",
+    );
     assert.strictEqual(oauthBeginArgs?.clientId, "sdk-client-id");
     assert.deepStrictEqual(openedUris, [
       "https://dev1.service-now.com/oauth_auth.do?x%3D1",
@@ -378,7 +393,8 @@ suite("snAuthCommand", () => {
         }),
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("auth-oauth-cancel"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("auth-oauth-cancel"),
         askChoice: async () => ({ label: "oauth", authType: "oauth" }),
         askInput: async () => {
           const value = answers[askInputCall];
@@ -417,7 +433,8 @@ suite("snAuthCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("auth-oauth-cancel-client-id"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("auth-oauth-cancel-client-id"),
         askChoice: async () => ({ label: "oauth", authType: "oauth" }),
         askInput: async () => {
           const value = answers[askInputCall];
@@ -506,7 +523,12 @@ suite("snAuthCommand", () => {
   test("uses default runtime and shows success when workspace exists", async () => {
     const workspaceUri = createTempWorkspaceUri("auth-default-runtime-success");
     const shownInfos: string[] = [];
-    const answers = ["dev-default", "https://dev-default.service-now.com", "admin", "secret"];
+    const answers = [
+      "dev-default",
+      "https://dev-default.service-now.com",
+      "admin",
+      "secret",
+    ];
     let askCall = 0;
     let saveCalled = false;
 
@@ -580,16 +602,14 @@ suite("snAuthCommand", () => {
             return true;
           },
           async () => {
-            await runSnAuthCommand(
-              {} as vscode.ExtensionContext,
-              {
-                saveAuth: async (): Promise<void> => undefined,
-                beginOAuthSignIn: async () => ({
-                  authorizationUrl: "https://dev-default.service-now.com/oauth_auth.do?x=1",
-                  codeVerifier: "verifier-1",
-                }),
-              },
-            );
+            await runSnAuthCommand({} as vscode.ExtensionContext, {
+              saveAuth: async (): Promise<void> => undefined,
+              beginOAuthSignIn: async () => ({
+                authorizationUrl:
+                  "https://dev-default.service-now.com/oauth_auth.do?x=1",
+                codeVerifier: "verifier-1",
+              }),
+            });
           },
         );
       },

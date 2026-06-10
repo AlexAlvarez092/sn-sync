@@ -144,7 +144,9 @@ export class SnAuthService {
       clientId: authInput.clientId.trim(),
       accessToken: oauthToken.accessToken,
       tokenType: oauthToken.tokenType,
-      ...(oauthToken.refreshToken ? { refreshToken: oauthToken.refreshToken } : {}),
+      ...(oauthToken.refreshToken
+        ? { refreshToken: oauthToken.refreshToken }
+        : {}),
       ...(oauthToken.expiresAt ? { expiresAt: oauthToken.expiresAt } : {}),
       ...(oauthToken.scope ? { scope: oauthToken.scope } : {}),
     };
@@ -361,8 +363,10 @@ export class SnAuthService {
       accessToken: refreshedToken.accessToken,
       tokenType: refreshedToken.tokenType,
       refreshToken: refreshedToken.refreshToken ?? savedAuth.refreshToken,
-      ...(refreshedToken.expiresAt ? { expiresAt: refreshedToken.expiresAt } : {}),
-      ...(refreshedToken.scope ?? savedAuth.scope
+      ...(refreshedToken.expiresAt
+        ? { expiresAt: refreshedToken.expiresAt }
+        : {}),
+      ...((refreshedToken.scope ?? savedAuth.scope)
         ? { scope: refreshedToken.scope ?? savedAuth.scope }
         : {}),
     };
@@ -483,7 +487,10 @@ export class SnAuthService {
       throw new Error(`${errorPrefix} Invalid token response payload.`);
     }
 
-    if (typeof payload.access_token !== "string" || !payload.access_token.trim()) {
+    if (
+      typeof payload.access_token !== "string" ||
+      !payload.access_token.trim()
+    ) {
       throw new Error(`${errorPrefix} Missing access token in response.`);
     }
 
@@ -505,7 +512,9 @@ export class SnAuthService {
       ...(typeof payload.refresh_token === "string" && payload.refresh_token
         ? { refreshToken: payload.refresh_token }
         : {}),
-      ...(Number.isFinite(expiresInSeconds) && expiresInSeconds && expiresInSeconds > 0
+      ...(Number.isFinite(expiresInSeconds) &&
+      expiresInSeconds &&
+      expiresInSeconds > 0
         ? { expiresAt: Date.now() + expiresInSeconds * 1000 }
         : {}),
       ...(typeof payload.scope === "string" && payload.scope.trim()

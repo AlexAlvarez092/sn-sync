@@ -52,8 +52,8 @@ Capture and persist the ServiceNow auth used by this workspace, and set the work
 
 - Persists `instance` in `.snsyncrc` as a non-sensitive selector.
 - Stores auth data in VS Code Secret Storage.
-	- `basic`: normalized `instanceUrl`, `username`, `password`
-	- `oauth`: normalized `instanceUrl`, `clientId`, `accessToken`, `tokenType`, optional refresh metadata
+  - `basic`: normalized `instanceUrl`, `username`, `password`
+  - `oauth`: normalized `instanceUrl`, `clientId`, `accessToken`, `tokenType`, optional refresh metadata
 
 ## Authentication model
 
@@ -141,9 +141,9 @@ sequenceDiagram
   - Resolution: Check VS Code workspace permissions and retry.
 
 - Symptom: Later commands still fail auth
-	- Cause: Saved auth is invalid, expired, or incomplete for the selected auth type.
-	- Resolution: Run sn: auth validate. If needed, rerun sn: auth and re-save the intended method.
+  - Cause: Saved auth is invalid, expired, or incomplete for the selected auth type.
+  - Resolution: Run sn: auth validate. If needed, rerun sn: auth and re-save the intended method.
 
 - Symptom: OAuth flow fails during token exchange/refresh
-	- Cause: Invalid client id/code, expired code, missing refresh token, or network issues.
-	- Resolution: Rerun sn: auth (OAuth path), complete sign-in again, and validate with sn: auth validate.
+  - Cause: Invalid client id/code, expired code, missing refresh token, or network issues.
+  - Resolution: Rerun sn: auth (OAuth path), complete sign-in again, and validate with sn: auth validate.

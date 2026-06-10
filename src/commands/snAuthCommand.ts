@@ -207,7 +207,9 @@ async function collectOAuthAuthInput(
     instanceUrl,
     clientId,
   );
-  void runtime.showInformationMessage(SN_SYNC_MESSAGES.AUTH_OAUTH_OPEN_BROWSER_INFO);
+  void runtime.showInformationMessage(
+    SN_SYNC_MESSAGES.AUTH_OAUTH_OPEN_BROWSER_INFO,
+  );
   await runtime.openExternal(vscode.Uri.parse(oauthStart.authorizationUrl));
 
   const authorizationCode = await askRequiredInput(runtime, {

@@ -94,9 +94,15 @@ suite("snAuthService", () => {
     assert.strictEqual(parsed.pathname, "/oauth_auth.do");
     assert.strictEqual(parsed.searchParams.get("response_type"), "code");
     assert.strictEqual(parsed.searchParams.get("client_id"), "client-1");
-    assert.strictEqual(parsed.searchParams.get("redirect_uri"), "/sdk-oauth.do");
+    assert.strictEqual(
+      parsed.searchParams.get("redirect_uri"),
+      "/sdk-oauth.do",
+    );
     assert.strictEqual(parsed.searchParams.get("scope"), "openid");
-    assert.strictEqual(parsed.searchParams.get("code_challenge_method"), "S256");
+    assert.strictEqual(
+      parsed.searchParams.get("code_challenge_method"),
+      "S256",
+    );
     assert.ok(parsed.searchParams.get("state"));
     assert.ok(parsed.searchParams.get("code_challenge"));
     assert.ok(result.codeVerifier.length > 20);
@@ -199,26 +205,28 @@ suite("snAuthService", () => {
       }),
     } as unknown as never);
 
-    (service as unknown as { fetchApi: typeof fetch }).fetchApi =
-      (async (_input: string | URL | Request, init?: RequestInit) => {
-        const body = String(init?.body ?? "");
-        assert.ok(body.includes("grant_type=authorization_code"));
-        assert.ok(body.includes("code=code-1"));
-        assert.ok(body.includes("client_id=client-1"));
-        return new Response(
-          JSON.stringify({
-            access_token: "at-1",
-            token_type: "Bearer",
-            refresh_token: "rt-1",
-            expires_in: "3600",
-            scope: "openid",
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }) as typeof fetch;
+    (service as unknown as { fetchApi: typeof fetch }).fetchApi = (async (
+      _input: string | URL | Request,
+      init?: RequestInit,
+    ) => {
+      const body = String(init?.body ?? "");
+      assert.ok(body.includes("grant_type=authorization_code"));
+      assert.ok(body.includes("code=code-1"));
+      assert.ok(body.includes("client_id=client-1"));
+      return new Response(
+        JSON.stringify({
+          access_token: "at-1",
+          token_type: "Bearer",
+          refresh_token: "rt-1",
+          expires_in: "3600",
+          scope: "openid",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }) as typeof fetch;
 
     await service.saveAuth(
       {
@@ -264,18 +272,17 @@ suite("snAuthService", () => {
       }),
     } as unknown as never);
 
-    (service as unknown as { fetchApi: typeof fetch }).fetchApi =
-      (async () =>
-        new Response(
-          JSON.stringify({
-            access_token: "at-1",
-            token_type: "",
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          },
-        )) as typeof fetch;
+    (service as unknown as { fetchApi: typeof fetch }).fetchApi = (async () =>
+      new Response(
+        JSON.stringify({
+          access_token: "at-1",
+          token_type: "",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      )) as typeof fetch;
 
     await service.saveAuth(
       {
@@ -317,12 +324,11 @@ suite("snAuthService", () => {
       }),
     } as unknown as never);
 
-    (service as unknown as { fetchApi: typeof fetch }).fetchApi =
-      (async () =>
-        new Response("{}", {
-          status: 401,
-          statusText: "Unauthorized",
-        })) as typeof fetch;
+    (service as unknown as { fetchApi: typeof fetch }).fetchApi = (async () =>
+      new Response("{}", {
+        status: 401,
+        statusText: "Unauthorized",
+      })) as typeof fetch;
 
     await assert.rejects(
       () =>
@@ -366,12 +372,11 @@ suite("snAuthService", () => {
       }),
     } as unknown as never);
 
-    (service as unknown as { fetchApi: typeof fetch }).fetchApi =
-      (async () =>
-        new Response("{}", {
-          status: 500,
-          statusText: "Internal Server Error",
-        })) as typeof fetch;
+    (service as unknown as { fetchApi: typeof fetch }).fetchApi = (async () =>
+      new Response("{}", {
+        status: 500,
+        statusText: "Internal Server Error",
+      })) as typeof fetch;
 
     await assert.rejects(
       () =>
@@ -415,10 +420,9 @@ suite("snAuthService", () => {
       }),
     } as unknown as never);
 
-    (service as unknown as { fetchApi: typeof fetch }).fetchApi =
-      (async () => {
-        throw new TypeError("net::ERR_EMPTY_RESPONSE");
-      }) as typeof fetch;
+    (service as unknown as { fetchApi: typeof fetch }).fetchApi = (async () => {
+      throw new TypeError("net::ERR_EMPTY_RESPONSE");
+    }) as typeof fetch;
 
     await assert.rejects(
       () =>
@@ -462,10 +466,9 @@ suite("snAuthService", () => {
       }),
     } as unknown as never);
 
-    (service as unknown as { fetchApi: typeof fetch }).fetchApi =
-      (async () => {
-        throw new Error("boom");
-      }) as typeof fetch;
+    (service as unknown as { fetchApi: typeof fetch }).fetchApi = (async () => {
+      throw new Error("boom");
+    }) as typeof fetch;
 
     await assert.rejects(
       () =>
@@ -503,8 +506,8 @@ suite("snAuthService", () => {
       }),
     } as unknown as never);
 
-    (service as unknown as { fetchApi: typeof fetch }).fetchApi =
-      (async () => new Response("not-json", { status: 200 })) as typeof fetch;
+    (service as unknown as { fetchApi: typeof fetch }).fetchApi = (async () =>
+      new Response("not-json", { status: 200 })) as typeof fetch;
 
     await assert.rejects(
       () =>
@@ -548,12 +551,11 @@ suite("snAuthService", () => {
       }),
     } as unknown as never);
 
-    (service as unknown as { fetchApi: typeof fetch }).fetchApi =
-      (async () =>
-        new Response(JSON.stringify({ token_type: "Bearer" }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })) as typeof fetch;
+    (service as unknown as { fetchApi: typeof fetch }).fetchApi = (async () =>
+      new Response(JSON.stringify({ token_type: "Bearer" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })) as typeof fetch;
 
     await assert.rejects(
       () =>
@@ -653,7 +655,10 @@ suite("snAuthService", () => {
       {
         getInstanceName: async () => "dev1",
       } as unknown as never,
-      (async () => ({ statusCode: 500, statusMessage: "Internal Server Error" })) as unknown as never,
+      (async () => ({
+        statusCode: 500,
+        statusMessage: "Internal Server Error",
+      })) as unknown as never,
     );
 
     (
@@ -691,7 +696,10 @@ suite("snAuthService", () => {
       {
         getInstanceName: async () => "dev1",
       } as unknown as never,
-      (async () => ({ statusCode: 500, statusMessage: undefined })) as unknown as never,
+      (async () => ({
+        statusCode: 500,
+        statusMessage: undefined,
+      })) as unknown as never,
     );
 
     (
@@ -727,7 +735,10 @@ suite("snAuthService", () => {
       {
         getInstanceName: async () => "dev1",
       } as unknown as never,
-      (async () => ({ statusCode: 401, statusMessage: "Unauthorized" })) as unknown as never,
+      (async () => ({
+        statusCode: 401,
+        statusMessage: "Unauthorized",
+      })) as unknown as never,
     );
 
     (
@@ -919,21 +930,20 @@ suite("snAuthService", () => {
 
     assert.strictEqual(resolvedNoRefresh.headers.Authorization, "Bearer at-1");
 
-    (service as unknown as { fetchApi: typeof fetch }).fetchApi =
-      (async () =>
-        new Response(
-          JSON.stringify({
-            access_token: "at-refreshed",
-            token_type: "Bearer",
-            refresh_token: "rt-refreshed",
-            expires_in: 3600,
-            scope: "openid profile",
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          },
-        )) as typeof fetch;
+    (service as unknown as { fetchApi: typeof fetch }).fetchApi = (async () =>
+      new Response(
+        JSON.stringify({
+          access_token: "at-refreshed",
+          token_type: "Bearer",
+          refresh_token: "rt-refreshed",
+          expires_in: 3600,
+          scope: "openid profile",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      )) as typeof fetch;
 
     const resolvedRefresh = await service.resolveConnectionAuth(
       {
@@ -956,21 +966,23 @@ suite("snAuthService", () => {
       vscode.Uri.file("/tmp/ws"),
     );
 
-    assert.strictEqual(resolvedRefresh.headers.Authorization, "Bearer at-refreshed");
+    assert.strictEqual(
+      resolvedRefresh.headers.Authorization,
+      "Bearer at-refreshed",
+    );
     assert.ok(storedSecretValue);
 
-    (service as unknown as { fetchApi: typeof fetch }).fetchApi =
-      (async () =>
-        new Response(
-          JSON.stringify({
-            access_token: "at-refreshed-2",
-            token_type: "Bearer",
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          },
-        )) as typeof fetch;
+    (service as unknown as { fetchApi: typeof fetch }).fetchApi = (async () =>
+      new Response(
+        JSON.stringify({
+          access_token: "at-refreshed-2",
+          token_type: "Bearer",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      )) as typeof fetch;
 
     const resolvedFallbackRefresh = await service.resolveConnectionAuth(
       {
@@ -1038,12 +1050,11 @@ suite("snAuthService", () => {
       },
     );
 
-    (service as unknown as { fetchApi: typeof fetch }).fetchApi =
-      (async () =>
-        new Response("{}", {
-          status: 401,
-          statusText: "Unauthorized",
-        })) as typeof fetch;
+    (service as unknown as { fetchApi: typeof fetch }).fetchApi = (async () =>
+      new Response("{}", {
+        status: 401,
+        statusText: "Unauthorized",
+      })) as typeof fetch;
 
     await assert.rejects(
       () =>
@@ -1074,10 +1085,9 @@ suite("snAuthService", () => {
       },
     );
 
-    (service as unknown as { fetchApi: typeof fetch }).fetchApi =
-      (async () => {
-        throw new TypeError("net::ERR_EMPTY_RESPONSE");
-      }) as typeof fetch;
+    (service as unknown as { fetchApi: typeof fetch }).fetchApi = (async () => {
+      throw new TypeError("net::ERR_EMPTY_RESPONSE");
+    }) as typeof fetch;
 
     await assert.rejects(
       () =>
@@ -1201,10 +1211,16 @@ suite("snAuthService", () => {
     );
 
     assert.strictEqual(resolved.accessToken, "at-refreshed-3");
-    assert.strictEqual(Object.prototype.hasOwnProperty.call(resolved, "scope"), false);
+    assert.strictEqual(
+      Object.prototype.hasOwnProperty.call(resolved, "scope"),
+      false,
+    );
     assert.ok(persistedSecret);
     const parsedPersisted = JSON.parse(persistedSecret ?? "{}");
-    assert.strictEqual(Object.prototype.hasOwnProperty.call(parsedPersisted, "scope"), false);
+    assert.strictEqual(
+      Object.prototype.hasOwnProperty.call(parsedPersisted, "scope"),
+      false,
+    );
   });
 
   test("resolveConnectionAuth rejects invalid and incomplete payloads", async () => {
