@@ -15,7 +15,7 @@ sn-sync helps you work with ServiceNow scripts in a local workflow:
 
 - Project initialization command.
 - Authentication setup and validation.
-- Multiple authentication modes with deterministic priority.
+- Explicit authentication mode selection: basic or OAuth (PKCE).
 - Pull all configured records or pull by sys_id.
 - Open the active indexed file directly in ServiceNow.
 - Push only the active file or all modified files.
@@ -27,7 +27,7 @@ sn-sync helps you work with ServiceNow scripts in a local workflow:
 
 1. Open your project folder in VS Code.
 2. Run `sn: init`.
-3. Run `sn: auth` and complete your ServiceNow credentials.
+3. Run `sn: auth`, choose `basic` or `oauth`, and complete the prompts.
 4. Run `sn: pull` to bring records into your local source folder.
 5. Edit files locally.
 6. Run `sn: push active` or `sn: push modified`.
@@ -42,11 +42,11 @@ Creates the local sn-sync config for your workspace and prompts for the instance
 
 ### `sn: auth`
 
-Saves your ServiceNow connection credentials for the workspace.
+Saves your ServiceNow connection auth for the workspace (basic credentials or OAuth tokens).
 
 ### `sn: auth validate`
 
-Checks that your saved credentials are valid.
+Checks that your currently saved auth for the workspace is valid.
 
 ### `sn: reset auth`
 
@@ -162,16 +162,16 @@ The workspace uses a `.snsyncrc` file only for non-sensitive sync configuration 
 
 Security strategy:
 
-- All authentication data is stored in VS Code Secret Storage.
+- All authentication data is stored in VS Code Secret Storage (basic credentials or OAuth token payloads).
 - `.snsyncrc` must not contain authentication fields or credentials.
 
-Auth precedence at runtime:
+Auth model at runtime:
 
-1. Session headers (when present in saved secret payload)
-2. Bearer header (when present in saved secret payload)
-3. Basic auth from credentials saved with `sn: auth`
+1. `sn: auth` stores one explicit auth type per workspace instance (`basic` or `oauth`).
+2. `basic` uses username/password and builds an Authorization header.
+3. `oauth` uses bearer tokens and refreshes automatically when token expiry is near.
 
-If none of the above is available, commands that call ServiceNow fail with an auth-not-configured error.
+There is no implicit fallback between auth types. If saved auth is incomplete or invalid, commands fail with auth-not-configured or auth-validation errors.
 
 HTTP transport strategy:
 

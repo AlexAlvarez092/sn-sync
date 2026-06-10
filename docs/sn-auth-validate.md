@@ -17,7 +17,7 @@ Validate that the currently resolved connection authentication is accepted by Se
 ## Preconditions
 
 1. Workspace must be open.
-2. Basic auth must be configured for this workspace/instance.
+2. Auth must be configured for this workspace/instance (`basic` or `oauth`).
 3. HTTP connectivity to ServiceNow must be available.
 
 ## Step-by-step logic
@@ -32,10 +32,11 @@ Validate that the currently resolved connection authentication is accepted by Se
 
 SnAuthService.validateAuth typically:
 
-1. Resolves the saved basic auth credentials from Secret Storage.
+1. Resolves saved auth from Secret Storage according to the active auth type.
 2. Revalidates the stored instance URL against the active host policy (HTTPS + allowed hosts).
-3. Calls a lightweight ServiceNow `sys_user` Table API request (same API family used for pull/push flows).
-4. Interprets HTTP responses (including 401) and throws semantic errors.
+3. For OAuth, refreshes token first when needed and possible.
+4. Calls a lightweight ServiceNow `sys_user` Table API request (same API family used for pull/push flows).
+5. Interprets HTTP responses (including 401) and throws semantic errors.
 
 ## Side effects
 
@@ -46,7 +47,7 @@ SnAuthService.validateAuth typically:
 ## Error handling
 
 - SN_SYNC_MESSAGES.NO_WORKSPACE.
-- SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED when basic auth is unavailable.
+- SN_SYNC_MESSAGES.AUTH_NOT_CONFIGURED when saved auth is unavailable or incomplete.
 - SN_SYNC_MESSAGES.AUTH_INVALID_INSTANCE_URL_PREFIX when the stored URL no longer passes host policy.
 - SN_SYNC_MESSAGES.AUTH_VALIDATE_FAILED_PREFIX + network/HTTP/auth details.
 
@@ -85,12 +86,12 @@ sequenceDiagram
 ## Troubleshooting
 
 - Symptom: "sn-sync auth is not configured"
-  - Cause: No valid basic auth is configured.
+	- Cause: No valid saved auth is configured for the current instance, or payload is incomplete.
   - Resolution: Run `sn: auth` and verify secrets were saved correctly.
 
 - Symptom: Invalid credentials error (401)
-  - Cause: Username/password is no longer valid.
-  - Resolution: Run sn: auth again and save fresh credentials.
+	- Cause: Basic credentials are invalid, or OAuth token/client context is no longer accepted.
+	- Resolution: Run sn: auth again using the intended method and save fresh credentials/tokens.
 
 - Symptom: HTTP/network validation failures
   - Cause: Connectivity, DNS, proxy, or instance URL problems.
