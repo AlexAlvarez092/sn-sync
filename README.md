@@ -52,6 +52,10 @@ Checks that your saved credentials are valid.
 
 Removes the currently active instance credentials from VS Code Secret Storage.
 
+### `sn: run background script`
+
+Executes a local file as a ServiceNow Scripts - Background script against the authenticated instance.
+
 ### `sn: open active in instance`
 
 Opens the indexed active file as its ServiceNow record in your browser.
@@ -121,7 +125,7 @@ Status bar setting details:
 - `sn-sync.statusBar.enabled`: enable or disable status bar shortcuts (`true` by default).
 - `sn-sync.statusBar.mode`: `minimal` or `expanded` (`minimal` by default).
 - `sn-sync.statusBar.visibleCommands`: subset of supported command IDs shown in status bar/menu.
-  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-validate`, `sn-sync.reset-auth`, `sn-sync.open-active-in-instance`, `sn-sync.pull`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push-active`, `sn-sync.push-modified`, `sn-sync.push-report`
+  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-validate`, `sn-sync.reset-auth`, `sn-sync.run-background-script`, `sn-sync.open-active-in-instance`, `sn-sync.pull`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push-active`, `sn-sync.push-modified`, `sn-sync.push-report`
 
 Recommended presets:
 
@@ -191,6 +195,7 @@ Technical and command-level docs are available in [docs/README.md](docs/README.m
 - [docs/sn-auth.md](docs/sn-auth.md)
 - [docs/sn-auth-validate.md](docs/sn-auth-validate.md)
 - [docs/sn-reset-auth.md](docs/sn-reset-auth.md)
+- [docs/sn-run-background-script.md](docs/sn-run-background-script.md)
 - [docs/sn-open-active-in-instance.md](docs/sn-open-active-in-instance.md)
 - [docs/sn-pull.md](docs/sn-pull.md)
 - [docs/sn-pull-by-sys-id.md](docs/sn-pull-by-sys-id.md)
