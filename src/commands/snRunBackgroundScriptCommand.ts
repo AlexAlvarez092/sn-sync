@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import {
   SN_SYNC_COMMANDS,
   SN_SYNC_ERROR_CODES,
+  SN_SYNC_INPUTS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
 import {
@@ -27,7 +28,8 @@ export interface SnRunBackgroundScriptRuntime extends SnBaseCommandRuntime {
   getOutputChannel(name: string): vscode.OutputChannel;
 }
 
-const OUTPUT_CHANNEL_NAME = "sn-sync background script";
+const BG_SCRIPT_PANEL_VIEW_TYPE = "sn-sync.backgroundScriptResult";
+let backgroundScriptResultPanel: vscode.WebviewPanel | undefined;
 
 const defaultRuntime: SnRunBackgroundScriptRuntime = {
   ...defaultBaseRuntime,
@@ -58,15 +60,24 @@ export async function runSnRunBackgroundScriptCommand(
   }
 
   try {
-    const scriptUri = await resolveScriptUri(runtime);
-    if (!scriptUri) {
-      void runtime.showInformationMessage(
-        SN_SYNC_MESSAGES.RUN_BACKGROUND_SCRIPT_CANCELLED,
+    const editor = runtime.getActiveTextEditor();
+    if (!editor) {
+      void runtime.showErrorMessage(SN_SYNC_MESSAGES.OPEN_ACTIVE_NO_EDITOR);
+      return;
+    }
+
+    const allowedLanguages = new Set(["javascript", "typescript"]);
+    if (!allowedLanguages.has(editor.document.languageId)) {
+      void runtime.showErrorMessage(
+        SN_SYNC_MESSAGES.RUN_BACKGROUND_SCRIPT_INVALID_LANGUAGE,
       );
       return;
     }
 
-    const scriptContent = await readUtf8File(runtime, scriptUri);
+    const selectedScript = editor?.document.getText(editor.selection) ?? "";
+    const scriptContent = selectedScript.trim()
+      ? selectedScript
+      : (editor?.document.getText() ?? "");
     if (!scriptContent.trim()) {
       void runtime.showErrorMessage(
         SN_SYNC_MESSAGES.RUN_BACKGROUND_SCRIPT_EMPTY_FILE,
@@ -74,16 +85,14 @@ export async function runSnRunBackgroundScriptCommand(
       return;
     }
 
-    const executionContext = await backgroundScriptService.resolveExecutionContext(
-      context,
-      workspaceFolderUri,
-    );
+    const executionContext =
+      await backgroundScriptService.resolveExecutionContext(
+        context,
+        workspaceFolderUri,
+      );
 
-    const shouldProceed = await runtime.askConfirmation(
-      formatConfirmationMessage(executionContext),
-      SN_SYNC_MESSAGES.RUN_BACKGROUND_SCRIPT_CONFIRM_ACTION,
-    );
-    if (!shouldProceed) {
+    const scopeId = await promptExecutionScope();
+    if (!scopeId) {
       void runtime.showInformationMessage(
         SN_SYNC_MESSAGES.RUN_BACKGROUND_SCRIPT_CANCELLED,
       );
@@ -94,17 +103,10 @@ export async function runSnRunBackgroundScriptCommand(
       context,
       workspaceFolderUri,
       scriptContent,
+      scopeId,
     );
 
-    const output = runtime.getOutputChannel(OUTPUT_CHANNEL_NAME);
-    output.appendLine(
-      `[${new Date().toISOString()}] ${scriptUri.fsPath} -> ${executionContext.instanceUrl}`,
-    );
-    for (const line of result.output.split(/\r?\n/)) {
-      output.appendLine(line);
-    }
-    output.appendLine("");
-    output.show(true);
+    showResultInNewTab(result.rawResponse, executionContext.instanceUrl);
 
     void runtime.showInformationMessage(
       SN_SYNC_MESSAGES.RUN_BACKGROUND_SCRIPT_SUCCESS,
@@ -124,8 +126,7 @@ export async function runSnRunBackgroundScriptCommand(
 
 export function registerSnRunBackgroundScriptCommand(
   context: vscode.ExtensionContext,
-  backgroundScriptService: SnBackgroundScriptServiceApi =
-    new SnBackgroundScriptService(),
+  backgroundScriptService: SnBackgroundScriptServiceApi = new SnBackgroundScriptService(),
 ): void {
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.RUN_BACKGROUND_SCRIPT,
@@ -146,41 +147,97 @@ export function registerSnRunBackgroundScriptCommand(
   context.subscriptions.push(disposable);
 }
 
-async function resolveScriptUri(
-  runtime: Pick<
-    SnRunBackgroundScriptRuntime,
-    "getActiveTextEditor" | "showOpenDialog"
-  >,
-): Promise<vscode.Uri | undefined> {
-  const activeUri = runtime.getActiveTextEditor()?.document.uri;
-  if (activeUri?.scheme === "file") {
-    return activeUri;
+function showResultInNewTab(rawHtml: string, instanceUrl: string): void {
+  if (backgroundScriptResultPanel) {
+    backgroundScriptResultPanel.dispose();
   }
 
-  const selected = await runtime.showOpenDialog({
-    canSelectFiles: true,
-    canSelectFolders: false,
-    canSelectMany: false,
-    openLabel: "Run as background script",
+  const panel = vscode.window.createWebviewPanel(
+    BG_SCRIPT_PANEL_VIEW_TYPE,
+    SN_SYNC_MESSAGES.RUN_BACKGROUND_SCRIPT_PANEL_TITLE,
+    vscode.ViewColumn.Two,
+    {
+      enableScripts: false,
+      retainContextWhenHidden: true,
+    },
+  );
+
+  // Match ikosak behavior: make relative href links absolute to the instance URL.
+  const normalizedBase = instanceUrl.replace(/\/+$/, "");
+  const htmlWithAbsoluteLinks = rawHtml
+    .replace(
+      /\shref='(?!https?:\/\/|\/)([^']*)'/gi,
+      ` href='${normalizedBase}/$1'`,
+    )
+    .replace(
+      /\shref="(?!https?:\/\/|\/)([^"]*)"/gi,
+      ` href="${normalizedBase}/$1"`,
+    )
+    .replace(/\shref='\/([^']*)'/gi, ` href='${normalizedBase}/$1'`)
+    .replace(/\shref="\/([^"]*)"/gi, ` href="${normalizedBase}/$1"`)
+    .replace(
+      /\ssrc='(?!https?:\/\/|\/)([^']*)'/gi,
+      ` src='${normalizedBase}/$1'`,
+    )
+    .replace(
+      /\ssrc="(?!https?:\/\/|\/)([^"]*)"/gi,
+      ` src="${normalizedBase}/$1"`,
+    )
+    .replace(/\ssrc='\/([^']*)'/gi, ` src='${normalizedBase}/$1'`)
+    .replace(/\ssrc="\/([^"]*)"/gi, ` src="${normalizedBase}/$1"`)
+    .replace(
+      /\saction='(?!https?:\/\/|\/)([^']*)'/gi,
+      ` action='${normalizedBase}/$1'`,
+    )
+    .replace(
+      /\saction="(?!https?:\/\/|\/)([^"]*)"/gi,
+      ` action="${normalizedBase}/$1"`,
+    )
+    .replace(/\saction='\/([^']*)'/gi, ` action='${normalizedBase}/$1'`)
+    .replace(/\saction="\/([^"]*)"/gi, ` action="${normalizedBase}/$1"`);
+
+  panel.webview.html = htmlWithAbsoluteLinks;
+  backgroundScriptResultPanel = panel;
+  panel.onDidDispose(() => {
+    if (backgroundScriptResultPanel === panel) {
+      backgroundScriptResultPanel = undefined;
+    }
+  });
+}
+
+async function promptExecutionScope(): Promise<string | undefined> {
+  const mode = await vscode.window.showQuickPick(
+    [
+      { label: "Global", value: "global" },
+      { label: "Custom", value: "custom" },
+    ],
+    {
+      title: SN_SYNC_INPUTS.RUN_BACKGROUND_SCOPE_TITLE,
+      placeHolder: SN_SYNC_INPUTS.RUN_BACKGROUND_SCOPE_PLACEHOLDER,
+      canPickMany: false,
+    },
+  );
+
+  if (!mode) {
+    return undefined;
+  }
+
+  if (mode.value === "global") {
+    return "global";
+  }
+
+  const customScope = await vscode.window.showInputBox({
+    title: SN_SYNC_INPUTS.RUN_BACKGROUND_CUSTOM_SCOPE_TITLE,
+    placeHolder: SN_SYNC_INPUTS.RUN_BACKGROUND_CUSTOM_SCOPE_PLACEHOLDER,
+    prompt: SN_SYNC_INPUTS.RUN_BACKGROUND_CUSTOM_SCOPE_PROMPT,
+    ignoreFocusOut: true,
+    validateInput: (value) => {
+      return value.trim().length > 0
+        ? undefined
+        : SN_SYNC_INPUTS.RUN_BACKGROUND_CUSTOM_SCOPE_REQUIRED;
+    },
   });
 
-  return selected?.[0];
-}
-
-async function readUtf8File(
-  runtime: Pick<SnRunBackgroundScriptRuntime, "readFile">,
-  uri: vscode.Uri,
-): Promise<string> {
-  const bytes = await runtime.readFile(uri);
-  return new TextDecoder("utf-8").decode(bytes);
-}
-
-function formatConfirmationMessage(
-  executionContext: SnBackgroundScriptExecutionContext,
-): string {
-  const userText = executionContext.username
-    ? ` as ${executionContext.username}`
-    : "";
-
-  return `Execute script on ${executionContext.instanceUrl}${userText}?`;
+  const normalized = customScope?.trim();
+  return normalized && normalized.length > 0 ? normalized : undefined;
 }

@@ -6,6 +6,12 @@ export const SN_SYNC_INPUTS = {
   AUTH_USERNAME_PROMPT: "Username",
   AUTH_USERNAME_PLACEHOLDER: "admin",
   AUTH_PASSWORD_PROMPT: "Password",
+  RUN_BACKGROUND_SCOPE_TITLE: "Scope",
+  RUN_BACKGROUND_SCOPE_PLACEHOLDER: "Run in Global or provide a custom scope",
+  RUN_BACKGROUND_CUSTOM_SCOPE_TITLE: "Custom scope",
+  RUN_BACKGROUND_CUSTOM_SCOPE_PLACEHOLDER: "x_your_scope_name",
+  RUN_BACKGROUND_CUSTOM_SCOPE_PROMPT: "Enter the target ServiceNow scope id",
+  RUN_BACKGROUND_CUSTOM_SCOPE_REQUIRED: "Scope id is required",
   PULL_BY_SYS_ID_PROMPT: "sys_id",
   PULL_BY_SYS_ID_PLACEHOLDER: "Paste a ServiceNow sys_id",
 } as const;
