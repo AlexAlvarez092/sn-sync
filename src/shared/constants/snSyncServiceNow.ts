@@ -1,4 +1,9 @@
 export const SN_SYNC_SERVICENOW = {
   CONTENT_TYPE_JSON: "application/json",
+  CONTENT_TYPE_FORM_URLENCODED: "application/x-www-form-urlencoded",
   TABLE_API_PATH: "/api/now/table",
+  OAUTH_AUTHORIZE_PATH: "/oauth_auth.do",
+  OAUTH_TOKEN_PATH: "/oauth_token.do",
+  OAUTH_REDIRECT_PATH: "/sdk-oauth.do",
+  OAUTH_DEFAULT_SCOPE: "openid",
 } as const;
