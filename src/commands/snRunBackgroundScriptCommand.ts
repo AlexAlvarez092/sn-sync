@@ -20,12 +20,6 @@ import {
 
 export interface SnRunBackgroundScriptRuntime extends SnBaseCommandRuntime {
   getActiveTextEditor(): vscode.TextEditor | undefined;
-  showOpenDialog(
-    options: vscode.OpenDialogOptions,
-  ): Thenable<vscode.Uri[] | undefined>;
-  readFile(uri: vscode.Uri): Thenable<Uint8Array>;
-  askConfirmation(message: string, actionLabel: string): Thenable<boolean>;
-  getOutputChannel(name: string): vscode.OutputChannel;
 }
 
 const BG_SCRIPT_PANEL_VIEW_TYPE = "sn-sync.backgroundScriptResult";
@@ -34,19 +28,6 @@ let backgroundScriptResultPanel: vscode.WebviewPanel | undefined;
 const defaultRuntime: SnRunBackgroundScriptRuntime = {
   ...defaultBaseRuntime,
   getActiveTextEditor: () => vscode.window.activeTextEditor,
-  showOpenDialog: (options: vscode.OpenDialogOptions) =>
-    vscode.window.showOpenDialog(options),
-  readFile: (uri: vscode.Uri) => vscode.workspace.fs.readFile(uri),
-  askConfirmation: async (message: string, actionLabel: string) => {
-    const selected = await vscode.window.showWarningMessage(
-      message,
-      { modal: true },
-      actionLabel,
-    );
-
-    return selected === actionLabel;
-  },
-  getOutputChannel: (name: string) => vscode.window.createOutputChannel(name),
 };
 
 export async function runSnRunBackgroundScriptCommand(
