@@ -80,6 +80,7 @@
             "enum": [
               "sn-sync.sn-init",
               "sn-sync.auth",
+              "sn-sync.auth-config",
               "sn-sync.auth-validate",
               "sn-sync.reset-auth",
               "sn-sync.run-background-script",
@@ -112,6 +113,10 @@
       {
         "command": "sn-sync.auth",
         "title": "sn: auth"
+      },
+      {
+        "command": "sn-sync.auth-config",
+        "title": "sn: auth config"
       },
       {
         "command": "sn-sync.auth-validate",
@@ -180,6 +185,14 @@
     ],
     "menus": {
       "commandPalette": [
+        {
+          "command": "sn-sync.auth-config",
+          "when": "false"
+        },
+        {
+          "command": "sn-sync.auth-validate",
+          "when": "false"
+        },
         {
           "command": "sn-sync.pull-all-files",
           "when": "false"

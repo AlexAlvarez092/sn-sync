@@ -3,6 +3,7 @@
 - Command ID: sn-sync.auth-validate
 - Entry point: src/commands/snAuthValidateCommand.ts
 - Registration: src/extension.ts
+- Exposure: internal delegate used by `sn: auth`
 
 ## Purpose
 
@@ -10,7 +11,8 @@ Validate that the currently resolved connection authentication is accepted by Se
 
 ## When to use it
 
-- Immediately after running sn: auth.
+- Normally through `sn: auth` -> `validate auth`.
+- Immediately after configuring auth.
 - When credentials may have expired or been revoked.
 - As a pre-flight check before pull/push operations.
 
@@ -67,7 +69,7 @@ sequenceDiagram
 	participant S as SnAuthService
 	participant N as ServiceNow API
 
-	U->>C: Run command
+	U->>C: Run internal delegate
 	C->>R: getWorkspaceFolderUri()
 	alt No workspace
 		C->>R: showErrorMessage(NO_WORKSPACE)
@@ -91,7 +93,7 @@ sequenceDiagram
 
 - Symptom: Invalid credentials error (401)
   - Cause: Basic credentials are invalid, or OAuth token/client context is no longer accepted.
-  - Resolution: Run sn: auth again using the intended method and save fresh credentials/tokens.
+	- Resolution: Run `sn: auth`, choose `configure auth`, and save fresh credentials/tokens.
 
 - Symptom: HTTP/network validation failures
   - Cause: Connectivity, DNS, proxy, or instance URL problems.

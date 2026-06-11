@@ -4,9 +4,15 @@ export const SN_SYNC_MESSAGES = {
   INIT_INSTANCE_SKIPPED:
     "sn-sync initialized without instance name. Re-run 'sn: init' or run 'sn: auth' when ready.",
   INIT_FAILED_PREFIX: "Failed to initialize sn-sync:",
+  AUTH_SCOPE_PROMPT: "Choose auth action",
+  AUTH_SCOPE_CONFIG_LABEL: "configure auth",
+  AUTH_SCOPE_VALIDATE_LABEL: "validate auth",
   AUTH_CANCELLED: "sn-sync auth cancelled.",
   AUTH_SUCCESS: "sn-sync auth saved successfully.",
   AUTH_FAILED_PREFIX: "Failed to save sn-sync auth:",
+  AUTH_CONFIG_CANCELLED: "sn-sync auth config cancelled.",
+  AUTH_CONFIG_SUCCESS: "sn-sync auth config saved successfully.",
+  AUTH_CONFIG_FAILED_PREFIX: "Failed to save sn-sync auth config:",
   AUTH_NOT_CONFIGURED: "No saved sn-sync auth found. Run 'sn: auth' first.",
   AUTH_INVALID_INSTANCE_URL_PREFIX: "Invalid ServiceNow instance URL:",
   AUTH_INVALID_CREDENTIALS:

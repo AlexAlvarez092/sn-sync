@@ -20,7 +20,8 @@ Documented commands:
 
 - sn: init -> sn-sync.sn-init
 - sn: auth -> sn-sync.auth
-- sn: auth validate -> sn-sync.auth-validate
+- sn: auth config -> sn-sync.auth-config (internal delegate)
+- sn: auth validate -> sn-sync.auth-validate (internal delegate)
 - sn: reset auth -> sn-sync.reset-auth
 - sn: run background script -> sn-sync.run-background-script
 - sn: open active in instance -> sn-sync.open-active-in-instance
@@ -43,6 +44,7 @@ Files:
 
 - sn-init.md
 - sn-auth.md
+- sn-auth-config.md
 - sn-auth-validate.md
 - sn-reset-auth.md
 - sn-run-background-script.md

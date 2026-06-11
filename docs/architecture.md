@@ -28,6 +28,7 @@ Registered commands:
 
 - sn-sync.sn-init
 - sn-sync.auth
+- sn-sync.auth-config
 - sn-sync.auth-validate
 - sn-sync.reset-auth
 - sn-sync.run-background-script
@@ -203,6 +204,7 @@ Transport strategy:
 - snHttpService provides createGotFetchTransport as the shared fetch-compatible transport.
 - snHttpService also centralizes ServiceNow Table API URL construction for dynamic path segments such as table names, sys_ids, and update set ids.
 - Pull/push/push-report/auth-validate/background-script use that common transport path.
+- Pull/push/push-report/auth validation/background-script use that common transport path.
 - This avoids behavior drift between commands and keeps timeout and response handling consistent.
 
 Configuration security strategy:
@@ -230,6 +232,7 @@ flowchart TD
 
   CMD --> INIT[sn: init]
   CMD --> AUTH[sn: auth]
+  CMD --> AUTHCFG[sn: auth config]
   CMD --> AUTHV[sn: auth validate]
   CMD --> AUTHR[sn: reset auth]
   CMD --> OPEN[sn: open active in instance]
@@ -245,7 +248,9 @@ flowchart TD
   EXT --> SB[SnStatusBarService]
 
   INIT --> CFG[SnSyncConfigService]
-  AUTH --> AUTHS[SnAuthService]
+  AUTH --> AUTHCFG
+  AUTH --> AUTHV
+  AUTHCFG --> AUTHS[SnAuthService]
   AUTHV --> AUTHS
   AUTHR --> AUTHS
   OPEN --> AUTHS

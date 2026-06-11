@@ -44,9 +44,13 @@ Creates the local sn-sync config for your workspace and prompts for the instance
 
 ### `sn: auth`
 
+Unified auth entry point that lets you choose whether to configure auth or validate the currently saved auth.
+
+### `sn: auth config` (internal delegate)
+
 Saves your ServiceNow connection auth for the workspace (basic credentials or OAuth tokens).
 
-### `sn: auth validate`
+### `sn: auth validate` (internal delegate)
 
 Checks that your currently saved auth for the workspace is valid.
 
@@ -146,7 +150,7 @@ Status bar setting details:
 - `sn-sync.statusBar.enabled`: enable or disable status bar shortcuts (`true` by default).
 - `sn-sync.statusBar.mode`: `minimal` or `expanded` (`minimal` by default).
 - `sn-sync.statusBar.visibleCommands`: subset of supported command IDs shown in status bar/menu.
-  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-validate`, `sn-sync.reset-auth`, `sn-sync.run-background-script`, `sn-sync.open-active-in-instance`, `sn-sync.pull`, `sn-sync.pull-all-files`, `sn-sync.pull-current`, `sn-sync.pull-table`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push`, `sn-sync.push-current`, `sn-sync.push-modified`, `sn-sync.push-report`
+  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-config`, `sn-sync.auth-validate`, `sn-sync.reset-auth`, `sn-sync.run-background-script`, `sn-sync.open-active-in-instance`, `sn-sync.pull`, `sn-sync.pull-all-files`, `sn-sync.pull-current`, `sn-sync.pull-table`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push`, `sn-sync.push-current`, `sn-sync.push-modified`, `sn-sync.push-report`
 
 Recommended presets:
 
@@ -168,7 +172,6 @@ Expanded workflow (power users):
   "sn-sync.statusBar.mode": "expanded",
   "sn-sync.statusBar.visibleCommands": [
     "sn-sync.auth",
-    "sn-sync.auth-validate",
     "sn-sync.pull",
     "sn-sync.pull-current",
     "sn-sync.pull-table",
@@ -191,16 +194,17 @@ Security strategy:
 
 Auth model at runtime:
 
-1. `sn: auth` stores one explicit auth type per workspace instance (`basic` or `oauth`).
-2. `basic` uses username/password and builds an Authorization header.
-3. `oauth` uses bearer tokens and refreshes automatically when token expiry is near.
+1. `sn: auth` is the public auth entry point and delegates to either `configure auth` or `validate auth`.
+2. `configure auth` stores one explicit auth type per workspace instance (`basic` or `oauth`).
+3. `basic` uses username/password and builds an Authorization header.
+4. `oauth` uses bearer tokens and refreshes automatically when token expiry is near.
 
 There is no implicit fallback between auth types. If saved auth is incomplete or invalid, commands fail with auth-not-configured or auth-validation errors.
 
 HTTP transport strategy:
 
 - All ServiceNow HTTP calls go through a shared got-based transport helper.
-- Pull, push, push-report, and auth-validate use the same transport layer and timeout behavior.
+- Pull, push, push-report, and auth validation use the same transport layer and timeout behavior.
 
 Command runtime strategy:
 
@@ -213,6 +217,7 @@ Technical and command-level docs are available in [docs/README.md](docs/README.m
 
 - [docs/sn-init.md](docs/sn-init.md)
 - [docs/sn-auth.md](docs/sn-auth.md)
+- [docs/sn-auth-config.md](docs/sn-auth-config.md)
 - [docs/sn-auth-validate.md](docs/sn-auth-validate.md)
 - [docs/sn-reset-auth.md](docs/sn-reset-auth.md)
 - [docs/sn-run-background-script.md](docs/sn-run-background-script.md)

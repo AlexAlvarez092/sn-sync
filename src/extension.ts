@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { registerSnAuthValidateCommand } from "@commands/snAuthValidateCommand.js";
 import { registerSnAuthCommand } from "@commands/snAuthCommand.js";
+import { registerSnAuthConfigCommand } from "@commands/snAuthConfigCommand.js";
 import { registerSnInitCommand } from "@commands/snInitCommand.js";
 import { registerSnResetAuthCommand } from "@commands/snResetAuthCommand.js";
 import { registerSnOpenActiveInInstanceCommand } from "@commands/snOpenActiveInInstanceCommand.js";
@@ -20,6 +21,7 @@ import { registerSnStatusBar } from "@services/snStatusBarService.js";
 export function activate(context: vscode.ExtensionContext) {
   registerSnInitCommand(context);
   registerSnAuthCommand(context);
+  registerSnAuthConfigCommand(context);
   registerSnAuthValidateCommand(context);
   registerSnResetAuthCommand(context);
   registerSnRunBackgroundScriptCommand(context);

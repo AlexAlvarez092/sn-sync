@@ -147,7 +147,7 @@ sequenceDiagram
 
 - Symptom: Report fails with auth/HTTP error
    - Cause: Missing/invalid credentials or command-level runtime failure.
-   - Resolution: Run sn: auth validate, verify network access, and retry.
+   - Resolution: Run `sn: auth`, choose `validate auth`, verify network access, and retry.
 
 - Symptom: Report opens with warnings in the Note column
    - Cause: Partial metadata resolution failed for one or more records/scopes (for example permissions, table availability, invalid identifiers, or transient HTTP failures).
