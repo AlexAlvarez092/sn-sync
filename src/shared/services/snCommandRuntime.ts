@@ -37,8 +37,7 @@ export interface RunWithCommandStatusOptions {
   debounceMs?: number;
 }
 
-export interface RegisterCommandWithStatusOptions
-  extends RunWithCommandStatusOptions {
+export interface RegisterCommandWithStatusOptions extends RunWithCommandStatusOptions {
   context: vscode.ExtensionContext;
   commandId: string;
   task: () => Thenable<void>;
