@@ -91,7 +91,7 @@ sequenceDiagram
 
 - Symptom: "sn-sync auth is not configured"
   - Cause: No valid saved auth is configured for the current instance, or payload is incomplete.
-	- Resolution: Run `sn: auth`, choose `configure auth`, and verify secrets were saved correctly.
+  - Resolution: Run `sn: auth`, choose `configure auth`, and verify secrets were saved correctly.
 
 - Symptom: Invalid credentials error (401)
   - Cause: Basic credentials are invalid, or OAuth token/client context is no longer accepted.
