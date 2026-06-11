@@ -67,16 +67,19 @@ export async function runSnResetCommand(
   try {
     await runtime.executeCommand(selection.command);
   } catch (error) {
-    showPrefixedCommandError(runtime, SN_SYNC_MESSAGES.RESET_FAILED_PREFIX, error, {
-      code: SN_SYNC_ERROR_CODES.RESET_FAILED,
-      command: SN_SYNC_COMMANDS.RESET,
-    });
+    showPrefixedCommandError(
+      runtime,
+      SN_SYNC_MESSAGES.RESET_FAILED_PREFIX,
+      error,
+      {
+        code: SN_SYNC_ERROR_CODES.RESET_FAILED,
+        command: SN_SYNC_COMMANDS.RESET,
+      },
+    );
   }
 }
 
-export function registerSnResetCommand(
-  context: vscode.ExtensionContext,
-): void {
+export function registerSnResetCommand(context: vscode.ExtensionContext): void {
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.RESET,
     () =>
