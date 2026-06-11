@@ -35,8 +35,10 @@ Pull records for one configured table only, without running a full pull.
 10. Start progress notification with `SN_SYNC_MESSAGES.PULL_PROGRESS_TITLE`.
 11. Collect pull metadata via shared `onFileWritten` callback (`createPullFileWrittenHandler`).
 12. Execute table-scoped pull:
-   - Preferred path: `pullService.pullTable(...)`.
-   - Fallback path: `pullService.pullConfiguredScripts(...)` using settings filtered by selected table.
+
+- Preferred path: `pullService.pullTable(...)`.
+- Fallback path: `pullService.pullConfiguredScripts(...)` using settings filtered by selected table.
+
 13. Persist index updates with `indexService.recordPullFiles(...)`.
 14. Report progress completion.
 15. Show success with `SN_SYNC_MESSAGES.PULL_TABLE_SUCCESS_PREFIX` + files/records/table.

@@ -44,8 +44,10 @@ Execute a targeted pull for a single ServiceNow record (by sys_id), using a tabl
 12. Resolve preferences (rootDir) through resolvePreferences.
 13. Ensure rootDir exists.
 14. Execute targeted pull with one of two paths:
-   - Preferred path: pullService.pullRecordBySysId(context, workspaceFolderUri, settings, selected.table, sysId, ...).
-   - Fallback path: clone selected setting with query forced to sys_id=<value> and call pullService.pullConfiguredScripts(...).
+
+- Preferred path: pullService.pullRecordBySysId(context, workspaceFolderUri, settings, selected.table, sysId, ...).
+- Fallback path: clone selected setting with query forced to sys_id=<value> and call pullService.pullConfiguredScripts(...).
+
 15. Use onFileWritten callback for progress and index metadata accumulation.
 16. onFileWritten (created by createPullFileWrittenHandler):
     - reports Writing N files progress

@@ -147,10 +147,7 @@ Minimal workflow (focus on pull + push):
 {
   "sn-sync.statusBar.enabled": true,
   "sn-sync.statusBar.mode": "minimal",
-  "sn-sync.statusBar.visibleCommands": [
-    "sn-sync.pull",
-      "sn-sync.push"
-  ]
+  "sn-sync.statusBar.visibleCommands": ["sn-sync.pull", "sn-sync.push"]
 }
 ```
 
