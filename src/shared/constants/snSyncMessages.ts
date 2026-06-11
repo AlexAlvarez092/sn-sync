@@ -88,6 +88,7 @@ export const SN_SYNC_MESSAGES = {
   PUSH_SCOPE_PROMPT: "Choose push scope",
   PUSH_SCOPE_ALL_FILES_LABEL: "all files",
   PUSH_SCOPE_CURRENT_FILE_LABEL: "current file",
+  PUSH_SCOPE_REPORT_LABEL: "report",
   PUSH_CANCELLED: "sn-sync push cancelled.",
   PUSH_FAILED_PREFIX: "Failed to run push command:",
   PUSH_MODIFIED_NO_LOCAL_CHANGES: "No modified local files detected to push.",

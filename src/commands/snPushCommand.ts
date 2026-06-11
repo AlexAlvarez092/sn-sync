@@ -54,6 +54,11 @@ export async function runSnPushCommand(
           description: "Push current file",
           command: SN_SYNC_COMMANDS.PUSH_CURRENT,
         },
+        {
+          label: SN_SYNC_MESSAGES.PUSH_SCOPE_REPORT_LABEL,
+          description: "Generate push report",
+          command: SN_SYNC_COMMANDS.PUSH_REPORT,
+        },
       ],
       {
         placeHolder: SN_SYNC_MESSAGES.PUSH_SCOPE_PROMPT,

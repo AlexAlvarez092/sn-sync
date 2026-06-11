@@ -330,6 +330,25 @@ suite("snStatusBarService", () => {
     }
   });
 
+  test("shows active-editor command when it is configured and editor is open", () => {
+    const runtime = new FakeStatusBarRuntime();
+    runtime.config.mode = "expanded";
+    runtime.workspaceOpen = true;
+    runtime.activeEditor = true;
+    runtime.config.visibleCommands = [SN_SYNC_COMMANDS.PUSH_CURRENT];
+
+    const service = new SnStatusBarService(runtime);
+
+    try {
+      assert.strictEqual(
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_CURRENT).visible,
+        true,
+      );
+    } finally {
+      service.dispose();
+    }
+  });
+
   test("shows non-default command when configured in expanded mode", () => {
     const runtime = new FakeStatusBarRuntime();
     runtime.config.mode = "expanded";
@@ -635,7 +654,7 @@ suite("snStatusBarService", () => {
       registerSnStatusBar(context);
 
       assert.strictEqual(context.subscriptions.length, 1);
-      assert.strictEqual(createdItems.length, 13);
+      assert.strictEqual(createdItems.length, 14);
 
       const menuCommand = registeredCommands.get(STATUS_BAR_MENU_COMMAND_ID);
       assert.ok(menuCommand);
@@ -759,7 +778,7 @@ suite("snStatusBarService", () => {
 
       registerSnStatusBar(context);
 
-      assert.strictEqual(createdItems.length, 13);
+      assert.strictEqual(createdItems.length, 14);
       assert.ok(createdItems.every((item) => item.visible === false));
 
       context.subscriptions[0].dispose();

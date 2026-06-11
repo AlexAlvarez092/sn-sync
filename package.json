@@ -95,8 +95,7 @@
           },
           "default": [
             "sn-sync.pull",
-            "sn-sync.push",
-            "sn-sync.push-report"
+            "sn-sync.push"
           ],
           "description": "Commands shown in status bar or minimal menu. Use a subset of supported command IDs."
         }
@@ -142,10 +141,6 @@
       {
         "command": "sn-sync.push",
         "title": "sn: push"
-      },
-      {
-        "command": "sn-sync.push-report",
-        "title": "sn: push report"
       }
     ],
     "keybindings": [
@@ -165,12 +160,6 @@
         "command": "sn-sync.push",
         "key": "ctrl+alt+u",
         "mac": "cmd+alt+u",
-        "when": "workspaceFolderCount > 0"
-      },
-      {
-        "command": "sn-sync.push-report",
-        "key": "ctrl+alt+r",
-        "mac": "cmd+alt+r",
         "when": "workspaceFolderCount > 0"
       },
       {
