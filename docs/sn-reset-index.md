@@ -88,7 +88,7 @@ sequenceDiagram
 
 - Symptom: Push commands fail after reset
   - Cause: Index is intentionally empty.
-  - Resolution: Run sn: pull all files or sn: pull by sys_id to repopulate index.
+- Resolution: Run sn: pull (all files) or sn: pull by sys_id to repopulate index.
 
 - Symptom: Nothing happened when running reset index
   - Cause: Confirmation dialog was dismissed or cancelled.

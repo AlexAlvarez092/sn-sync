@@ -84,6 +84,7 @@
               "sn-sync.reset-auth",
               "sn-sync.run-background-script",
               "sn-sync.open-active-in-instance",
+              "sn-sync.pull",
               "sn-sync.pull-all-files",
               "sn-sync.pull-current",
               "sn-sync.pull-table",
@@ -96,7 +97,7 @@
             ]
           },
           "default": [
-            "sn-sync.pull-all-files",
+            "sn-sync.pull",
             "sn-sync.push"
           ],
           "description": "Commands shown in status bar or minimal menu. Use a subset of supported command IDs."
@@ -129,6 +130,10 @@
         "title": "sn: open active in instance"
       },
       {
+        "command": "sn-sync.pull",
+        "title": "sn: pull"
+      },
+      {
         "command": "sn-sync.pull-all-files",
         "title": "sn: pull all files"
       },
@@ -155,15 +160,9 @@
     ],
     "keybindings": [
       {
-        "command": "sn-sync.pull-all-files",
+        "command": "sn-sync.pull",
         "key": "ctrl+alt+p",
         "mac": "cmd+alt+p",
-        "when": "workspaceFolderCount > 0"
-      },
-      {
-        "command": "sn-sync.pull-by-sys-id",
-        "key": "ctrl+alt+shift+p",
-        "mac": "cmd+alt+shift+p",
         "when": "workspaceFolderCount > 0"
       },
       {
@@ -178,7 +177,27 @@
         "mac": "cmd+alt+o",
         "when": "editorTextFocus && workspaceFolderCount > 0"
       }
-    ]
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "sn-sync.pull-all-files",
+          "when": "false"
+        },
+        {
+          "command": "sn-sync.pull-current",
+          "when": "false"
+        },
+        {
+          "command": "sn-sync.pull-table",
+          "when": "false"
+        },
+        {
+          "command": "sn-sync.pull-by-sys-id",
+          "when": "false"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

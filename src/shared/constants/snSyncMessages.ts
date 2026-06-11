@@ -57,6 +57,13 @@ export const SN_SYNC_MESSAGES = {
   PULL_PROGRESS_TITLE: "Pulling scripts from ServiceNow...",
   PULL_NO_SETTINGS:
     "No sync settings found in extension config. Nothing to pull.",
+  PULL_SCOPE_PROMPT: "Choose pull scope",
+  PULL_SCOPE_ALL_FILES_LABEL: "all files",
+  PULL_SCOPE_CURRENT_FILE_LABEL: "current file",
+  PULL_SCOPE_TABLE_LABEL: "table",
+  PULL_SCOPE_BY_SYS_ID_LABEL: "by sys_id",
+  PULL_CANCELLED: "sn-sync pull cancelled.",
+  PULL_FAILED_PREFIX: "Failed to run pull command:",
   PULL_CURRENT_NO_EDITOR:
     "No current file found. Open a file from this workspace and try again.",
   PULL_CURRENT_NOT_INDEXED:
