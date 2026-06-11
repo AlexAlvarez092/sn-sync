@@ -62,7 +62,9 @@ export async function runSnOpenCurrentInInstanceCommand(
 
   const activeEditor = runtime.getActiveTextEditor();
   if (!activeEditor) {
-    void runtime.showInformationMessage(SN_SYNC_MESSAGES.OPEN_CURRENT_NO_EDITOR);
+    void runtime.showInformationMessage(
+      SN_SYNC_MESSAGES.OPEN_CURRENT_NO_EDITOR,
+    );
     return;
   }
 
