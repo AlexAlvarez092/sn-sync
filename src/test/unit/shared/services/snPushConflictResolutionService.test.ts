@@ -360,6 +360,59 @@ suite("snPushConflictResolutionService", () => {
     }
   });
 
+  test("cleanup delay clamps oversized env value to max bound", async () => {
+    const previousDelay = process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS;
+    process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS = "999999999";
+
+    const expectedMaxDelayMs = 60 * 60 * 1000;
+    const originalSetTimeout = global.setTimeout;
+    const capturedDelays: number[] = [];
+
+    global.setTimeout = ((
+      callback: (...args: unknown[]) => unknown,
+      delay?: number,
+      ...args: unknown[]
+    ) => {
+      capturedDelays.push(Number(delay));
+      return originalSetTimeout(
+        callback as (...callbackArgs: unknown[]) => void,
+        delay,
+        ...args,
+      );
+    }) as typeof setTimeout;
+
+    try {
+      await withPatchedConflictUi(
+        {
+          showQuickPick: async () => ({ value: "overwriteRemote" }),
+        },
+        async ({ workspaceFolderUri }) => {
+          const result = await resolvePushConflictInteractive({
+            workspaceFolderUri,
+            candidate: {
+              localPath: "a.js",
+              localContent: "local",
+            },
+            remoteContent: "remote",
+          });
+
+          assert.deepStrictEqual(result, { kind: "overwriteRemote" });
+        },
+      );
+
+      assert.ok(capturedDelays.includes(expectedMaxDelayMs));
+    } finally {
+      global.setTimeout = originalSetTimeout;
+      await flushScheduledTempMergeCleanup();
+
+      if (previousDelay === undefined) {
+        delete process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS;
+      } else {
+        process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS = previousDelay;
+      }
+    }
+  });
+
   test("flushScheduledTempMergeCleanup clears pending cleanup tasks", async () => {
     const previousDelay = process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS;
     process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS = "60000";

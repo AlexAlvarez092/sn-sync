@@ -81,6 +81,7 @@ The spinner is debounced to avoid flicker on very fast executions.
 
 - Cleanup delay defaults to 5 minutes.
 - Delay can be configured with environment variable `SN_SYNC_MERGE_CLEANUP_DELAY_MS`.
+- Configured delay is clamped to a bounded range (0 ms to 60 minutes).
 - Pending cleanup tasks are flushed when the extension deactivates to reduce leftover temp files.
 
 ## Request safety model
