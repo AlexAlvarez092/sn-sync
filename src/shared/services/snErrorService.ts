@@ -9,6 +9,13 @@ import { getErrorMessage } from "@shared/services/errorMessageService.js";
 
 const REDACTED = "[REDACTED]";
 const REDACT_KEYS = /(password|token|cookie|authorization|secret|bearer)/i;
+const REDACT_VALUE_PATTERNS: RegExp[] = [
+  /^(?:bearer|basic)\s+[a-z0-9+/_\-.=]+$/i,
+  /\beyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\b/,
+  /(?:^|[?&])(?:access_token|id_token|refresh_token|token|apikey|api_key|client_secret)=[^&\s]+/i,
+  /\b(?:xox[pbar]-|ghp_|glpat-|sk-[A-Za-z0-9]{16,}|AIza[0-9A-Za-z\-_]{20,})[A-Za-z0-9\-_]*\b/,
+  /(?:^|\s)(?:set-cookie:|cookie:)\s*[^\s]+/i,
+];
 
 let diagnosticsChannel: vscode.OutputChannel | undefined;
 
@@ -117,11 +124,11 @@ function sanitizeValue(value: unknown, seen: WeakSet<object>): unknown {
     return value;
   }
 
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
+  if (typeof value === "string") {
+    return sanitizeStringValue(value);
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
     return value;
   }
 
@@ -152,4 +159,14 @@ function sanitizeValue(value: unknown, seen: WeakSet<object>): unknown {
   }
 
   return sanitized;
+}
+
+function sanitizeStringValue(value: string): string {
+  for (const pattern of REDACT_VALUE_PATTERNS) {
+    if (pattern.test(value)) {
+      return REDACTED;
+    }
+  }
+
+  return value;
 }

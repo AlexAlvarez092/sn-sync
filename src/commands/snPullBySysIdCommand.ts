@@ -19,7 +19,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
-  runWithCommandStatus,
+  registerCommandWithStatus,
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 import { type FolderClearRuntime } from "@shared/services/snFolderService.js";
@@ -186,23 +186,17 @@ export function registerSnPullBySysIdCommand(
   configService: SnSyncConfigService = new SnSyncConfigService(),
   pullService: SnPullServiceApi = new SnPullService(),
 ): void {
-  const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.PULL_BY_SYS_ID,
-    () =>
-      runWithCommandStatus(
-        () =>
-          runSnPullBySysIdCommand(
-            context,
-            configService,
-            pullService,
-            defaultRuntime,
-            new SnSyncIndexService(context.workspaceState),
-          ),
-        {
-          message: "sn-sync: pulling record by sys_id...",
-        },
+  registerCommandWithStatus({
+    context,
+    commandId: SN_SYNC_COMMANDS.PULL_BY_SYS_ID,
+    task: () =>
+      runSnPullBySysIdCommand(
+        context,
+        configService,
+        pullService,
+        defaultRuntime,
+        new SnSyncIndexService(context.workspaceState),
       ),
-  );
-
-  context.subscriptions.push(disposable);
+    message: "sn-sync: pulling record by sys_id...",
+  });
 }

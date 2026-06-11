@@ -16,7 +16,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
-  runWithCommandStatus,
+  registerCommandWithStatus,
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 import { hashText } from "@shared/services/hashService.js";
@@ -243,21 +243,15 @@ export function registerSnPushCurrentCommand(
   context: vscode.ExtensionContext,
   pushService: SnPushServiceApi = new SnPushService(),
 ): void {
-  const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.PUSH_CURRENT,
-    () =>
-      runWithCommandStatus(
-        () =>
-          runSnPushCurrentCommand(
-            context,
-            pushService,
-            new SnSyncIndexService(context.workspaceState),
-          ),
-        {
-          message: "sn-sync: pushing current file...",
-        },
+  registerCommandWithStatus({
+    context,
+    commandId: SN_SYNC_COMMANDS.PUSH_CURRENT,
+    task: () =>
+      runSnPushCurrentCommand(
+        context,
+        pushService,
+        new SnSyncIndexService(context.workspaceState),
       ),
-  );
-
-  context.subscriptions.push(disposable);
+    message: "sn-sync: pushing current file...",
+  });
 }

@@ -16,7 +16,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
-  runWithCommandStatus,
+  registerCommandWithStatus,
   showPrefixedCommandError,
   withNotificationProgress,
 } from "@shared/services/snCommandRuntime.js";
@@ -187,23 +187,17 @@ export function registerSnPushModifiedCommand(
   context: vscode.ExtensionContext,
   pushService: SnPushServiceApi = new SnPushService(),
 ): void {
-  const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.PUSH_MODIFIED,
-    () =>
-      runWithCommandStatus(
-        () =>
-          runSnPushModifiedCommand(
-            context,
-            pushService,
-            new SnSyncIndexService(context.workspaceState),
-          ),
-        {
-          message: "sn-sync: pushing modified files...",
-        },
+  registerCommandWithStatus({
+    context,
+    commandId: SN_SYNC_COMMANDS.PUSH_MODIFIED,
+    task: () =>
+      runSnPushModifiedCommand(
+        context,
+        pushService,
+        new SnSyncIndexService(context.workspaceState),
       ),
-  );
-
-  context.subscriptions.push(disposable);
+    message: "sn-sync: pushing modified files...",
+  });
 }
 
 function initConflictStats(): SnPushModifiedConflictStats {

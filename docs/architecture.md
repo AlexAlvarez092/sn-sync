@@ -154,7 +154,7 @@ Current shared runtime helpers:
 - getWorkspaceFolderOrShowError: standard workspace precondition and NO_WORKSPACE message.
 - withNotificationProgress: consistent notification progress UI across commands.
 - runWithCommandStatus: immediate status-bar command execution feedback with per-command message and debounce.
-- registerCommandWithStatus: shared command registration helper that wraps `runWithCommandStatus` and pushes disposables to subscriptions.
+- registerCommandWithStatus: shared command registration helper that wraps `runWithCommandStatus` and pushes disposables to subscriptions; command modules use this to avoid repeated registration boilerplate.
 - showPrefixedCommandError: standardized prefixed command error output.
 - runScopeDispatcherCommand: common quick-pick scope dispatch for orchestrator commands.
 
@@ -167,7 +167,7 @@ Command-level strategy:
 - User-facing message prefixes from SN_SYNC_MESSAGES plus stable error codes
 - Error normalization via showPrefixedCommandError and snErrorService
 - Structured diagnostics logging to output channel `sn-sync diagnostics`
-- Sensitive context redaction before diagnostics are written
+- Sensitive context redaction before diagnostics are written (both by sensitive key names and by sensitive value patterns)
 
 Error message shape:
 

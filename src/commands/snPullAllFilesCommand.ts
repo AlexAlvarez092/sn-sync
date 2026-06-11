@@ -18,7 +18,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
-  runWithCommandStatus,
+  registerCommandWithStatus,
   showPrefixedCommandError,
   withNotificationProgress,
 } from "@shared/services/snCommandRuntime.js";
@@ -178,25 +178,19 @@ export function registerSnPullAllFilesCommand(
   configService: SnSyncConfigService = new SnSyncConfigService(),
   pullService: SnPullServiceApi = new SnPullService(),
 ): void {
-  const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.PULL_ALL_FILES,
-    () =>
-      runWithCommandStatus(
-        () =>
-          runSnPullAllFilesCommand(
-            context,
-            configService,
-            pullService,
-            defaultRuntime,
-            new SnSyncIndexService(context.workspaceState),
-          ),
-        {
-          message: "sn-sync: pulling all files...",
-        },
+  registerCommandWithStatus({
+    context,
+    commandId: SN_SYNC_COMMANDS.PULL_ALL_FILES,
+    task: () =>
+      runSnPullAllFilesCommand(
+        context,
+        configService,
+        pullService,
+        defaultRuntime,
+        new SnSyncIndexService(context.workspaceState),
       ),
-  );
-
-  context.subscriptions.push(disposable);
+    message: "sn-sync: pulling all files...",
+  });
 }
 
 async function shouldDeleteBeforePullAllFilesCommand(
