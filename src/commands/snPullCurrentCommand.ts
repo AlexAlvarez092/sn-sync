@@ -11,10 +11,8 @@ import {
 import {
   SN_SYNC_COMMANDS,
   SN_SYNC_ERROR_CODES,
-  SN_SYNC_INPUTS,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
-import type { ExtensionConfigSetting } from "@shared/models/config.js";
 import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
@@ -31,19 +29,9 @@ import { resolvePreferences } from "@shared/services/snPreferencesService.js";
 import { createPullFileWrittenHandler } from "@shared/services/snPullProgressService.js";
 import { resolveWorkspaceChildUri } from "@shared/services/snWorkspacePathService.js";
 
-interface TableQuickPickItem extends vscode.QuickPickItem {
-  setting: ExtensionConfigSetting;
-}
-
-const SYS_ID_PATTERN = /^[0-9a-f]{32}$/i;
-
-export interface SnPullBySysIdRuntime
+export interface SnPullCurrentRuntime
   extends SnBaseCommandRuntime, Pick<FolderClearRuntime, "createDirectory"> {
-  showQuickPick<T extends vscode.QuickPickItem>(
-    items: readonly T[],
-    options: vscode.QuickPickOptions,
-  ): Thenable<T | undefined>;
-  showInputBox(options: vscode.InputBoxOptions): Thenable<string | undefined>;
+  getCurrentTextEditor(): vscode.TextEditor | undefined;
   withProgress<T>(
     title: string,
     task: (
@@ -52,24 +40,19 @@ export interface SnPullBySysIdRuntime
   ): Thenable<T>;
 }
 
-const defaultRuntime: SnPullBySysIdRuntime = {
+const defaultRuntime: SnPullCurrentRuntime = {
   ...defaultBaseRuntime,
+  getCurrentTextEditor: () => vscode.window.activeTextEditor,
   createDirectory: (uri: vscode.Uri) =>
     vscode.workspace.fs.createDirectory(uri),
-  showQuickPick: <T extends vscode.QuickPickItem>(
-    items: readonly T[],
-    options: vscode.QuickPickOptions,
-  ) => vscode.window.showQuickPick(items, options),
-  showInputBox: (options: vscode.InputBoxOptions) =>
-    vscode.window.showInputBox(options),
   withProgress: withNotificationProgress,
 };
 
-export async function runSnPullBySysIdCommand(
+export async function runSnPullCurrentCommand(
   context: vscode.ExtensionContext,
   configService: SnSyncConfigService,
   pullService: SnPullServiceApi,
-  runtime: SnPullBySysIdRuntime = defaultRuntime,
+  runtime: SnPullCurrentRuntime = defaultRuntime,
   indexService: SnSyncIndexServiceApi = new SnSyncIndexService(
     context.workspaceState,
   ),
@@ -79,57 +62,35 @@ export async function runSnPullBySysIdCommand(
     return;
   }
 
+  const currentEditor = runtime.getCurrentTextEditor();
+  if (!currentEditor) {
+    void runtime.showInformationMessage(
+      SN_SYNC_MESSAGES.PULL_CURRENT_NO_EDITOR,
+    );
+    return;
+  }
+
+  const localPath = indexService.toWorkspaceRelativePath(
+    workspaceFolderUri,
+    currentEditor.document.uri,
+  );
+  const entry = await indexService.findEntryByLocalPath(
+    workspaceFolderUri,
+    localPath,
+  );
+
+  if (!entry) {
+    void runtime.showInformationMessage(
+      SN_SYNC_MESSAGES.PULL_CURRENT_NOT_INDEXED,
+    );
+    return;
+  }
+
   try {
     const settings = await configService.getSyncSettings(workspaceFolderUri);
 
     if (settings.length === 0) {
       void runtime.showInformationMessage(SN_SYNC_MESSAGES.PULL_NO_SETTINGS);
-      return;
-    }
-
-    const items: TableQuickPickItem[] = settings.map((setting) => ({
-      label: setting.folder,
-      description: setting.table,
-      detail: setting.query,
-      setting,
-    }));
-
-    const selected = await runtime.showQuickPick(items, {
-      placeHolder: SN_SYNC_MESSAGES.PULL_BY_SYS_ID_TABLE_PROMPT,
-      ignoreFocusOut: true,
-    });
-
-    if (!selected) {
-      void runtime.showInformationMessage(
-        SN_SYNC_MESSAGES.PULL_BY_SYS_ID_CANCELLED,
-      );
-      return;
-    }
-
-    const rawSysId = await runtime.showInputBox({
-      prompt: SN_SYNC_INPUTS.PULL_BY_SYS_ID_PROMPT,
-      placeHolder: SN_SYNC_INPUTS.PULL_BY_SYS_ID_PLACEHOLDER,
-      ignoreFocusOut: true,
-      validateInput: (value) => {
-        const normalizedValue = value.trim();
-        return SYS_ID_PATTERN.test(normalizedValue)
-          ? undefined
-          : SN_SYNC_MESSAGES.PULL_BY_SYS_ID_INVALID_SYS_ID;
-      },
-    });
-
-    if (rawSysId === undefined) {
-      void runtime.showInformationMessage(
-        SN_SYNC_MESSAGES.PULL_BY_SYS_ID_CANCELLED,
-      );
-      return;
-    }
-
-    const sysId = rawSysId.trim();
-    if (!SYS_ID_PATTERN.test(sysId)) {
-      void runtime.showErrorMessage(
-        SN_SYNC_MESSAGES.PULL_BY_SYS_ID_INVALID_SYS_ID,
-      );
       return;
     }
 
@@ -168,8 +129,8 @@ export async function runSnPullBySysIdCommand(
               context,
               workspaceFolderUri,
               settings,
-              selected.setting.table,
-              sysId,
+              entry.table,
+              entry.sysId,
               {
                 rootDir: preferences.rootDir,
                 onFileWritten,
@@ -178,12 +139,12 @@ export async function runSnPullBySysIdCommand(
           : await pullService.pullConfiguredScripts(
               context,
               workspaceFolderUri,
-              [
-                {
-                  ...selected.setting,
-                  query: `sys_id=${sysId}`,
-                } as ExtensionConfigSetting,
-              ],
+              settings
+                .filter((setting) => setting.table === entry.table)
+                .map((setting) => ({
+                  ...setting,
+                  query: `sys_id=${entry.sysId}`,
+                })),
               {
                 rootDir: preferences.rootDir,
                 onFileWritten,
@@ -191,7 +152,6 @@ export async function runSnPullBySysIdCommand(
             );
 
         await indexService.recordPullFiles(workspaceFolderUri, indexUpdates);
-
         progress.report({ increment: 100 });
 
         return settingSummary;
@@ -199,32 +159,32 @@ export async function runSnPullBySysIdCommand(
     );
 
     void runtime.showInformationMessage(
-      `${SN_SYNC_MESSAGES.PULL_BY_SYS_ID_SUCCESS_PREFIX} ${summary.files} files from ${summary.records} records (${selected.setting.folder}).`,
+      `${SN_SYNC_MESSAGES.PULL_CURRENT_SUCCESS_PREFIX} ${summary.files} files from ${summary.records} records (${entry.table}/${entry.sysId}).`,
     );
   } catch (error) {
     showPrefixedCommandError(
       runtime,
-      SN_SYNC_MESSAGES.PULL_BY_SYS_ID_FAILED_PREFIX,
+      SN_SYNC_MESSAGES.PULL_CURRENT_FAILED_PREFIX,
       error,
       {
-        code: SN_SYNC_ERROR_CODES.PULL_BY_SYS_ID_FAILED,
-        command: SN_SYNC_COMMANDS.PULL_BY_SYS_ID,
+        code: SN_SYNC_ERROR_CODES.PULL_CURRENT_FAILED,
+        command: SN_SYNC_COMMANDS.PULL_CURRENT,
       },
     );
   }
 }
 
-export function registerSnPullBySysIdCommand(
+export function registerSnPullCurrentCommand(
   context: vscode.ExtensionContext,
   configService: SnSyncConfigService = new SnSyncConfigService(),
   pullService: SnPullServiceApi = new SnPullService(),
 ): void {
   const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.PULL_BY_SYS_ID,
+    SN_SYNC_COMMANDS.PULL_CURRENT,
     () =>
       runWithCommandStatus(
         () =>
-          runSnPullBySysIdCommand(
+          runSnPullCurrentCommand(
             context,
             configService,
             pullService,
@@ -232,7 +192,7 @@ export function registerSnPullBySysIdCommand(
             new SnSyncIndexService(context.workspaceState),
           ),
         {
-          message: "sn-sync: pulling record by sys_id...",
+          message: "sn-sync: pulling current file...",
         },
       ),
   );

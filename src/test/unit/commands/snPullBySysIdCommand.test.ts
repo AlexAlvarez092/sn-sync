@@ -412,6 +412,80 @@ suite("snPullBySysIdCommand", () => {
     ]);
   });
 
+  test("uses batched pullRecordBySysId when available", async () => {
+    const batchedCalls: Array<{
+      table: string;
+      sysId: string;
+      settings: number;
+    }> = [];
+
+    await runSnPullBySysIdCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getSyncSettings: async () => [
+          {
+            folder: "script_includes",
+            table: "sys_script_include",
+            query: "active=true",
+            key: "api_name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+          {
+            folder: "script_includes_styles",
+            table: "sys_script_include",
+            query: "active=true",
+            key: "api_name",
+            fields: [{ extension: "css", field_name: "style" }],
+          },
+        ],
+      } as unknown as never,
+      {
+        pullConfiguredScripts: async () => {
+          throw new Error("must-not-be-called");
+        },
+        pullRecordBySysId: async (
+          _context,
+          _workspaceUri,
+          settings,
+          table,
+          sysId,
+        ) => {
+          batchedCalls.push({ table, sysId, settings: settings.length });
+          return {
+            settings: 2,
+            records: 1,
+            files: 2,
+          };
+        },
+      },
+      {
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-by-sys-id-batched"),
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async () => undefined,
+        showQuickPick: async (items) => items[0],
+        showInputBox: async () => VALID_SYS_ID,
+        createDirectory: async () => undefined,
+        withProgress: async (_title, task) => task({ report: () => undefined }),
+      },
+      {
+        findEntryByLocalPath: async () => undefined,
+        toWorkspaceRelativePath: () => "",
+        getModifiedCandidates: async () => [],
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+      },
+    );
+
+    assert.deepStrictEqual(batchedCalls, [
+      {
+        table: "sys_script_include",
+        sysId: VALID_SYS_ID,
+        settings: 2,
+      },
+    ]);
+  });
+
   test("uses fallback preferences when config service does not expose getPreferences", async () => {
     const usedRootDirs: string[] = [];
 

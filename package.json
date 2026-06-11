@@ -85,6 +85,7 @@
               "sn-sync.run-background-script",
               "sn-sync.open-active-in-instance",
               "sn-sync.pull",
+              "sn-sync.pull-current",
               "sn-sync.pull-by-sys-id",
               "sn-sync.reset-index",
               "sn-sync.push",
@@ -129,6 +130,10 @@
       {
         "command": "sn-sync.pull",
         "title": "sn: pull"
+      },
+      {
+        "command": "sn-sync.pull-current",
+        "title": "sn: pull current"
       },
       {
         "command": "sn-sync.pull-by-sys-id",
