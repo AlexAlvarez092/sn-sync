@@ -46,6 +46,26 @@ body:
       label: Scope and impact
       description: Backward compatibility, migration needs, expected users.
 
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Choose the primary area for triage.
+      options:
+        - auth
+        - pull
+        - push
+        - report
+        - open-in-instance
+        - index
+        - config
+        - docs
+        - cicd
+        - script-background
+        - unknown
+    validations:
+      required: true
+
   - type: textarea
     id: additional
     attributes:

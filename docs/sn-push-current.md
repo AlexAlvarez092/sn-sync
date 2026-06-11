@@ -62,6 +62,14 @@ If guard 3 detects a mismatch, the command opens interactive conflict resolution
 - Remote write to one ServiceNow record field.
 - Baseline hash update for one index entry when push succeeds.
 - For discard-local decision, local file content is replaced with remote and baseline is updated without remote write.
+- During merge resolution, a temporary remote-content file is created in the OS temp directory and scheduled for deferred cleanup.
+
+## Temporary merge-file cleanup
+
+- Cleanup delay defaults to 5 minutes.
+- Delay can be configured with environment variable `SN_SYNC_MERGE_CLEANUP_DELAY_MS`.
+- Configured delay is clamped to a bounded range (0 ms to 60 minutes).
+- Pending cleanup tasks are flushed when the extension deactivates to reduce leftover temp files.
 
 ## Request safety model
 

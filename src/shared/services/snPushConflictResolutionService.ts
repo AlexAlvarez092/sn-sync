@@ -5,6 +5,9 @@ import { randomUUID } from "node:crypto";
 import { SN_SYNC_PUSH_CONFLICT_UI } from "@shared/constants/snSyncConstants.js";
 
 const DEFAULT_TEMP_MERGE_CLEANUP_DELAY_MS = 5 * 60 * 1000;
+const MAX_TEMP_MERGE_CLEANUP_DELAY_MS = 60 * 60 * 1000;
+const pendingTempUriKeys = new Set<string>();
+const scheduledCleanupTimeouts = new Set<ReturnType<typeof setTimeout>>();
 
 export interface SnPushConflictCandidate {
   localPath: string;
@@ -227,19 +230,58 @@ async function openMergeEditor(
 }
 
 function scheduleTempUriCleanup(tempUri: vscode.Uri): void {
-  setTimeout(() => {
-    void vscode.workspace.fs.delete(tempUri).then(undefined, () => undefined);
+  const tempUriKey = getTempUriKey(tempUri);
+  pendingTempUriKeys.add(tempUriKey);
+
+  const timeoutHandle = setTimeout(() => {
+    scheduledCleanupTimeouts.delete(timeoutHandle);
+    void cleanupTempUriByKey(tempUriKey);
   }, getTempMergeCleanupDelayMs());
+
+  scheduledCleanupTimeouts.add(timeoutHandle);
+}
+
+function getTempUriKey(tempUri: vscode.Uri): string {
+  return tempUri.toString();
+}
+
+async function cleanupTempUriByKey(tempUriKey: string): Promise<void> {
+  try {
+    await vscode.workspace.fs.delete(vscode.Uri.parse(tempUriKey));
+  } catch (error) {
+    const errorMessage = String(error);
+    console.warn(
+      `sn-sync: failed to cleanup temp merge file ${tempUriKey}: ${errorMessage}`,
+    );
+  } finally {
+    pendingTempUriKeys.delete(tempUriKey);
+  }
+}
+
+export async function flushScheduledTempMergeCleanup(): Promise<void> {
+  for (const timeoutHandle of scheduledCleanupTimeouts) {
+    clearTimeout(timeoutHandle);
+  }
+  scheduledCleanupTimeouts.clear();
+
+  await Promise.all(
+    [...pendingTempUriKeys].map((tempUriKey) =>
+      cleanupTempUriByKey(tempUriKey),
+    ),
+  );
 }
 
 function getTempMergeCleanupDelayMs(): number {
   const configuredDelay = Number(process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS);
 
-  if (Number.isFinite(configuredDelay) && configuredDelay >= 0) {
-    return configuredDelay;
+  if (!Number.isFinite(configuredDelay)) {
+    return DEFAULT_TEMP_MERGE_CLEANUP_DELAY_MS;
   }
 
-  return DEFAULT_TEMP_MERGE_CLEANUP_DELAY_MS;
+  return Math.min(
+    Math.max(configuredDelay, 0),
+    MAX_TEMP_MERGE_CLEANUP_DELAY_MS,
+  );
 }
 
 async function writeTempMergeInput(

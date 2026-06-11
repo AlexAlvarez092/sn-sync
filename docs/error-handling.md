@@ -56,6 +56,15 @@ The redaction matcher includes keys containing:
 - `secret`
 - `bearer`
 
+Sensitive values are also redacted even when key names are not sensitive.
+Current value-pattern redaction includes:
+
+- Authorization header-like values (`Bearer ...`, `Basic ...`)
+- JWT-like tokens (`header.payload.signature`)
+- Token/secret query parameters in URLs (for example `access_token`, `refresh_token`, `client_secret`, `api_key`)
+- Common API key/token prefixes (for example `ghp_`, `glpat-`, `sk-`, `AIza...`)
+- Cookie header-like values (`cookie: ...`, `set-cookie: ...`)
+
 Redacted values are replaced with `[REDACTED]`.
 
 ## Initial error code catalog

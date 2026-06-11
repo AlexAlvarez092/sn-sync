@@ -19,17 +19,14 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
-  runWithCommandStatus,
+  registerCommandWithStatus,
   showPrefixedCommandError,
-  withNotificationProgress,
 } from "@shared/services/snCommandRuntime.js";
+import { type FolderClearRuntime } from "@shared/services/snFolderService.js";
 import {
-  type FolderClearRuntime,
-  ensureDirectoryExists,
-} from "@shared/services/snFolderService.js";
-import { resolvePreferences } from "@shared/services/snPreferencesService.js";
-import { createPullFileWrittenHandler } from "@shared/services/snPullProgressService.js";
-import { resolveWorkspaceChildUri } from "@shared/services/snWorkspacePathService.js";
+  defaultScopedPullWithProgress,
+  runScopedPullWithIndex,
+} from "@shared/services/snScopedPullCommandService.js";
 
 interface TableQuickPickItem extends vscode.QuickPickItem {
   setting: ExtensionConfigSetting;
@@ -62,7 +59,7 @@ const defaultRuntime: SnPullBySysIdRuntime = {
   ) => vscode.window.showQuickPick(items, options),
   showInputBox: (options: vscode.InputBoxOptions) =>
     vscode.window.showInputBox(options),
-  withProgress: withNotificationProgress,
+  withProgress: defaultScopedPullWithProgress,
 };
 
 export async function runSnPullBySysIdCommand(
@@ -133,49 +130,26 @@ export async function runSnPullBySysIdCommand(
       return;
     }
 
-    const preferences = await resolvePreferences(
-      configService,
+    const summary = await runScopedPullWithIndex({
+      context,
       workspaceFolderUri,
-    );
-
-    const rootDirUri = resolveWorkspaceChildUri(workspaceFolderUri, [
-      {
-        value: preferences.rootDir,
-        label: "rootDir",
-        allowHierarchy: true,
-      },
-    ]);
-
-    await ensureDirectoryExists(runtime, rootDirUri);
-
-    const summary = await runtime.withProgress(
-      SN_SYNC_MESSAGES.PULL_PROGRESS_TITLE,
-      async (progress) => {
-        const indexUpdates: Array<{
-          localPath: string;
-          table: string;
-          sysId: string;
-          fieldName: string;
-          baseHash: string;
-        }> = [];
-        const onFileWritten = createPullFileWrittenHandler(
-          progress,
-          indexUpdates,
-        );
-
-        const settingSummary = pullService.pullRecordBySysId
-          ? await pullService.pullRecordBySysId(
+      runtime,
+      configService,
+      indexService,
+      runPull: async ({ settings, rootDir, onFileWritten }) =>
+        pullService.pullRecordBySysId
+          ? pullService.pullRecordBySysId(
               context,
               workspaceFolderUri,
               settings,
               selected.setting.table,
               sysId,
               {
-                rootDir: preferences.rootDir,
+                rootDir,
                 onFileWritten,
               },
             )
-          : await pullService.pullConfiguredScripts(
+          : pullService.pullConfiguredScripts(
               context,
               workspaceFolderUri,
               [
@@ -185,21 +159,14 @@ export async function runSnPullBySysIdCommand(
                 } as ExtensionConfigSetting,
               ],
               {
-                rootDir: preferences.rootDir,
+                rootDir,
                 onFileWritten,
               },
-            );
-
-        await indexService.recordPullFiles(workspaceFolderUri, indexUpdates);
-
-        progress.report({ increment: 100 });
-
-        return settingSummary;
-      },
-    );
+            ),
+    });
 
     void runtime.showInformationMessage(
-      `${SN_SYNC_MESSAGES.PULL_BY_SYS_ID_SUCCESS_PREFIX} ${summary.files} files from ${summary.records} records (${selected.setting.folder}).`,
+      `${SN_SYNC_MESSAGES.PULL_BY_SYS_ID_SUCCESS_PREFIX} ${summary!.files} files from ${summary!.records} records (${selected.setting.folder}).`,
     );
   } catch (error) {
     showPrefixedCommandError(
@@ -219,23 +186,17 @@ export function registerSnPullBySysIdCommand(
   configService: SnSyncConfigService = new SnSyncConfigService(),
   pullService: SnPullServiceApi = new SnPullService(),
 ): void {
-  const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.PULL_BY_SYS_ID,
-    () =>
-      runWithCommandStatus(
-        () =>
-          runSnPullBySysIdCommand(
-            context,
-            configService,
-            pullService,
-            defaultRuntime,
-            new SnSyncIndexService(context.workspaceState),
-          ),
-        {
-          message: "sn-sync: pulling record by sys_id...",
-        },
+  registerCommandWithStatus({
+    context,
+    commandId: SN_SYNC_COMMANDS.PULL_BY_SYS_ID,
+    task: () =>
+      runSnPullBySysIdCommand(
+        context,
+        configService,
+        pullService,
+        defaultRuntime,
+        new SnSyncIndexService(context.workspaceState),
       ),
-  );
-
-  context.subscriptions.push(disposable);
+    message: "sn-sync: pulling record by sys_id...",
+  });
 }

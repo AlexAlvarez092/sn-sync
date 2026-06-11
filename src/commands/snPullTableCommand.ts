@@ -17,17 +17,14 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
-  runWithCommandStatus,
+  registerCommandWithStatus,
   showPrefixedCommandError,
-  withNotificationProgress,
 } from "@shared/services/snCommandRuntime.js";
+import { type FolderClearRuntime } from "@shared/services/snFolderService.js";
 import {
-  type FolderClearRuntime,
-  ensureDirectoryExists,
-} from "@shared/services/snFolderService.js";
-import { resolvePreferences } from "@shared/services/snPreferencesService.js";
-import { createPullFileWrittenHandler } from "@shared/services/snPullProgressService.js";
-import { resolveWorkspaceChildUri } from "@shared/services/snWorkspacePathService.js";
+  defaultScopedPullWithProgress,
+  runScopedPullWithIndex,
+} from "@shared/services/snScopedPullCommandService.js";
 
 interface TableQuickPickItem extends vscode.QuickPickItem {
   table: string;
@@ -55,7 +52,7 @@ const defaultRuntime: SnPullTableRuntime = {
     items: readonly T[],
     options: vscode.QuickPickOptions,
   ) => vscode.window.showQuickPick(items, options),
-  withProgress: withNotificationProgress,
+  withProgress: defaultScopedPullWithProgress,
 };
 
 export async function runSnPullTableCommand(
@@ -104,66 +101,37 @@ export async function runSnPullTableCommand(
       return;
     }
 
-    const preferences = await resolvePreferences(
-      configService,
+    const summary = await runScopedPullWithIndex({
+      context,
       workspaceFolderUri,
-    );
-
-    const rootDirUri = resolveWorkspaceChildUri(workspaceFolderUri, [
-      {
-        value: preferences.rootDir,
-        label: "rootDir",
-        allowHierarchy: true,
-      },
-    ]);
-
-    await ensureDirectoryExists(runtime, rootDirUri);
-
-    const summary = await runtime.withProgress(
-      SN_SYNC_MESSAGES.PULL_PROGRESS_TITLE,
-      async (progress) => {
-        const indexUpdates: Array<{
-          localPath: string;
-          table: string;
-          sysId: string;
-          fieldName: string;
-          baseHash: string;
-        }> = [];
-        const onFileWritten = createPullFileWrittenHandler(
-          progress,
-          indexUpdates,
-        );
-
-        const settingSummary = pullService.pullTable
-          ? await pullService.pullTable(
+      runtime,
+      configService,
+      indexService,
+      runPull: async ({ settings, rootDir, onFileWritten }) =>
+        pullService.pullTable
+          ? pullService.pullTable(
               context,
               workspaceFolderUri,
               settings,
               selected.table,
               {
-                rootDir: preferences.rootDir,
+                rootDir,
                 onFileWritten,
               },
             )
-          : await pullService.pullConfiguredScripts(
+          : pullService.pullConfiguredScripts(
               context,
               workspaceFolderUri,
               settings.filter((setting) => setting.table === selected.table),
               {
-                rootDir: preferences.rootDir,
+                rootDir,
                 onFileWritten,
               },
-            );
-
-        await indexService.recordPullFiles(workspaceFolderUri, indexUpdates);
-        progress.report({ increment: 100 });
-
-        return settingSummary;
-      },
-    );
+            ),
+    });
 
     void runtime.showInformationMessage(
-      `${SN_SYNC_MESSAGES.PULL_TABLE_SUCCESS_PREFIX} ${summary.files} files from ${summary.records} records (${selected.table}).`,
+      `${SN_SYNC_MESSAGES.PULL_TABLE_SUCCESS_PREFIX} ${summary!.files} files from ${summary!.records} records (${selected.table}).`,
     );
   } catch (error) {
     showPrefixedCommandError(
@@ -183,23 +151,17 @@ export function registerSnPullTableCommand(
   configService: SnSyncConfigService = new SnSyncConfigService(),
   pullService: SnPullServiceApi = new SnPullService(),
 ): void {
-  const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.PULL_TABLE,
-    () =>
-      runWithCommandStatus(
-        () =>
-          runSnPullTableCommand(
-            context,
-            configService,
-            pullService,
-            defaultRuntime,
-            new SnSyncIndexService(context.workspaceState),
-          ),
-        {
-          message: "sn-sync: pulling table...",
-        },
+  registerCommandWithStatus({
+    context,
+    commandId: SN_SYNC_COMMANDS.PULL_TABLE,
+    task: () =>
+      runSnPullTableCommand(
+        context,
+        configService,
+        pullService,
+        defaultRuntime,
+        new SnSyncIndexService(context.workspaceState),
       ),
-  );
-
-  context.subscriptions.push(disposable);
+    message: "sn-sync: pulling table...",
+  });
 }

@@ -38,83 +38,17 @@ If you only need one configured table, use `sn: pull table`.
 
 ## Commands
 
-### `sn: init`
+The complete command catalog and per-command behavior are documented in [docs/README.md](docs/README.md).
 
-Creates the local sn-sync config for your workspace and prompts for the instance name.
+Public orchestrator commands:
 
-### `sn: auth`
-
-Unified auth entry point that lets you choose whether to configure auth or validate the currently saved auth.
-
-### `sn: auth config` (internal delegate)
-
-Saves your ServiceNow connection auth for the workspace (basic credentials or OAuth tokens).
-
-### `sn: auth validate` (internal delegate)
-
-Checks that your currently saved auth for the workspace is valid.
-
-### `sn: reset`
-
-Unified reset entry point that lets you choose `reset auth` or `reset index`.
-
-### `sn: reset auth` (internal delegate)
-
-Removes the currently active instance credentials from VS Code Secret Storage.
-
-### `sn: run background script`
-
-Executes a local file as a ServiceNow Scripts - Background script against the authenticated instance.
-
-### `sn: open active in instance`
-
-Opens the indexed active file as its ServiceNow record in your browser.
-
-### `sn: pull`
-
-Unified pull entry point that lets you choose:
-
-- all files
-- current file
-- table
-- by sys_id
-
-### `sn: pull all files` (internal delegate)
-
-Downloads all configured records into your local files.
-
-### `sn: pull current`
-
-Downloads the ServiceNow record associated with the current indexed file.
-
-### `sn: pull table`
-
-Prompts for a configured table and downloads records for that table only.
-
-### `sn: pull by sys_id`
-
-Downloads one specific record by table + sys_id.
-
-### `sn: reset index` (internal delegate)
-
-Resets the local sync index if you need a clean state.
-
-### `sn: push`
-
-Unified push entry point that lets you choose `all files`, `current file`, or `report`.
-
-### `sn: push current`
-
-Pushes only the current file in the editor, with interactive conflict resolution.
-
-### `sn: push modified`
-
-Pushes all locally modified indexed files, resolves conflicts file-by-file, and groups remote writes by record (table + sys_id) when possible.
-
-### `sn: push report`
-
-Generates a markdown report of files that would be pushed.
-The report is best effort: if some metadata lookups fail, the command still returns partial results and adds details in the Note column.
+- `sn: init`
+- `sn: auth`
+- `sn: reset`
+- `sn: pull`
+- `sn: push`
+- `sn: run background script`
+- `sn: open active in instance`
 
 ## Keyboard shortcuts
 
@@ -191,54 +125,12 @@ Expanded workflow (power users):
 
 The workspace uses a `.snsyncrc` file only for non-sensitive sync configuration (`instance` selector + `settings`).
 
-Security strategy:
-
-- All authentication data is stored in VS Code Secret Storage (basic credentials or OAuth token payloads).
-- `.snsyncrc` must not contain authentication fields or credentials.
-
-Auth model at runtime:
-
-1. `sn: auth` is the public auth entry point and delegates to either `configure auth` or `validate auth`.
-2. `configure auth` stores one explicit auth type per workspace instance (`basic` or `oauth`).
-3. `basic` uses username/password and builds an Authorization header.
-4. `oauth` uses bearer tokens and refreshes automatically when token expiry is near.
-
-There is no implicit fallback between auth types. If saved auth is incomplete or invalid, commands fail with auth-not-configured or auth-validation errors.
-
-HTTP transport strategy:
-
-- All ServiceNow HTTP calls go through a shared got-based transport helper.
-- Pull, push, push-report, and auth validation use the same transport layer and timeout behavior.
-
-Command runtime strategy:
-
-- Commands share common runtime helpers for workspace resolution, progress notifications, and prefixed error reporting.
-- All registered commands also use immediate status-bar execution feedback with a short debounce to avoid flicker on very fast commands.
+Architecture, runtime, auth model, and transport details are maintained in [docs/architecture.md](docs/architecture.md).
+Error taxonomy, diagnostics, and redaction rules are maintained in [docs/error-handling.md](docs/error-handling.md).
 
 ## Need more detailed documentation?
 
-Technical and command-level docs are available in [docs/README.md](docs/README.md):
-
-- [docs/sn-init.md](docs/sn-init.md)
-- [docs/sn-auth.md](docs/sn-auth.md)
-- [docs/sn-auth-config.md](docs/sn-auth-config.md)
-- [docs/sn-auth-validate.md](docs/sn-auth-validate.md)
-- [docs/sn-reset.md](docs/sn-reset.md)
-- [docs/sn-reset-auth.md](docs/sn-reset-auth.md)
-- [docs/sn-run-background-script.md](docs/sn-run-background-script.md)
-- [docs/sn-open-active-in-instance.md](docs/sn-open-active-in-instance.md)
-- [docs/sn-pull.md](docs/sn-pull.md)
-- [docs/sn-pull-all-files.md](docs/sn-pull-all-files.md)
-- [docs/sn-pull-current.md](docs/sn-pull-current.md)
-- [docs/sn-pull-table.md](docs/sn-pull-table.md)
-- [docs/sn-pull-by-sys-id.md](docs/sn-pull-by-sys-id.md)
-- [docs/sn-reset-index.md](docs/sn-reset-index.md)
-- [docs/sn-push-current.md](docs/sn-push-current.md)
-- [docs/sn-push-modified.md](docs/sn-push-modified.md)
-- [docs/sn-push-report.md](docs/sn-push-report.md)
-- [docs/error-handling.md](docs/error-handling.md)
-- [docs/architecture.md](docs/architecture.md)
-- [docs/release-workflow.md](docs/release-workflow.md)
+Technical and command-level docs are centralized in [docs/README.md](docs/README.md).
 
 ## For contributors
 

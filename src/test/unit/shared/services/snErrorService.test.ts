@@ -122,6 +122,26 @@ suite("snErrorService", () => {
     assert.strictEqual(typeof diagnostic.context?.fn, "string");
   });
 
+  test("redacts sensitive values even when context keys are not sensitive", () => {
+    const diagnostic = normalizeCommandError(new Error("boom"), {
+      code: "SN_REDACT_VALUES",
+      command: "sn-sync.test",
+      context: {
+        authHeader: "Bearer top-secret-token",
+        callbackUrl:
+          "https://example.net/callback?access_token=secret-token-value",
+        jwtLike:
+          "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signaturepart",
+        safe: "hello",
+      },
+    });
+
+    assert.strictEqual(diagnostic.context?.authHeader, "[REDACTED]");
+    assert.strictEqual(diagnostic.context?.callbackUrl, "[REDACTED]");
+    assert.strictEqual(diagnostic.context?.jwtLike, "[REDACTED]");
+    assert.strictEqual(diagnostic.context?.safe, "hello");
+  });
+
   test("builds user message from prefix and diagnostic", () => {
     const message = buildCommandErrorMessage("failed:", {
       code: "SN_X",

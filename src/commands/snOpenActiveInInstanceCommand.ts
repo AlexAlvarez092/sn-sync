@@ -13,7 +13,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
-  runWithCommandStatus,
+  registerCommandWithStatus,
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 import { normalizeInstanceUrl } from "@shared/services/snHttpService.js";
@@ -23,7 +23,7 @@ export interface SnOpenActiveInInstanceRuntime extends SnBaseCommandRuntime {
   openExternal(target: vscode.Uri): Thenable<boolean>;
 }
 
-export interface SnOpenActiveInInstanceAuthApi {
+interface SnOpenActiveInInstanceAuthApi {
   resolveConnectionAuth(
     context: vscode.ExtensionContext,
     workspaceFolderUri: vscode.Uri,
@@ -118,23 +118,17 @@ export function registerSnOpenActiveInInstanceCommand(
   context: vscode.ExtensionContext,
   authService: SnOpenActiveInInstanceAuthApi = new SnAuthService(),
 ): void {
-  const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.OPEN_ACTIVE_IN_INSTANCE,
-    () =>
-      runWithCommandStatus(
-        () =>
-          runSnOpenActiveInInstanceCommand(
-            context,
-            authService,
-            new SnSyncIndexService(context.workspaceState),
-          ),
-        {
-          message: "sn-sync: opening active record in instance...",
-        },
+  registerCommandWithStatus({
+    context,
+    commandId: SN_SYNC_COMMANDS.OPEN_ACTIVE_IN_INSTANCE,
+    task: () =>
+      runSnOpenActiveInInstanceCommand(
+        context,
+        authService,
+        new SnSyncIndexService(context.workspaceState),
       ),
-  );
-
-  context.subscriptions.push(disposable);
+    message: "sn-sync: opening active record in instance...",
+  });
 }
 
 function buildServiceNowRecordUri(

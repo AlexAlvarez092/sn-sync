@@ -8,7 +8,6 @@ export const SN_SYNC_MESSAGES = {
   AUTH_SCOPE_CONFIG_LABEL: "configure auth",
   AUTH_SCOPE_VALIDATE_LABEL: "validate auth",
   AUTH_CANCELLED: "sn-sync auth cancelled.",
-  AUTH_SUCCESS: "sn-sync auth saved successfully.",
   AUTH_FAILED_PREFIX: "Failed to save sn-sync auth:",
   AUTH_CONFIG_CANCELLED: "sn-sync auth config cancelled.",
   AUTH_CONFIG_SUCCESS: "sn-sync auth config saved successfully.",

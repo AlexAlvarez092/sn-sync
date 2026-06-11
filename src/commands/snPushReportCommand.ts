@@ -8,7 +8,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
-  runWithCommandStatus,
+  registerCommandWithStatus,
   showPrefixedCommandError,
   withNotificationProgress,
 } from "@shared/services/snCommandRuntime.js";
@@ -114,18 +114,12 @@ export function registerSnPushReportCommand(
   ),
   reportService: SnPushReportServiceApi = new SnPushReportService(),
 ): void {
-  const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.PUSH_REPORT,
-    () =>
-      runWithCommandStatus(
-        () => runSnPushReportCommand(context, indexService, reportService),
-        {
-          message: "sn-sync: building push report...",
-        },
-      ),
-  );
-
-  context.subscriptions.push(disposable);
+  registerCommandWithStatus({
+    context,
+    commandId: SN_SYNC_COMMANDS.PUSH_REPORT,
+    task: () => runSnPushReportCommand(context, indexService, reportService),
+    message: "sn-sync: building push report...",
+  });
 }
 
 function formatPushReport(report: SnPushReportData): string {

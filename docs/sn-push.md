@@ -13,6 +13,7 @@ When executed, the command shows a Quick Pick with:
 
 - all files: runs sn-sync.push-modified
 - current file: runs sn-sync.push-current
+- report: runs sn-sync.push-report
 
 If the picker is cancelled, the command exits with an informational message.
 
@@ -26,3 +27,4 @@ The underlying push logic, conflict handling, and index updates remain implement
 
 - src/commands/snPushCurrentCommand.ts
 - src/commands/snPushModifiedCommand.ts
+- src/commands/snPushReportCommand.ts

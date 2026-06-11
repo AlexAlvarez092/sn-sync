@@ -9,7 +9,7 @@ import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
   getWorkspaceFolderOrShowError,
-  runWithCommandStatus,
+  registerCommandWithStatus,
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 import {
@@ -106,23 +106,17 @@ export function registerSnRunBackgroundScriptCommand(
   context: vscode.ExtensionContext,
   backgroundScriptService: SnBackgroundScriptServiceApi = new SnBackgroundScriptService(),
 ): void {
-  const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.RUN_BACKGROUND_SCRIPT,
-    () =>
-      runWithCommandStatus(
-        () =>
-          runSnRunBackgroundScriptCommand(
-            context,
-            backgroundScriptService,
-            defaultRuntime,
-          ),
-        {
-          message: "sn-sync: running background script...",
-        },
+  registerCommandWithStatus({
+    context,
+    commandId: SN_SYNC_COMMANDS.RUN_BACKGROUND_SCRIPT,
+    task: () =>
+      runSnRunBackgroundScriptCommand(
+        context,
+        backgroundScriptService,
+        defaultRuntime,
       ),
-  );
-
-  context.subscriptions.push(disposable);
+    message: "sn-sync: running background script...",
+  });
 }
 
 function showResultInNewTab(rawHtml: string, instanceUrl: string): void {

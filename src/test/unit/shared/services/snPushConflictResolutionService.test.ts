@@ -6,6 +6,7 @@ import * as vscode from "vscode";
 import {
   formatConflictList,
   formatConflictSummary,
+  flushScheduledTempMergeCleanup,
   resolvePushConflictInteractive,
 } from "@shared/services/snPushConflictResolutionService.js";
 
@@ -272,9 +273,113 @@ suite("snPushConflictResolutionService", () => {
     );
   });
 
-  test("deferred cleanup ignores temp-file delete errors", async () => {
+  test("deferred cleanup tolerates temp-path mutations", async () => {
+    const previousDelay = process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS;
+    process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS = "60000";
+
+    try {
+      await withPatchedConflictUi(
+        {
+          showQuickPick: async () => ({ value: "overwriteRemote" }),
+        },
+        async ({ executeCalls, workspaceFolderUri }) => {
+          const result = await resolvePushConflictInteractive({
+            workspaceFolderUri,
+            candidate: {
+              localPath: "a.js",
+              localContent: "local",
+            },
+            remoteContent: "remote",
+          });
+
+          assert.deepStrictEqual(result, { kind: "overwriteRemote" });
+
+          const diffCall = executeCalls.find(
+            (call) => call.command === "vscode.diff",
+          );
+          assert.ok(diffCall);
+          const remoteTempUri = diffCall?.args[0] as vscode.Uri;
+
+          await fs.rm(remoteTempUri.fsPath, { force: true });
+          await fs.mkdir(remoteTempUri.fsPath, { recursive: true });
+          await fs.writeFile(path.join(remoteTempUri.fsPath, "child.txt"), "x");
+
+          await flushScheduledTempMergeCleanup();
+        },
+      );
+    } finally {
+      await flushScheduledTempMergeCleanup();
+
+      if (previousDelay === undefined) {
+        delete process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS;
+      } else {
+        process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS = previousDelay;
+      }
+    }
+  });
+
+  test("deferred cleanup via timeout removes temp file", async () => {
     const previousDelay = process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS;
     process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS = "0";
+
+    try {
+      await withPatchedConflictUi(
+        {
+          showQuickPick: async () => ({ value: "overwriteRemote" }),
+        },
+        async ({ executeCalls, workspaceFolderUri }) => {
+          const result = await resolvePushConflictInteractive({
+            workspaceFolderUri,
+            candidate: {
+              localPath: "a.js",
+              localContent: "local",
+            },
+            remoteContent: "remote",
+          });
+
+          assert.deepStrictEqual(result, { kind: "overwriteRemote" });
+
+          const diffCall = executeCalls.find(
+            (call) => call.command === "vscode.diff",
+          );
+          assert.ok(diffCall);
+          const remoteTempUri = diffCall?.args[0] as vscode.Uri;
+
+          await new Promise((resolve) => setTimeout(resolve, 15));
+          assert.strictEqual(await exists(remoteTempUri.fsPath), false);
+        },
+      );
+    } finally {
+      await flushScheduledTempMergeCleanup();
+
+      if (previousDelay === undefined) {
+        delete process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS;
+      } else {
+        process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS = previousDelay;
+      }
+    }
+  });
+
+  test("cleanup delay clamps oversized env value to max bound", async () => {
+    const previousDelay = process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS;
+    process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS = "999999999";
+
+    const expectedMaxDelayMs = 60 * 60 * 1000;
+    const originalSetTimeout = global.setTimeout;
+    const capturedDelays: number[] = [];
+
+    global.setTimeout = ((
+      callback: (...args: unknown[]) => unknown,
+      delay?: number,
+      ...args: unknown[]
+    ) => {
+      capturedDelays.push(Number(delay));
+      return originalSetTimeout(
+        callback as (...callbackArgs: unknown[]) => void,
+        delay,
+        ...args,
+      );
+    }) as typeof setTimeout;
 
     try {
       await withPatchedConflictUi(
@@ -291,11 +396,58 @@ suite("snPushConflictResolutionService", () => {
             remoteContent: "remote",
           });
 
-          await new Promise((resolve) => setTimeout(resolve, 10));
           assert.deepStrictEqual(result, { kind: "overwriteRemote" });
         },
       );
+
+      assert.ok(capturedDelays.includes(expectedMaxDelayMs));
     } finally {
+      global.setTimeout = originalSetTimeout;
+      await flushScheduledTempMergeCleanup();
+
+      if (previousDelay === undefined) {
+        delete process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS;
+      } else {
+        process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS = previousDelay;
+      }
+    }
+  });
+
+  test("flushScheduledTempMergeCleanup clears pending cleanup tasks", async () => {
+    const previousDelay = process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS;
+    process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS = "60000";
+
+    try {
+      await withPatchedConflictUi(
+        {
+          showQuickPick: async () => ({ value: "overwriteRemote" }),
+        },
+        async ({ executeCalls, workspaceFolderUri }) => {
+          const result = await resolvePushConflictInteractive({
+            workspaceFolderUri,
+            candidate: {
+              localPath: "a.js",
+              localContent: "local",
+            },
+            remoteContent: "remote",
+          });
+
+          assert.deepStrictEqual(result, { kind: "overwriteRemote" });
+
+          const diffCall = executeCalls.find(
+            (call) => call.command === "vscode.diff",
+          );
+          assert.ok(diffCall);
+          const remoteTempUri = diffCall?.args[0] as vscode.Uri;
+          assert.ok(await exists(remoteTempUri.fsPath));
+
+          await flushScheduledTempMergeCleanup();
+          assert.strictEqual(await exists(remoteTempUri.fsPath), false);
+        },
+      );
+    } finally {
+      await flushScheduledTempMergeCleanup();
+
       if (previousDelay === undefined) {
         delete process.env.SN_SYNC_MERGE_CLEANUP_DELAY_MS;
       } else {
@@ -304,6 +456,15 @@ suite("snPushConflictResolutionService", () => {
     }
   });
 });
+
+async function exists(targetPath: string): Promise<boolean> {
+  try {
+    await fs.access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 interface ConflictUiHarnessOptions {
   showQuickPick?: (

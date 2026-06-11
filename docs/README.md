@@ -2,19 +2,10 @@
 
 This folder contains technical documentation for all extension commands and the overall architecture.
 
-Authentication model summary:
+Canonical references:
 
-- Connection auth is resolved from VS Code Secret Storage only.
-- Runtime resolution uses the explicit auth type saved by `sn: auth` (`basic` or `oauth`).
-- OAuth flow uses Authorization Code + PKCE with browser sign-in and pasted authorization code.
-- Instance URL policy enforces HTTPS and allows only `service-now.com` hosts by default.
-- Custom hosts are opt-in via `sn-sync.auth.allowCustomHosts` and `sn-sync.auth.customHosts`.
-
-Transport and runtime summary:
-
-- ServiceNow HTTP traffic is centralized in a shared got-based transport helper.
-- Command handlers share runtime helpers for workspace resolution, notification progress, and prefixed error reporting.
-- Command registrations provide immediate status-bar execution feedback with per-command messages and debounce.
+- Architecture, runtime, activation, and data flows: [architecture.md](architecture.md)
+- Error model, diagnostics, and redaction policy: [error-handling.md](error-handling.md)
 
 Documented commands:
 
@@ -33,6 +24,8 @@ Documented commands:
 - sn: pull by sys_id -> sn-sync.pull-by-sys-id
 - sn: reset index -> sn-sync.reset-index (internal delegate)
 - sn: push -> sn-sync.push
+- sn: push modified -> sn-sync.push-modified
+- sn: push current -> sn-sync.push-current
 - sn: push report -> sn-sync.push-report
 
 Push sub-options exposed by sn: push:

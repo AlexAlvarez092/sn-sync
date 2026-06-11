@@ -555,7 +555,54 @@ suite("snPushCurrentCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PUSH_CURRENT_FAILED_PREFIX} (SN_PUSH_CURRENT_FAILED) remote-fail`,
+      `${SN_SYNC_MESSAGES.PUSH_CURRENT_FAILED_PREFIX} (SN_PUSH_CURRENT_FAILED) Failed to fetch remote content (localPath=src/a.js, table=sys_script, sys_id=abc, field=script): Error: remote-fail`,
+    ]);
+  });
+
+  test("shows entry context when pushFieldContent fails", async () => {
+    const shownErrors: string[] = [];
+
+    await runSnPushCurrentCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getRemoteFieldContent: async () => "old",
+        pushFieldContent: async () => {
+          throw new Error("push-fail");
+        },
+      },
+      {
+        findEntryByLocalPath: async () => ({
+          localPath: "src/a.js",
+          table: "sys_script",
+          sysId: "abc",
+          fieldName: "script",
+          baseHash: hashText("old"),
+          updatedAt: "now",
+        }),
+        toWorkspaceRelativePath: () => "src/a.js",
+        getModifiedCandidates: async () => [],
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+      },
+      {
+        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+        getCurrentTextEditor: () =>
+          ({
+            document: {
+              uri: vscode.Uri.file("/tmp/ws/src/a.js"),
+              getText: () => "new",
+            },
+          }) as unknown as vscode.TextEditor,
+        showErrorMessage: async (message: string) => {
+          shownErrors.push(message);
+          return undefined;
+        },
+        showInformationMessage: async () => undefined,
+      },
+    );
+
+    assert.deepStrictEqual(shownErrors, [
+      `${SN_SYNC_MESSAGES.PUSH_CURRENT_FAILED_PREFIX} (SN_PUSH_CURRENT_FAILED) Failed to push current content (localPath=src/a.js, table=sys_script, sys_id=abc, field=script): Error: push-fail`,
     ]);
   });
 
