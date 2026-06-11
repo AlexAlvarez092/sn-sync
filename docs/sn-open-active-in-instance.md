@@ -54,7 +54,7 @@ The spinner is debounced to avoid flicker on very fast executions.
 
 - Symptom: Active file is not indexed.
   - Cause: File has no index entry.
-  - Resolution: Run sn: pull or sn: pull by sys_id first.
+  - Resolution: Run sn: pull all files or sn: pull by sys_id first.
 
 - Symptom: Browser does not open.
   - Cause: openExternal failed in VS Code environment.

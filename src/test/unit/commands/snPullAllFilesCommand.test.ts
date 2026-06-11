@@ -3,23 +3,23 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import {
-  registerSnPullCommand,
-  runSnPullCommand,
-} from "@commands/snPullCommand.js";
+  registerSnPullAllFilesCommand,
+  runSnPullAllFilesCommand,
+} from "@commands/snPullAllFilesCommand.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 import {
   createTempWorkspaceUri,
   withTempDir,
 } from "@test/helpers/testRuntime.js";
 
-suite("snPullCommand", () => {
+suite("snPullAllFilesCommand", () => {
   test("registers command and stores disposable in context subscriptions", () => {
     const context = {
       subscriptions: [] as vscode.Disposable[],
     } as unknown as vscode.ExtensionContext;
 
     withPatchedRegisterCommand(() => {
-      registerSnPullCommand(context);
+      registerSnPullAllFilesCommand(context);
 
       assert.strictEqual(context.subscriptions.length, 1);
       context.subscriptions[0].dispose();
@@ -37,7 +37,7 @@ suite("snPullCommand", () => {
     } as unknown as vscode.ExtensionContext;
 
     await withCapturedRegisterCommand(async (invokeRegistered) => {
-      registerSnPullCommand(
+      registerSnPullAllFilesCommand(
         context,
         {
           getSyncSettings: async () => {
@@ -78,7 +78,7 @@ suite("snPullCommand", () => {
   test("shows error when no workspace folder is open", async () => {
     const shownErrors: string[] = [];
 
-    await runSnPullCommand(
+    await runSnPullAllFilesCommand(
       {} as vscode.ExtensionContext,
       {
         getSyncSettings: async () => {
@@ -113,7 +113,7 @@ suite("snPullCommand", () => {
   test("shows info when no settings are configured", async () => {
     const shownInfos: string[] = [];
 
-    await runSnPullCommand(
+    await runSnPullAllFilesCommand(
       {} as vscode.ExtensionContext,
       {
         getSyncSettings: async () => [],
@@ -158,7 +158,7 @@ suite("snPullCommand", () => {
     const progressIncrements: number[] = [];
     const progressTitles: string[] = [];
 
-    await runSnPullCommand(
+    await runSnPullAllFilesCommand(
       {} as vscode.ExtensionContext,
       {
         getSyncSettings: async () => [
@@ -296,7 +296,7 @@ suite("snPullCommand", () => {
     ]);
     assert.deepStrictEqual(progressIncrements, [50, 50]);
     assert.deepStrictEqual(shownInfos, [
-      `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 6 files from 5 records (2 settings).`,
+      `${SN_SYNC_MESSAGES.PULL_ALL_FILES_SUCCESS_PREFIX} 6 files from 5 records (2 settings).`,
     ]);
   });
 
@@ -304,7 +304,7 @@ suite("snPullCommand", () => {
     let deleteCalled = false;
     const shownInfos: string[] = [];
 
-    await runSnPullCommand(
+    await runSnPullAllFilesCommand(
       {} as vscode.ExtensionContext,
       {
         getSyncSettings: async () => [
@@ -362,14 +362,14 @@ suite("snPullCommand", () => {
 
     assert.strictEqual(deleteCalled, false);
     assert.deepStrictEqual(shownInfos, [
-      `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
+      `${SN_SYNC_MESSAGES.PULL_ALL_FILES_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
     ]);
   });
 
   test("pull clear-src selection ignores missing src folder", async () => {
     const shownInfos: string[] = [];
 
-    await runSnPullCommand(
+    await runSnPullAllFilesCommand(
       {} as vscode.ExtensionContext,
       {
         getSyncSettings: async () => [
@@ -421,7 +421,7 @@ suite("snPullCommand", () => {
     );
 
     assert.deepStrictEqual(shownInfos, [
-      `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
+      `${SN_SYNC_MESSAGES.PULL_ALL_FILES_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
     ]);
   });
 
@@ -434,7 +434,7 @@ suite("snPullCommand", () => {
       baseHash: string;
     }> = [];
 
-    await runSnPullCommand(
+    await runSnPullAllFilesCommand(
       {
         workspaceState: {
           get: () => undefined,
@@ -482,7 +482,7 @@ suite("snPullCommand", () => {
         showErrorMessage: async () => undefined,
         showInformationMessage: async () => undefined,
         showWarningMessage: async () =>
-          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+          SN_SYNC_MESSAGES.PULL_ALL_FILES_CLEAR_SRC_SKIP_ACTION,
         readDirectory: async () => [],
         delete: async () => undefined,
         withProgress: async (_title, task) =>
@@ -525,7 +525,7 @@ suite("snPullCommand", () => {
       baseHash: string;
     }> = [];
 
-    await runSnPullCommand(
+    await runSnPullAllFilesCommand(
       {
         workspaceState: {
           get: () => undefined,
@@ -568,7 +568,7 @@ suite("snPullCommand", () => {
         showErrorMessage: async () => undefined,
         showInformationMessage: async () => undefined,
         showWarningMessage: async () =>
-          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+          SN_SYNC_MESSAGES.PULL_ALL_FILES_CLEAR_SRC_SKIP_ACTION,
         readDirectory: async () => [],
         delete: async () => undefined,
         withProgress: async (_title, task) =>
@@ -598,7 +598,7 @@ suite("snPullCommand", () => {
   test("shows error when snapshot persistence fails with index updates", async () => {
     const shownErrors: string[] = [];
 
-    await runSnPullCommand(
+    await runSnPullAllFilesCommand(
       {
         workspaceState: {
           get: () => undefined,
@@ -649,7 +649,7 @@ suite("snPullCommand", () => {
         },
         showInformationMessage: async () => undefined,
         showWarningMessage: async () =>
-          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+          SN_SYNC_MESSAGES.PULL_ALL_FILES_CLEAR_SRC_SKIP_ACTION,
         readDirectory: async () => [],
         delete: async () => undefined,
         withProgress: async (_title, task) =>
@@ -672,14 +672,14 @@ suite("snPullCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} (SN_PULL_FAILED) snapshot-fail`,
+      `${SN_SYNC_MESSAGES.PULL_ALL_FILES_FAILED_PREFIX} (SN_PULL_ALL_FILES_FAILED) snapshot-fail`,
     ]);
   });
 
   test("shows error when index service does not support replacePullSnapshot", async () => {
     const shownErrors: string[] = [];
 
-    await runSnPullCommand(
+    await runSnPullAllFilesCommand(
       {
         workspaceState: {
           get: () => undefined,
@@ -713,7 +713,7 @@ suite("snPullCommand", () => {
         },
         showInformationMessage: async () => undefined,
         showWarningMessage: async () =>
-          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+          SN_SYNC_MESSAGES.PULL_ALL_FILES_CLEAR_SRC_SKIP_ACTION,
         readDirectory: async () => [],
         delete: async () => undefined,
         withProgress: async (_title, task) =>
@@ -731,14 +731,14 @@ suite("snPullCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} (SN_PULL_FAILED) Index service does not support replacePullSnapshot`,
+      `${SN_SYNC_MESSAGES.PULL_ALL_FILES_FAILED_PREFIX} (SN_PULL_ALL_FILES_FAILED) Index service does not support replacePullSnapshot`,
     ]);
   });
 
   test("shows detailed error when pull fails", async () => {
     const shownErrors: string[] = [];
 
-    await runSnPullCommand(
+    await runSnPullAllFilesCommand(
       {} as vscode.ExtensionContext,
       {
         getSyncSettings: async () => [
@@ -764,7 +764,7 @@ suite("snPullCommand", () => {
         },
         showInformationMessage: async () => undefined,
         showWarningMessage: async () =>
-          SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+          SN_SYNC_MESSAGES.PULL_ALL_FILES_CLEAR_SRC_SKIP_ACTION,
         readDirectory: async () => [],
         delete: async () => undefined,
         withProgress: async (_title, task) =>
@@ -775,14 +775,14 @@ suite("snPullCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} (SN_PULL_FAILED) pull-fail`,
+      `${SN_SYNC_MESSAGES.PULL_ALL_FILES_FAILED_PREFIX} (SN_PULL_ALL_FILES_FAILED) pull-fail`,
     ]);
   });
 
   test("shows detailed error when clearing src fails", async () => {
     const shownErrors: string[] = [];
 
-    await runSnPullCommand(
+    await runSnPullAllFilesCommand(
       {} as vscode.ExtensionContext,
       {
         getSyncSettings: async () => [
@@ -822,7 +822,7 @@ suite("snPullCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} (SN_PULL_FAILED) permission-denied`,
+      `${SN_SYNC_MESSAGES.PULL_ALL_FILES_FAILED_PREFIX} (SN_PULL_ALL_FILES_FAILED) permission-denied`,
     ]);
   });
 
@@ -831,7 +831,7 @@ suite("snPullCommand", () => {
     let readDirectoryCalled = false;
     let pullCalled = false;
 
-    await runSnPullCommand(
+    await runSnPullAllFilesCommand(
       {} as vscode.ExtensionContext,
       {
         getSyncSettings: async () => [
@@ -884,7 +884,7 @@ suite("snPullCommand", () => {
     assert.strictEqual(readDirectoryCalled, false);
     assert.strictEqual(pullCalled, false);
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PULL_FAILED_PREFIX} (SN_PULL_FAILED) ${SN_SYNC_MESSAGES.WORKSPACE_PATH_INVALID_PREFIX} rootDir.`,
+      `${SN_SYNC_MESSAGES.PULL_ALL_FILES_FAILED_PREFIX} (SN_PULL_ALL_FILES_FAILED) ${SN_SYNC_MESSAGES.WORKSPACE_PATH_INVALID_PREFIX} rootDir.`,
     ]);
   });
 
@@ -901,13 +901,13 @@ suite("snPullCommand", () => {
             shownInfos.push(message);
             return undefined;
           },
-          async () => SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+          async () => SN_SYNC_MESSAGES.PULL_ALL_FILES_CLEAR_SRC_SKIP_ACTION,
           async (_options, task) =>
             task({
               report: () => undefined,
             }),
           async () => {
-            await runSnPullCommand(
+            await runSnPullAllFilesCommand(
               {} as vscode.ExtensionContext,
               {
                 getSyncSettings: async () => [
@@ -944,7 +944,7 @@ suite("snPullCommand", () => {
     );
 
     assert.deepStrictEqual(shownInfos, [
-      `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
+      `${SN_SYNC_MESSAGES.PULL_ALL_FILES_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
     ]);
   });
 
@@ -976,7 +976,7 @@ suite("snPullCommand", () => {
                 report: () => undefined,
               }),
             async () => {
-              await runSnPullCommand(
+              await runSnPullAllFilesCommand(
                 {} as vscode.ExtensionContext,
                 {
                   getSyncSettings: async () => [
@@ -1015,7 +1015,7 @@ suite("snPullCommand", () => {
       const remainingEntries = await fs.readdir(srcDir);
       assert.deepStrictEqual(remainingEntries, []);
       assert.deepStrictEqual(shownInfos, [
-        `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
+        `${SN_SYNC_MESSAGES.PULL_ALL_FILES_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
       ]);
     });
   });
@@ -1035,13 +1035,13 @@ suite("snPullCommand", () => {
               shownInfos.push(message);
               return undefined;
             },
-            async () => SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+            async () => SN_SYNC_MESSAGES.PULL_ALL_FILES_CLEAR_SRC_SKIP_ACTION,
             async (_options, task) =>
               task({
                 report: () => undefined,
               }),
             async () => {
-              await runSnPullCommand(
+              await runSnPullAllFilesCommand(
                 {} as vscode.ExtensionContext,
                 {
                   getSyncSettings: async () => [
@@ -1080,7 +1080,7 @@ suite("snPullCommand", () => {
       const srcStats = await fs.stat(srcDir);
       assert.strictEqual(srcStats.isDirectory(), true);
       assert.deepStrictEqual(shownInfos, [
-        `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
+        `${SN_SYNC_MESSAGES.PULL_ALL_FILES_SUCCESS_PREFIX} 1 files from 1 records (1 settings).`,
       ]);
     });
   });
@@ -1101,7 +1101,7 @@ suite("snPullCommand", () => {
             report: () => undefined,
           }),
         async () => {
-          await runSnPullCommand(
+          await runSnPullAllFilesCommand(
             {} as vscode.ExtensionContext,
             {
               getSyncSettings: async () => {

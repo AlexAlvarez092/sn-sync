@@ -84,7 +84,7 @@
               "sn-sync.reset-auth",
               "sn-sync.run-background-script",
               "sn-sync.open-active-in-instance",
-              "sn-sync.pull",
+              "sn-sync.pull-all-files",
               "sn-sync.pull-current",
               "sn-sync.pull-table",
               "sn-sync.pull-by-sys-id",
@@ -96,7 +96,7 @@
             ]
           },
           "default": [
-            "sn-sync.pull",
+            "sn-sync.pull-all-files",
             "sn-sync.push"
           ],
           "description": "Commands shown in status bar or minimal menu. Use a subset of supported command IDs."
@@ -129,8 +129,8 @@
         "title": "sn: open active in instance"
       },
       {
-        "command": "sn-sync.pull",
-        "title": "sn: pull"
+        "command": "sn-sync.pull-all-files",
+        "title": "sn: pull all files"
       },
       {
         "command": "sn-sync.pull-current",
@@ -155,7 +155,7 @@
     ],
     "keybindings": [
       {
-        "command": "sn-sync.pull",
+        "command": "sn-sync.pull-all-files",
         "key": "ctrl+alt+p",
         "mac": "cmd+alt+p",
         "when": "workspaceFolderCount > 0"

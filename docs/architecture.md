@@ -32,7 +32,7 @@ Registered commands:
 - sn-sync.reset-auth
 - sn-sync.run-background-script
 - sn-sync.open-active-in-instance
-- sn-sync.pull
+- sn-sync.pull-all-files
 - sn-sync.pull-current
 - sn-sync.pull-table
 - sn-sync.pull-by-sys-id
@@ -226,7 +226,7 @@ flowchart TD
   CMD --> AUTHV[sn: auth validate]
   CMD --> AUTHR[sn: reset auth]
   CMD --> OPEN[sn: open active in instance]
-  CMD --> PULL[sn: pull]
+  CMD --> PULL[sn: pull all files]
   CMD --> PULLCUR[sn: pull current]
   CMD --> PULLTBL[sn: pull table]
   CMD --> PULLID[sn: pull by sys_id]

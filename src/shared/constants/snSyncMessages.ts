@@ -43,7 +43,7 @@ export const SN_SYNC_MESSAGES = {
   OPEN_ACTIVE_NO_EDITOR:
     "No active file found. Open a file from this workspace and try again.",
   OPEN_ACTIVE_NOT_INDEXED:
-    "Active file is not indexed. Run 'sn: pull' or 'sn: pull by sys_id' first.",
+    "Active file is not indexed. Run 'sn: pull all files' or 'sn: pull by sys_id' first.",
   OPEN_ACTIVE_OPEN_FAILED: "Failed to open record in external browser.",
   OPEN_ACTIVE_SUCCESS_PREFIX: "Opened ServiceNow record:",
   OPEN_ACTIVE_FAILED_PREFIX:
@@ -60,7 +60,7 @@ export const SN_SYNC_MESSAGES = {
   PULL_CURRENT_NO_EDITOR:
     "No current file found. Open a file from this workspace and try again.",
   PULL_CURRENT_NOT_INDEXED:
-    "Current file is not indexed. Run 'sn: pull' or 'sn: pull by sys_id' first.",
+    "Current file is not indexed. Run 'sn: pull all files' or 'sn: pull by sys_id' first.",
   PULL_CURRENT_SUCCESS_PREFIX: "sn-sync pull current completed.",
   PULL_CURRENT_FAILED_PREFIX: "Failed to pull current file from ServiceNow:",
   PULL_TABLE_PROMPT: "Select table to pull",
@@ -80,15 +80,16 @@ export const SN_SYNC_MESSAGES = {
   RESET_INDEX_CONFIRM_PROMPT: "This will clear the local sync index. Continue?",
   RESET_INDEX_CONFIRM_ACTION: "Clear index",
   RESET_INDEX_CANCELLED: "sn-sync reset index cancelled.",
-  PULL_CLEAR_SRC_PROMPT: "Clear src before pull to avoid stale local files?",
-  PULL_CLEAR_SRC_SKIP_ACTION: "Keep src",
-  PULL_SUCCESS_PREFIX: "sn-sync pull completed.",
-  PULL_FAILED_PREFIX: "Failed to pull scripts from ServiceNow:",
+  PULL_ALL_FILES_CLEAR_SRC_PROMPT:
+    "Clear src before pull all files to avoid stale local files?",
+  PULL_ALL_FILES_CLEAR_SRC_SKIP_ACTION: "Keep src",
+  PULL_ALL_FILES_SUCCESS_PREFIX: "sn-sync pull all files completed.",
+  PULL_ALL_FILES_FAILED_PREFIX: "Failed to pull all files from ServiceNow:",
   PUSH_PROGRESS_TITLE: "Pushing scripts to ServiceNow...",
   PUSH_CURRENT_NO_EDITOR:
     "No current file found. Open a file from this workspace and try again.",
   PUSH_CURRENT_NOT_INDEXED:
-    "Current file is not indexed. Run 'sn: pull' or 'sn: pull by sys_id' first.",
+    "Current file is not indexed. Run 'sn: pull all files' or 'sn: pull by sys_id' first.",
   PUSH_CURRENT_NO_LOCAL_CHANGES:
     "No local changes detected for the current file.",
   PUSH_CURRENT_CONFLICT_PREFIX:

@@ -57,9 +57,9 @@ const STATUS_BAR_COMMANDS: SnStatusBarCommandDescriptor[] = [
     priority: 94,
   },
   {
-    id: SN_SYNC_COMMANDS.PULL,
-    label: "sn: pull",
-    text: "sn pull",
+    id: SN_SYNC_COMMANDS.PULL_ALL_FILES,
+    label: "sn: pull all files",
+    text: "sn pull all",
     requiresActiveEditor: false,
     priority: 93,
   },
@@ -115,7 +115,7 @@ const STATUS_BAR_COMMANDS: SnStatusBarCommandDescriptor[] = [
 ];
 
 const DEFAULT_VISIBLE_COMMANDS = [
-  SN_SYNC_COMMANDS.PULL,
+  SN_SYNC_COMMANDS.PULL_ALL_FILES,
   SN_SYNC_COMMANDS.PUSH,
   SN_SYNC_COMMANDS.PUSH_REPORT,
 ];

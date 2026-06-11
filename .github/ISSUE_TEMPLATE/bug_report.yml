@@ -87,7 +87,7 @@ body:
         - "sn: reset auth"
         - "sn: run background script"
         - "sn: open active in instance"
-        - "sn: pull"
+        - "sn: pull all files"
         - "sn: pull by sys_id"
         - "sn: reset index"
         - "sn: push current"
