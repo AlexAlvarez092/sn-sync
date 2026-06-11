@@ -151,4 +151,4 @@ sequenceDiagram
 
 - Symptom: Batch push fails with an invalid path segment error
   - Cause: At least one indexed candidate has a malformed table name or `sys_id`.
-  - Resolution: Rebuild or inspect index entries with `sn: pull all files` / `sn: pull by sys_id` before retrying.
+- Resolution: Rebuild or inspect index entries with `sn: pull` (all files) / `sn: pull by sys_id` before retrying.

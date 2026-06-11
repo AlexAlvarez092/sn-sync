@@ -29,7 +29,7 @@ sn-sync helps you work with ServiceNow scripts in a local workflow:
 1. Open your project folder in VS Code.
 2. Run `sn: init`.
 3. Run `sn: auth`, choose `basic` or `oauth`, and complete the prompts.
-4. Run `sn: pull all files` to bring records into your local source folder.
+4. Run `sn: pull` and choose a scope.
 5. Edit files locally.
 6. Run `sn: push` and choose `current file`, `all files`, or `report`.
 
@@ -62,7 +62,16 @@ Executes a local file as a ServiceNow Scripts - Background script against the au
 
 Opens the indexed active file as its ServiceNow record in your browser.
 
-### `sn: pull all files`
+### `sn: pull`
+
+Unified pull entry point that lets you choose:
+
+- all files
+- current file
+- table
+- by sys_id
+
+### `sn: pull all files` (internal delegate)
 
 Downloads all configured records into your local files.
 
@@ -137,7 +146,7 @@ Status bar setting details:
 - `sn-sync.statusBar.enabled`: enable or disable status bar shortcuts (`true` by default).
 - `sn-sync.statusBar.mode`: `minimal` or `expanded` (`minimal` by default).
 - `sn-sync.statusBar.visibleCommands`: subset of supported command IDs shown in status bar/menu.
-  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-validate`, `sn-sync.reset-auth`, `sn-sync.run-background-script`, `sn-sync.open-active-in-instance`, `sn-sync.pull-all-files`, `sn-sync.pull-current`, `sn-sync.pull-table`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push`, `sn-sync.push-current`, `sn-sync.push-modified`, `sn-sync.push-report`
+  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-validate`, `sn-sync.reset-auth`, `sn-sync.run-background-script`, `sn-sync.open-active-in-instance`, `sn-sync.pull`, `sn-sync.pull-all-files`, `sn-sync.pull-current`, `sn-sync.pull-table`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push`, `sn-sync.push-current`, `sn-sync.push-modified`, `sn-sync.push-report`
 
 Recommended presets:
 
@@ -147,7 +156,7 @@ Minimal workflow (focus on pull + push):
 {
   "sn-sync.statusBar.enabled": true,
   "sn-sync.statusBar.mode": "minimal",
-  "sn-sync.statusBar.visibleCommands": ["sn-sync.pull-all-files", "sn-sync.push"]
+  "sn-sync.statusBar.visibleCommands": ["sn-sync.pull", "sn-sync.push"]
 }
 ```
 
@@ -160,7 +169,7 @@ Expanded workflow (power users):
   "sn-sync.statusBar.visibleCommands": [
     "sn-sync.auth",
     "sn-sync.auth-validate",
-    "sn-sync.pull-all-files",
+    "sn-sync.pull",
     "sn-sync.pull-current",
     "sn-sync.pull-table",
     "sn-sync.pull-by-sys-id",
@@ -208,6 +217,7 @@ Technical and command-level docs are available in [docs/README.md](docs/README.m
 - [docs/sn-reset-auth.md](docs/sn-reset-auth.md)
 - [docs/sn-run-background-script.md](docs/sn-run-background-script.md)
 - [docs/sn-open-active-in-instance.md](docs/sn-open-active-in-instance.md)
+- [docs/sn-pull.md](docs/sn-pull.md)
 - [docs/sn-pull-all-files.md](docs/sn-pull-all-files.md)
 - [docs/sn-pull-current.md](docs/sn-pull-current.md)
 - [docs/sn-pull-table.md](docs/sn-pull-table.md)

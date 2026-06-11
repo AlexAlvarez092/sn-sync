@@ -6,6 +6,7 @@ import { registerSnResetAuthCommand } from "@commands/snResetAuthCommand.js";
 import { registerSnOpenActiveInInstanceCommand } from "@commands/snOpenActiveInInstanceCommand.js";
 import { registerSnPullBySysIdCommand } from "@commands/snPullBySysIdCommand.js";
 import { registerSnPullCurrentCommand } from "@commands/snPullCurrentCommand.js";
+import { registerSnPullCommand } from "@commands/snPullCommand.js";
 import { registerSnPullTableCommand } from "@commands/snPullTableCommand.js";
 import { registerSnPullAllFilesCommand } from "@commands/snPullAllFilesCommand.js";
 import { registerSnResetIndexCommand } from "@commands/snResetIndexCommand.js";
@@ -23,6 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerSnResetAuthCommand(context);
   registerSnRunBackgroundScriptCommand(context);
   registerSnOpenActiveInInstanceCommand(context);
+  registerSnPullCommand(context);
   registerSnPullAllFilesCommand(context);
   registerSnPullCurrentCommand(context);
   registerSnPullTableCommand(context);

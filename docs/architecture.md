@@ -32,6 +32,7 @@ Registered commands:
 - sn-sync.reset-auth
 - sn-sync.run-background-script
 - sn-sync.open-active-in-instance
+- sn-sync.pull
 - sn-sync.pull-all-files
 - sn-sync.pull-current
 - sn-sync.pull-table
@@ -56,6 +57,12 @@ Status bar behavior:
 - Input: sync settings + auth + workspace preferences
 - Process: fetch records -> write files -> collect index metadata
 - Output: full index snapshot replacement
+
+### Unified pull entry flow
+
+- Input: workspace context + user scope selection
+- Process: choose `all files`, `current file`, `table`, or `by sys_id` via quick pick -> dispatch to dedicated pull flows
+- Output: delegates without duplicating pull implementation logic
 
 ### Pull current flow
 
@@ -226,6 +233,7 @@ flowchart TD
   CMD --> AUTHV[sn: auth validate]
   CMD --> AUTHR[sn: reset auth]
   CMD --> OPEN[sn: open active in instance]
+  CMD --> PULLSEL[sn: pull]
   CMD --> PULL[sn: pull all files]
   CMD --> PULLCUR[sn: pull current]
   CMD --> PULLTBL[sn: pull table]
@@ -242,6 +250,11 @@ flowchart TD
   AUTHR --> AUTHS
   OPEN --> AUTHS
   OPEN --> INDEX
+
+  PULLSEL --> PULL
+  PULLSEL --> PULLCUR
+  PULLSEL --> PULLTBL
+  PULLSEL --> PULLID
 
   PULL --> CFG
   PULL --> PULLS[SnPullService]
