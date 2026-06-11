@@ -84,8 +84,7 @@ export const SN_SYNC_MESSAGES = {
     "Clear src before pull all files to avoid stale local files?",
   PULL_ALL_FILES_CLEAR_SRC_SKIP_ACTION: "Keep src",
   PULL_ALL_FILES_SUCCESS_PREFIX: "sn-sync pull all files completed.",
-  PULL_ALL_FILES_FAILED_PREFIX:
-    "Failed to pull all files from ServiceNow:",
+  PULL_ALL_FILES_FAILED_PREFIX: "Failed to pull all files from ServiceNow:",
   PUSH_PROGRESS_TITLE: "Pushing scripts to ServiceNow...",
   PUSH_CURRENT_NO_EDITOR:
     "No current file found. Open a file from this workspace and try again.",
