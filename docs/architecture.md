@@ -98,7 +98,7 @@ The pull specialized commands (`pull current`, `pull table`, `pull by sys_id`) n
 ### Unified push entry flow
 
 - Input: workspace context + user scope selection
-- Process: choose `all files` or `current file` via quick pick -> dispatch to `sn-sync.push-modified` or `sn-sync.push-current`
+- Process: choose `all files`, `current file`, or `report` via quick pick -> dispatch to `sn-sync.push-modified`, `sn-sync.push-current`, or `sn-sync.push-report`
 - Output: delegates to existing push workflows without duplicating push logic
 
 Orchestrator commands (`sn: pull`, `sn: push`, `sn: auth`, `sn: reset`) now share a common scope-dispatch helper for quick-pick selection, cancellation handling, and prefixed error wrapping.
@@ -106,8 +106,8 @@ Orchestrator commands (`sn: pull`, `sn: push`, `sn: auth`, `sn: reset`) now shar
 ### 4) Run background script flow
 
 - Input: script file content + authenticated instance context
-- Process: resolve script source (active editor or file prompt) -> validate content -> confirm instance/user -> send to ServiceNow background script endpoint -> capture and display output
-- Output: execution result + output channel log display
+- Process: resolve active editor script source (selection-first, then full file) -> validate language/content -> prompt scope (`global` or custom) -> send to ServiceNow background script endpoint -> render HTML response in a webview panel
+- Output: execution result + dedicated result tab
 
 ### 5) Push report flow
 
