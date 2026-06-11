@@ -210,7 +210,7 @@ suite("snStatusBarService", () => {
     try {
       assert.strictEqual(getMenuItem(runtime).visible, true);
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PULL).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PULL_ALL_FILES).visible,
         false,
       );
       assert.strictEqual(
@@ -245,7 +245,7 @@ suite("snStatusBarService", () => {
     try {
       assert.strictEqual(getMenuItem(runtime).visible, false);
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PULL).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PULL_ALL_FILES).visible,
         true,
       );
       assert.strictEqual(
@@ -304,13 +304,13 @@ suite("snStatusBarService", () => {
     runtime.config.mode = "expanded";
     runtime.workspaceOpen = true;
     runtime.activeEditor = true;
-    runtime.config.visibleCommands = [SN_SYNC_COMMANDS.PULL];
+    runtime.config.visibleCommands = [SN_SYNC_COMMANDS.PULL_ALL_FILES];
 
     const service = new SnStatusBarService(runtime);
 
     try {
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PULL).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PULL_ALL_FILES).visible,
         true,
       );
       assert.strictEqual(
@@ -364,7 +364,7 @@ suite("snStatusBarService", () => {
         true,
       );
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PULL).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PULL_ALL_FILES).visible,
         false,
       );
       assert.strictEqual(
@@ -387,7 +387,7 @@ suite("snStatusBarService", () => {
     try {
       assert.strictEqual(getMenuItem(runtime).visible, true);
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PULL).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PULL_ALL_FILES).visible,
         false,
       );
 
@@ -396,7 +396,7 @@ suite("snStatusBarService", () => {
 
       assert.strictEqual(getMenuItem(runtime).visible, false);
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PULL).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PULL_ALL_FILES).visible,
         true,
       );
       assert.strictEqual(
@@ -521,7 +521,7 @@ suite("snStatusBarService", () => {
         service as unknown as {
           commandItems: Map<string, vscode.StatusBarItem>;
         }
-      ).commandItems.delete(SN_SYNC_COMMANDS.PULL);
+      ).commandItems.delete(SN_SYNC_COMMANDS.PULL_ALL_FILES);
 
       assert.doesNotThrow(() => service.refresh());
     } finally {
@@ -661,7 +661,7 @@ suite("snStatusBarService", () => {
 
       await menuCommand!();
 
-      assert.deepStrictEqual(executedCommands, [SN_SYNC_COMMANDS.PULL]);
+      assert.deepStrictEqual(executedCommands, [SN_SYNC_COMMANDS.PULL_ALL_FILES]);
 
       context.subscriptions[0].dispose();
       assert.ok(createdItems.every((item) => item.disposed));

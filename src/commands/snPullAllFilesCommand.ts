@@ -31,7 +31,7 @@ import { resolvePreferences } from "@shared/services/snPreferencesService.js";
 import { createPullFileWrittenHandler } from "@shared/services/snPullProgressService.js";
 import { resolveWorkspaceChildUri } from "@shared/services/snWorkspacePathService.js";
 
-export interface SnPullRuntime
+export interface SnPullAllFilesRuntime
   extends SnBaseCommandRuntime, FolderClearRuntime {
   showWarningMessage(
     message: string,
@@ -45,7 +45,7 @@ export interface SnPullRuntime
   ): Thenable<T>;
 }
 
-const defaultRuntime: SnPullRuntime = {
+const defaultRuntime: SnPullAllFilesRuntime = {
   ...defaultBaseRuntime,
   showWarningMessage: (message: string, ...items: string[]) =>
     vscode.window.showWarningMessage(message, ...items),
@@ -57,11 +57,11 @@ const defaultRuntime: SnPullRuntime = {
   withProgress: withNotificationProgress,
 };
 
-export async function runSnPullCommand(
+export async function runSnPullAllFilesCommand(
   context: vscode.ExtensionContext,
   configService: SnSyncConfigService,
   pullService: SnPullServiceApi,
-  runtime: SnPullRuntime = defaultRuntime,
+  runtime: SnPullAllFilesRuntime = defaultRuntime,
   indexService: SnSyncIndexServiceApi = new SnSyncIndexService(
     context.workspaceState,
   ),
@@ -93,7 +93,7 @@ export async function runSnPullCommand(
 
     await ensureDirectoryExists(runtime, rootDirUri);
 
-    const shouldDeleteBeforePull = await shouldDeleteBeforePullCommand(
+    const shouldDeleteBeforePull = await shouldDeleteBeforePullAllFilesCommand(
       runtime,
       preferences.pull.clearBeforePull,
       preferences.rootDir,
@@ -158,32 +158,32 @@ export async function runSnPullCommand(
     );
 
     void runtime.showInformationMessage(
-      `${SN_SYNC_MESSAGES.PULL_SUCCESS_PREFIX} ${summary.files} files from ${summary.records} records (${summary.settings} settings).`,
+      `${SN_SYNC_MESSAGES.PULL_ALL_FILES_SUCCESS_PREFIX} ${summary.files} files from ${summary.records} records (${summary.settings} settings).`,
     );
   } catch (error) {
     showPrefixedCommandError(
       runtime,
-      SN_SYNC_MESSAGES.PULL_FAILED_PREFIX,
+      SN_SYNC_MESSAGES.PULL_ALL_FILES_FAILED_PREFIX,
       error,
       {
-        code: SN_SYNC_ERROR_CODES.PULL_FAILED,
-        command: SN_SYNC_COMMANDS.PULL,
+        code: SN_SYNC_ERROR_CODES.PULL_ALL_FILES_FAILED,
+        command: SN_SYNC_COMMANDS.PULL_ALL_FILES,
       },
     );
   }
 }
 
-export function registerSnPullCommand(
+export function registerSnPullAllFilesCommand(
   context: vscode.ExtensionContext,
   configService: SnSyncConfigService = new SnSyncConfigService(),
   pullService: SnPullServiceApi = new SnPullService(),
 ): void {
   const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.PULL,
+    SN_SYNC_COMMANDS.PULL_ALL_FILES,
     () =>
       runWithCommandStatus(
         () =>
-          runSnPullCommand(
+          runSnPullAllFilesCommand(
             context,
             configService,
             pullService,
@@ -191,7 +191,7 @@ export function registerSnPullCommand(
             new SnSyncIndexService(context.workspaceState),
           ),
         {
-          message: "sn-sync: pulling changes...",
+          message: "sn-sync: pulling all files...",
         },
       ),
   );
@@ -199,8 +199,8 @@ export function registerSnPullCommand(
   context.subscriptions.push(disposable);
 }
 
-async function shouldDeleteBeforePullCommand(
-  runtime: Pick<SnPullRuntime, "showWarningMessage">,
+async function shouldDeleteBeforePullAllFilesCommand(
+  runtime: Pick<SnPullAllFilesRuntime, "showWarningMessage">,
   clearBeforePull: SnPullClearBeforePull,
   rootDir: string,
 ): Promise<boolean> {
@@ -213,9 +213,9 @@ async function shouldDeleteBeforePullCommand(
   }
 
   const clearSrcChoice = await runtime.showWarningMessage(
-    SN_SYNC_MESSAGES.PULL_CLEAR_SRC_PROMPT.replace("src", rootDir),
+    SN_SYNC_MESSAGES.PULL_ALL_FILES_CLEAR_SRC_PROMPT.replace("src", rootDir),
     SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
-    SN_SYNC_MESSAGES.PULL_CLEAR_SRC_SKIP_ACTION,
+    SN_SYNC_MESSAGES.PULL_ALL_FILES_CLEAR_SRC_SKIP_ACTION,
   );
 
   return clearSrcChoice === SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION;

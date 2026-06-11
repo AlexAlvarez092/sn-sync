@@ -1,7 +1,7 @@
-# Command: sn: pull
+# Command: sn: pull all files
 
-- Command ID: sn-sync.pull
-- Entry point: src/commands/snPullCommand.ts
+- Command ID: sn-sync.pull-all-files
+- Entry point: src/commands/snPullAllFilesCommand.ts
 - Registration: src/extension.ts
 
 ## Purpose
@@ -60,7 +60,7 @@ Note:
     - report progress increment by setting count
 14. After loop completion, replace full index snapshot through indexService.replacePullSnapshot(workspaceFolderUri, indexUpdates).
 15. Show success with file/record/setting totals.
-16. On any error, show SN_SYNC_MESSAGES.PULL_FAILED_PREFIX + normalized reason.
+16. On any error, show SN_SYNC_MESSAGES.PULL_ALL_FILES_FAILED_PREFIX + normalized reason.
 
 ## Path handling in SnPullService
 
@@ -80,9 +80,9 @@ Implications:
 
 ## Pre-pull cleanup strategy
 
-Decision is implemented in shouldDeleteBeforePullCommand:
+Decision is implemented in shouldDeleteBeforePullAllFilesCommand:
 
-- clearBeforePull=ask displays prompt from SN_SYNC_MESSAGES.PULL_CLEAR_SRC_PROMPT with runtime rootDir replacement.
+- clearBeforePull=ask displays prompt from SN_SYNC_MESSAGES.PULL_ALL_FILES_CLEAR_SRC_PROMPT with runtime rootDir replacement.
 - Compares selected button with SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION.
 
 ## Side effects
@@ -101,7 +101,7 @@ A single high-level try/catch captures:
 - Filesystem write/delete failures.
 - Snapshot persistence failures.
 
-All are surfaced as SN_SYNC_MESSAGES.PULL_FAILED_PREFIX + reason.
+All are surfaced as SN_SYNC_MESSAGES.PULL_ALL_FILES_FAILED_PREFIX + reason.
 
 ## Direct dependencies
 
@@ -118,7 +118,7 @@ All are surfaced as SN_SYNC_MESSAGES.PULL_FAILED_PREFIX + reason.
 ```mermaid
 sequenceDiagram
    participant U as User
-   participant C as sn: pull command
+   participant C as sn: pull all files command
    participant CFG as SnSyncConfigService
    participant PREF as Preferences Service
    participant F as Folder Service
@@ -148,7 +148,7 @@ sequenceDiagram
             C->>R: progress.report(...)
          end
          C->>I: replacePullSnapshot(indexUpdates)
-         C->>R: showInformationMessage(PULL_SUCCESS_PREFIX + totals)
+         C->>R: showInformationMessage(PULL_ALL_FILES_SUCCESS_PREFIX + totals)
       end
    end
 ```

@@ -10,7 +10,7 @@ Command failures surfaced through standardized runtime handling use:
 
 Examples:
 
-- `Pull failed: (SN_PULL_FAILED) network timeout`
+- `Pull failed: (SN_PULL_ALL_FILES_FAILED) network timeout`
 - `Push active failed: (SN_PUSH_CURRENT_FAILED) remote conflict against baseline`
 
 ## Error categories
@@ -66,7 +66,7 @@ Current standardized command failure codes:
 - `SN_AUTH_VALIDATE_FAILED` -> `sn-sync.auth-validate`
 - `SN_INIT_FAILED` -> `sn-sync.sn-init`
 - `SN_OPEN_ACTIVE_IN_INSTANCE_FAILED` -> `sn-sync.open-active-in-instance`
-- `SN_PULL_FAILED` -> `sn-sync.pull`
+- `SN_PULL_ALL_FILES_FAILED` -> `sn-sync.pull-all-files`
 - `SN_PULL_BY_SYS_ID_FAILED` -> `sn-sync.pull-by-sys-id`
 - `SN_PUSH_FAILED` -> `sn-sync.push`
 - `SN_PUSH_CURRENT_FAILED` -> `sn-sync.push-current`

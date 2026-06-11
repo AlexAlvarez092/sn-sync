@@ -57,7 +57,7 @@ Execute a targeted pull for a single ServiceNow record (by sys_id), using a tabl
 19. Show success with summary metrics.
 20. On any error, show SN_SYNC_MESSAGES.PULL_BY_SYS_ID_FAILED_PREFIX + details.
 
-## Differences vs sn: pull
+## Differences vs sn: pull all files
 
 - Processes one selected table and can write files for all matching settings in that table.
 - Does not pre-clear rootDir.
