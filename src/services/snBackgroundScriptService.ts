@@ -10,6 +10,11 @@ import {
   normalizeInstanceUrl,
   resolveConnectionHeaders,
 } from "@shared/services/snHttpService.js";
+import {
+  isLikelySysId,
+  decodeHtmlEntities,
+  normalizeOptionalString,
+} from "@shared/services/snStringService.js";
 
 export interface SnBackgroundScriptExecutionContext {
   instanceUrl: string;
@@ -47,15 +52,6 @@ export interface SnBackgroundScriptServiceApi {
     workspaceFolderUri: vscode.Uri,
   ): Promise<SnBackgroundScriptScopeResolution>;
 }
-
-const HTML_ENTITY_MAP: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
-};
 
 const NO_OUTPUT_HINT =
   "(No printable output returned by ServiceNow. Use gs.print() for visible output. gs.info() writes to system logs, not visible here.)";
@@ -224,33 +220,11 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
       .replace(/\s+/g, " ")
       .trim();
 
-    return bodyText || NO_OUTPUT_HINT;
+    return bodyText;
   }
 
   private decodeHtml(value: string): string {
-    return value.replace(/&(#x[0-9a-fA-F]+|#\d+|[a-zA-Z]+);/g, (entity) => {
-      const token = entity.slice(1, -1);
-      const mapped = HTML_ENTITY_MAP[token.toLowerCase()];
-      if (mapped !== undefined) {
-        return mapped;
-      }
-
-      if (/^#x[0-9a-fA-F]+$/.test(token)) {
-        const codePoint = Number.parseInt(token.slice(2), 16);
-        return Number.isNaN(codePoint)
-          ? entity
-          : String.fromCodePoint(codePoint);
-      }
-
-      if (/^#\d+$/.test(token)) {
-        const codePoint = Number.parseInt(token.slice(1), 10);
-        return Number.isNaN(codePoint)
-          ? entity
-          : String.fromCodePoint(codePoint);
-      }
-
-      return entity;
-    });
+    return decodeHtmlEntities(value);
   }
 
   private extractCkToken(html: string): string | undefined {
@@ -265,7 +239,7 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
   ): Promise<string | undefined> {
     const normalizedRequested = requestedScope.trim();
     if (!normalizedRequested) {
-      return this.resolveGlobalScopeValue(scriptsPageHtml) || "global";
+      return this.resolveGlobalScopeValue(scriptsPageHtml);
     }
 
     const options = this.extractScopeOptionsFromHtml(scriptsPageHtml);
@@ -283,7 +257,7 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
         return "global";
       }
 
-      if (this.isLikelySysId(normalizedRequested)) {
+      if (isLikelySysId(normalizedRequested)) {
         return normalizedRequested;
       }
 
@@ -304,7 +278,7 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
       return apiResolved;
     }
 
-    if (this.isLikelySysId(normalizedRequested)) {
+    if (isLikelySysId(normalizedRequested)) {
       return normalizedRequested;
     }
 
@@ -322,8 +296,8 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
     requestedScope: string,
   ): { value: string; label: string } | undefined {
     const requestedLower = requestedScope.toLowerCase();
-    const requestedCanonical = this.toScopeCanonicalKey(requestedScope);
 
+    // Try exact match first
     for (const option of options) {
       const aliases = this.getScopeAliases(option);
       if (aliases.some((alias) => alias.toLowerCase() === requestedLower)) {
@@ -331,7 +305,9 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
       }
     }
 
-    if (requestedCanonical) {
+    // Try canonical form match
+    const requestedCanonical = this.toScopeCanonicalKey(requestedScope);
+    if (requestedCanonical.length > 0) {
       for (const option of options) {
         const aliases = this.getScopeAliases(option)
           .map((alias) => this.toScopeCanonicalKey(alias))
@@ -342,6 +318,7 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
       }
     }
 
+    // Try fuzzy substring match for longer queries
     if (requestedLower.length >= 3) {
       for (const option of options) {
         const aliases = this.getScopeAliases(option).map((alias) =>
@@ -385,10 +362,6 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
 
   private toScopeCanonicalKey(value: string): string {
     return value.toLowerCase().replace(/[^a-z0-9]/g, "");
-  }
-
-  private isLikelySysId(value: string): boolean {
-    return /^[a-f0-9]{32}$/i.test(value.trim());
   }
 
   private async tryResolveScopeValueByLookup(
@@ -544,7 +517,7 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
       const name = this.normalizeScopeValue(record.name);
       scopes.push({
         id,
-        label: name || id,
+        label: name as string,
       });
     }
 
@@ -570,7 +543,7 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
 
     while (inputMatch) {
       const attrs = this.parseTagAttributes(inputMatch[0]);
-      if ((attrs.name || "").toLowerCase() === "sysparm_ck") {
+      if (attrs.name.toLowerCase() === "sysparm_ck") {
         return attrs.value;
       }
 
@@ -597,10 +570,10 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
 
     while (optionMatch) {
       const attrs = this.parseTagAttributes(`<option ${optionMatch[1]}>`);
-      const value = (attrs.value || "").trim();
+      const value = attrs.value.trim();
       const label = this.decodeHtml(optionMatch[2]).trim();
       if (value) {
-        options.push({ value, label: label || value });
+        options.push({ value, label });
       }
 
       optionMatch = optionPattern.exec(selectInnerHtml);
@@ -647,7 +620,7 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
       if (isSelected) {
         const id = this.normalizeScopeValue(attrs.value);
         if (id) {
-          const label = this.decodeHtml(optionMatch[2]).trim() || id;
+          const label = this.decodeHtml(optionMatch[2]).trim();
           return { id, label };
         }
       }
@@ -669,15 +642,10 @@ export class SnBackgroundScriptService implements SnBackgroundScriptServiceApi {
     }
 
     const result = (payload as { result?: unknown })?.result;
-    return Array.isArray(result) ? result : undefined;
+    return result as unknown[] | undefined;
   }
 
   private normalizeScopeValue(value: unknown): string | undefined {
-    if (typeof value !== "string") {
-      return undefined;
-    }
-
-    const normalized = value.trim();
-    return normalized.length > 0 ? normalized : undefined;
+    return normalizeOptionalString(value);
   }
 }

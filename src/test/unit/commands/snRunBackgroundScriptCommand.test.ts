@@ -694,11 +694,7 @@ suite("snRunBackgroundScriptCommand", () => {
             resolveExecutionContext: async () => ({
               instanceUrl: "https://dev.service-now.com",
             }),
-            runBackgroundScript: async (
-              _context,
-              _workspace,
-              content,
-            ) => {
+            runBackgroundScript: async (_context, _workspace, content) => {
               observedScriptContent = content;
               return {
                 output: "done",
@@ -713,7 +709,10 @@ suite("snRunBackgroundScriptCommand", () => {
               createEditorStub(
                 "full document text here",
                 "javascript",
-                new vscode.Selection(new vscode.Position(0, 5), new vscode.Position(0, 12))
+                new vscode.Selection(
+                  new vscode.Position(0, 5),
+                  new vscode.Position(0, 12),
+                ),
               ),
             showErrorMessage: async () => undefined,
             showInformationMessage: async (message: string) => {
@@ -746,11 +745,7 @@ suite("snRunBackgroundScriptCommand", () => {
             resolveExecutionContext: async () => ({
               instanceUrl: "https://dev.service-now.com",
             }),
-            runBackgroundScript: async (
-              _context,
-              _workspace,
-              content,
-            ) => {
+            runBackgroundScript: async (_context, _workspace, content) => {
               observedScriptContent = content;
               return {
                 output: "done",
@@ -765,7 +760,10 @@ suite("snRunBackgroundScriptCommand", () => {
               createEditorStub(
                 "full script content",
                 "typescript",
-                new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 0))
+                new vscode.Selection(
+                  new vscode.Position(0, 0),
+                  new vscode.Position(0, 0),
+                ),
               ),
             showErrorMessage: async () => undefined,
             showInformationMessage: async (message: string) => {
@@ -778,6 +776,57 @@ suite("snRunBackgroundScriptCommand", () => {
     );
 
     assert.strictEqual(observedScriptContent, "full script content");
+    assert.deepStrictEqual(shownInfos, [
+      SN_SYNC_MESSAGES.RUN_BACKGROUND_SCRIPT_SUCCESS,
+    ]);
+  });
+
+  test("uses selection content when selection has non-whitespace text", async () => {
+    const shownInfos: string[] = [];
+    let observedScriptContent: string | undefined;
+
+    await withPatchedWindowForScopePrompt(
+      {
+        quickPick: { label: "Global", value: "global" },
+      },
+      async () => {
+        await runSnRunBackgroundScriptCommand(
+          {} as vscode.ExtensionContext,
+          {
+            resolveExecutionContext: async () => ({
+              instanceUrl: "https://dev.service-now.com",
+            }),
+            runBackgroundScript: async (_context, _workspace, content) => {
+              observedScriptContent = content;
+              return {
+                output: "done",
+                rawResponse: "<pre>ok</pre>",
+              };
+            },
+          },
+          {
+            getWorkspaceFolderUri: () =>
+              createTempWorkspaceUri("bg-command-selection-has-text"),
+            getActiveTextEditor: () =>
+              createEditorStub(
+                "  code with indent  ",
+                "javascript",
+                new vscode.Selection(
+                  new vscode.Position(0, 2),
+                  new vscode.Position(0, 19),
+                ),
+              ),
+            showErrorMessage: async () => undefined,
+            showInformationMessage: async (message: string) => {
+              shownInfos.push(message);
+              return undefined;
+            },
+          },
+        );
+      },
+    );
+
+    assert.strictEqual(observedScriptContent, "code with indent ");
     assert.deepStrictEqual(shownInfos, [
       SN_SYNC_MESSAGES.RUN_BACKGROUND_SCRIPT_SUCCESS,
     ]);

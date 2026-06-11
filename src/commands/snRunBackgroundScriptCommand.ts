@@ -184,10 +184,11 @@ function showResultInNewTab(rawHtml: string, instanceUrl: string): void {
 }
 
 function resolveScriptContent(editor: vscode.TextEditor): string {
-  const selectedScript = editor?.document.getText(editor.selection) ?? "";
-  return selectedScript.trim()
-    ? selectedScript
-    : (editor?.document.getText() ?? "");
+  const selectedScript = editor.document.getText(editor.selection);
+  if (selectedScript.trim()) {
+    return selectedScript;
+  }
+  return editor.document.getText();
 }
 
 async function promptExecutionScope(): Promise<string | undefined> {
