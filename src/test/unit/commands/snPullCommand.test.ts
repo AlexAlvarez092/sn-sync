@@ -79,9 +79,7 @@ suite("snPullCommand", () => {
       },
     });
 
-    assert.deepStrictEqual(executedCommands, [
-      SN_SYNC_COMMANDS.PULL_ALL_FILES,
-    ]);
+    assert.deepStrictEqual(executedCommands, [SN_SYNC_COMMANDS.PULL_ALL_FILES]);
   });
 
   test("dispatches to pull current", async () => {
@@ -132,9 +130,7 @@ suite("snPullCommand", () => {
       },
     });
 
-    assert.deepStrictEqual(executedCommands, [
-      SN_SYNC_COMMANDS.PULL_BY_SYS_ID,
-    ]);
+    assert.deepStrictEqual(executedCommands, [SN_SYNC_COMMANDS.PULL_BY_SYS_ID]);
   });
 
   test("register callback executes pull command", async () => {
@@ -234,9 +230,7 @@ suite("snPullCommand", () => {
       },
     );
 
-    assert.deepStrictEqual(executedCommands, [
-      SN_SYNC_COMMANDS.PULL_ALL_FILES,
-    ]);
+    assert.deepStrictEqual(executedCommands, [SN_SYNC_COMMANDS.PULL_ALL_FILES]);
   });
 });
 

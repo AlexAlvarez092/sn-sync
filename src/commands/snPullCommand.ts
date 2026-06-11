@@ -78,18 +78,25 @@ export async function runSnPullCommand(
 
     await runtime.executeCommand(selectedScope.command);
   } catch (error) {
-    showPrefixedCommandError(runtime, SN_SYNC_MESSAGES.PULL_FAILED_PREFIX, error, {
-      code: SN_SYNC_ERROR_CODES.PULL_FAILED,
-      command: SN_SYNC_COMMANDS.PULL,
-    });
+    showPrefixedCommandError(
+      runtime,
+      SN_SYNC_MESSAGES.PULL_FAILED_PREFIX,
+      error,
+      {
+        code: SN_SYNC_ERROR_CODES.PULL_FAILED,
+        command: SN_SYNC_COMMANDS.PULL,
+      },
+    );
   }
 }
 
 export function registerSnPullCommand(context: vscode.ExtensionContext): void {
-  const disposable = vscode.commands.registerCommand(SN_SYNC_COMMANDS.PULL, () =>
-    runWithCommandStatus(() => runSnPullCommand(defaultRuntime), {
-      message: "sn-sync: selecting pull scope...",
-    }),
+  const disposable = vscode.commands.registerCommand(
+    SN_SYNC_COMMANDS.PULL,
+    () =>
+      runWithCommandStatus(() => runSnPullCommand(defaultRuntime), {
+        message: "sn-sync: selecting pull scope...",
+      }),
   );
 
   context.subscriptions.push(disposable);

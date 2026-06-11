@@ -65,6 +65,7 @@ Opens the indexed active file as its ServiceNow record in your browser.
 ### `sn: pull`
 
 Unified pull entry point that lets you choose:
+
 - all files
 - current file
 - table
