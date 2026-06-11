@@ -393,7 +393,7 @@ suite("snRunBackgroundScriptCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      SN_SYNC_MESSAGES.OPEN_ACTIVE_NO_EDITOR,
+      SN_SYNC_MESSAGES.OPEN_CURRENT_NO_EDITOR,
     ]);
   });
 

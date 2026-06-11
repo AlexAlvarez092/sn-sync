@@ -3,12 +3,12 @@ import * as vscode from "vscode";
 import {
   getDefaultActiveTextEditor,
   openExternalWithDefaultEnv,
-  registerSnOpenActiveInInstanceCommand,
-  runSnOpenActiveInInstanceCommand,
-} from "@commands/snOpenActiveInInstanceCommand.js";
+  registerSnOpenCurrentInInstanceCommand,
+  runSnOpenCurrentInInstanceCommand,
+} from "@commands/snOpenCurrentInInstanceCommand.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 
-suite("snOpenActiveInInstanceCommand", () => {
+suite("snOpenCurrentInInstanceCommand", () => {
   test("registers command and stores disposable in context subscriptions", () => {
     const context = {
       subscriptions: [] as vscode.Disposable[],
@@ -19,7 +19,7 @@ suite("snOpenActiveInInstanceCommand", () => {
     } as unknown as vscode.ExtensionContext;
 
     withPatchedRegisterCommand(() => {
-      registerSnOpenActiveInInstanceCommand(context);
+      registerSnOpenCurrentInInstanceCommand(context);
 
       assert.strictEqual(context.subscriptions.length, 1);
       context.subscriptions[0].dispose();
@@ -37,7 +37,7 @@ suite("snOpenActiveInInstanceCommand", () => {
     } as unknown as vscode.ExtensionContext;
 
     await withCapturedRegisterCommand(async (invokeRegistered) => {
-      registerSnOpenActiveInInstanceCommand(context, {
+      registerSnOpenCurrentInInstanceCommand(context, {
         resolveConnectionAuth: async () => ({
           instanceUrl: "https://dev1.service-now.com",
         }),
@@ -95,7 +95,7 @@ suite("snOpenActiveInInstanceCommand", () => {
   test("shows error when no workspace is open", async () => {
     const shownErrors: string[] = [];
 
-    await runSnOpenActiveInInstanceCommand(
+    await runSnOpenCurrentInInstanceCommand(
       {} as vscode.ExtensionContext,
       {
         resolveConnectionAuth: async () => ({
@@ -127,7 +127,7 @@ suite("snOpenActiveInInstanceCommand", () => {
   test("shows info when no active editor exists", async () => {
     const shownInfos: string[] = [];
 
-    await runSnOpenActiveInInstanceCommand(
+    await runSnOpenCurrentInInstanceCommand(
       {} as vscode.ExtensionContext,
       {
         resolveConnectionAuth: async () => ({
@@ -154,14 +154,14 @@ suite("snOpenActiveInInstanceCommand", () => {
     );
 
     assert.deepStrictEqual(shownInfos, [
-      SN_SYNC_MESSAGES.OPEN_ACTIVE_NO_EDITOR,
+      SN_SYNC_MESSAGES.OPEN_CURRENT_NO_EDITOR,
     ]);
   });
 
   test("shows info when active file is not indexed", async () => {
     const shownInfos: string[] = [];
 
-    await runSnOpenActiveInInstanceCommand(
+    await runSnOpenCurrentInInstanceCommand(
       {} as vscode.ExtensionContext,
       {
         resolveConnectionAuth: async () => ({
@@ -193,14 +193,14 @@ suite("snOpenActiveInInstanceCommand", () => {
     );
 
     assert.deepStrictEqual(shownInfos, [
-      SN_SYNC_MESSAGES.OPEN_ACTIVE_NOT_INDEXED,
+      SN_SYNC_MESSAGES.OPEN_CURRENT_NOT_INDEXED,
     ]);
   });
 
   test("shows detailed error when instance is not configured", async () => {
     const shownErrors: string[] = [];
 
-    await runSnOpenActiveInInstanceCommand(
+    await runSnOpenCurrentInInstanceCommand(
       {} as vscode.ExtensionContext,
       {
         resolveConnectionAuth: async () => {
@@ -239,14 +239,14 @@ suite("snOpenActiveInInstanceCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.OPEN_ACTIVE_FAILED_PREFIX} (SN_OPEN_ACTIVE_IN_INSTANCE_FAILED) No saved sn-sync auth found. Run 'sn: auth' first.`,
+      `${SN_SYNC_MESSAGES.OPEN_CURRENT_FAILED_PREFIX} (SN_OPEN_CURRENT_IN_INSTANCE_FAILED) No saved sn-sync auth found. Run 'sn: auth' first.`,
     ]);
   });
 
   test("shows detailed error when openExternal fails", async () => {
     const shownErrors: string[] = [];
 
-    await runSnOpenActiveInInstanceCommand(
+    await runSnOpenCurrentInInstanceCommand(
       {} as vscode.ExtensionContext,
       {
         resolveConnectionAuth: async () => ({
@@ -285,7 +285,7 @@ suite("snOpenActiveInInstanceCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.OPEN_ACTIVE_FAILED_PREFIX} (SN_OPEN_ACTIVE_IN_INSTANCE_FAILED) ${SN_SYNC_MESSAGES.OPEN_ACTIVE_OPEN_FAILED}`,
+      `${SN_SYNC_MESSAGES.OPEN_CURRENT_FAILED_PREFIX} (SN_OPEN_CURRENT_IN_INSTANCE_FAILED) ${SN_SYNC_MESSAGES.OPEN_CURRENT_OPEN_FAILED}`,
     ]);
   });
 
@@ -293,7 +293,7 @@ suite("snOpenActiveInInstanceCommand", () => {
     const shownInfos: string[] = [];
     let openedUri: string | undefined;
 
-    await runSnOpenActiveInInstanceCommand(
+    await runSnOpenCurrentInInstanceCommand(
       {} as vscode.ExtensionContext,
       {
         resolveConnectionAuth: async () => ({
@@ -339,7 +339,7 @@ suite("snOpenActiveInInstanceCommand", () => {
       "https://dev1.service-now.com/sys_script.do?sys_id=abc123",
     );
     assert.deepStrictEqual(shownInfos, [
-      `${SN_SYNC_MESSAGES.OPEN_ACTIVE_SUCCESS_PREFIX} sys_script:abc123`,
+      `${SN_SYNC_MESSAGES.OPEN_CURRENT_SUCCESS_PREFIX} sys_script:abc123`,
     ]);
   });
 });

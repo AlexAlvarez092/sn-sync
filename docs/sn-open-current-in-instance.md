@@ -1,7 +1,7 @@
-# Command: sn: open active in instance
+# Command: sn: open current in instance
 
-- Command ID: sn-sync.open-active-in-instance
-- Entry point: src/commands/snOpenActiveInInstanceCommand.ts
+- Command ID: sn-sync.open-current-in-instance
+- Entry point: src/commands/snOpenCurrentInInstanceCommand.ts
 - Registration: src/extension.ts
 
 ## Purpose
@@ -45,10 +45,10 @@ The spinner is debounced to avoid flicker on very fast executions.
 ## Error handling
 
 - Missing workspace: NO_WORKSPACE.
-- Missing editor: OPEN_ACTIVE_NO_EDITOR.
-- Non-indexed file: OPEN_ACTIVE_NOT_INDEXED.
-- Browser open failure: OPEN_ACTIVE_OPEN_FAILED.
-- Other failures: OPEN_ACTIVE_FAILED_PREFIX + standardized error context.
+- Missing editor: OPEN_CURRENT_NO_EDITOR.
+- Non-indexed file: OPEN_CURRENT_NOT_INDEXED.
+- Browser open failure: OPEN_CURRENT_OPEN_FAILED.
+- Other failures: OPEN_CURRENT_FAILED_PREFIX + standardized error context.
 
 ## Troubleshooting
 

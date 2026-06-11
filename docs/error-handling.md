@@ -75,7 +75,7 @@ Current standardized command failure codes:
 - `SN_AUTH_CONFIG_FAILED` -> `sn-sync.auth-config`
 - `SN_AUTH_VALIDATE_FAILED` -> `sn-sync.auth-validate`
 - `SN_INIT_FAILED` -> `sn-sync.sn-init`
-- `SN_OPEN_ACTIVE_IN_INSTANCE_FAILED` -> `sn-sync.open-active-in-instance`
+- `SN_OPEN_CURRENT_IN_INSTANCE_FAILED` -> `sn-sync.open-current-in-instance`
 - `SN_PULL_ALL_FILES_FAILED` -> `sn-sync.pull-all-files`
 - `SN_PULL_BY_SYS_ID_FAILED` -> `sn-sync.pull-by-sys-id`
 - `SN_PUSH_FAILED` -> `sn-sync.push`

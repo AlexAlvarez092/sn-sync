@@ -16,7 +16,7 @@ Documented commands:
 - sn: reset -> sn-sync.reset
 - sn: reset auth -> sn-sync.reset-auth (internal delegate)
 - sn: run background script -> sn-sync.run-background-script
-- sn: open active in instance -> sn-sync.open-active-in-instance
+- sn: open current in instance -> sn-sync.open-current-in-instance
 - sn: pull -> sn-sync.pull
 - sn: pull all files -> sn-sync.pull-all-files (internal delegate)
 - sn: pull current -> sn-sync.pull-current
@@ -43,7 +43,7 @@ Files:
 - sn-reset.md
 - sn-reset-auth.md
 - sn-run-background-script.md
-- sn-open-active-in-instance.md
+- sn-open-current-in-instance.md
 - sn-pull.md
 - sn-pull-all-files.md
 - sn-pull-current.md

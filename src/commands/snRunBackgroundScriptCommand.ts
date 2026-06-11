@@ -43,7 +43,7 @@ export async function runSnRunBackgroundScriptCommand(
   try {
     const editor = runtime.getActiveTextEditor();
     if (!editor) {
-      void runtime.showErrorMessage(SN_SYNC_MESSAGES.OPEN_ACTIVE_NO_EDITOR);
+      void runtime.showErrorMessage(SN_SYNC_MESSAGES.OPEN_CURRENT_NO_EDITOR);
       return;
     }
 

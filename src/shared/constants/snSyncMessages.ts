@@ -50,14 +50,14 @@ export const SN_SYNC_MESSAGES = {
   RUN_BACKGROUND_SCRIPT_SUCCESS: "sn-sync background script completed.",
   RUN_BACKGROUND_SCRIPT_FAILED_PREFIX:
     "Failed to run ServiceNow background script:",
-  OPEN_ACTIVE_NO_EDITOR:
+  OPEN_CURRENT_NO_EDITOR:
     "No active file found. Open a file from this workspace and try again.",
-  OPEN_ACTIVE_NOT_INDEXED:
+  OPEN_CURRENT_NOT_INDEXED:
     "Active file is not indexed. Run 'sn: pull all files' or 'sn: pull by sys_id' first.",
-  OPEN_ACTIVE_OPEN_FAILED: "Failed to open record in external browser.",
-  OPEN_ACTIVE_SUCCESS_PREFIX: "Opened ServiceNow record:",
-  OPEN_ACTIVE_FAILED_PREFIX:
-    "Failed to open active file in ServiceNow instance:",
+  OPEN_CURRENT_OPEN_FAILED: "Failed to open record in external browser.",
+  OPEN_CURRENT_SUCCESS_PREFIX: "Opened ServiceNow record:",
+  OPEN_CURRENT_FAILED_PREFIX:
+    "Failed to open current file in ServiceNow instance:",
   SN_REQUEST_HTTP_STATUS_PREFIX: "ServiceNow data request failed with status:",
   SN_REQUEST_INVALID_PATH_SEGMENT_PREFIX:
     "Invalid ServiceNow request path segment:",

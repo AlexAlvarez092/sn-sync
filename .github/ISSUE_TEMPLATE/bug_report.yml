@@ -89,7 +89,7 @@ body:
         - "sn: reset auth"
         - "sn: reset index"
         - "sn: run background script"
-        - "sn: open active in instance"
+        - "sn: open current in instance"
         - "sn: pull"
         - "sn: pull all files"
         - "sn: pull current"

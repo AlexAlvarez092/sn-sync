@@ -18,12 +18,12 @@ import {
 } from "@shared/services/snCommandRuntime.js";
 import { normalizeInstanceUrl } from "@shared/services/snHttpService.js";
 
-export interface SnOpenActiveInInstanceRuntime extends SnBaseCommandRuntime {
+export interface SnOpenCurrentInInstanceRuntime extends SnBaseCommandRuntime {
   getActiveTextEditor(): vscode.TextEditor | undefined;
   openExternal(target: vscode.Uri): Thenable<boolean>;
 }
 
-interface SnOpenActiveInInstanceAuthApi {
+interface SnOpenCurrentInInstanceAuthApi {
   resolveConnectionAuth(
     context: vscode.ExtensionContext,
     workspaceFolderUri: vscode.Uri,
@@ -43,17 +43,17 @@ export function openExternalWithDefaultEnv(
   return envApi.openExternal(target);
 }
 
-const defaultRuntime: SnOpenActiveInInstanceRuntime = {
+const defaultRuntime: SnOpenCurrentInInstanceRuntime = {
   ...defaultBaseRuntime,
   getActiveTextEditor: getDefaultActiveTextEditor,
   openExternal: openExternalWithDefaultEnv,
 };
 
-export async function runSnOpenActiveInInstanceCommand(
+export async function runSnOpenCurrentInInstanceCommand(
   context: vscode.ExtensionContext,
-  authService: SnOpenActiveInInstanceAuthApi,
+  authService: SnOpenCurrentInInstanceAuthApi,
   indexService: SnSyncIndexServiceApi,
-  runtime: SnOpenActiveInInstanceRuntime = defaultRuntime,
+  runtime: SnOpenCurrentInInstanceRuntime = defaultRuntime,
 ): Promise<void> {
   const workspaceFolderUri = getWorkspaceFolderOrShowError(runtime);
   if (!workspaceFolderUri) {
@@ -62,7 +62,7 @@ export async function runSnOpenActiveInInstanceCommand(
 
   const activeEditor = runtime.getActiveTextEditor();
   if (!activeEditor) {
-    void runtime.showInformationMessage(SN_SYNC_MESSAGES.OPEN_ACTIVE_NO_EDITOR);
+    void runtime.showInformationMessage(SN_SYNC_MESSAGES.OPEN_CURRENT_NO_EDITOR);
     return;
   }
 
@@ -77,7 +77,7 @@ export async function runSnOpenActiveInInstanceCommand(
 
   if (!entry) {
     void runtime.showInformationMessage(
-      SN_SYNC_MESSAGES.OPEN_ACTIVE_NOT_INDEXED,
+      SN_SYNC_MESSAGES.OPEN_CURRENT_NOT_INDEXED,
     );
     return;
   }
@@ -95,39 +95,39 @@ export async function runSnOpenActiveInInstanceCommand(
 
     const opened = await runtime.openExternal(recordUri);
     if (!opened) {
-      throw new Error(SN_SYNC_MESSAGES.OPEN_ACTIVE_OPEN_FAILED);
+      throw new Error(SN_SYNC_MESSAGES.OPEN_CURRENT_OPEN_FAILED);
     }
 
     void runtime.showInformationMessage(
-      `${SN_SYNC_MESSAGES.OPEN_ACTIVE_SUCCESS_PREFIX} ${entry.table}:${entry.sysId}`,
+      `${SN_SYNC_MESSAGES.OPEN_CURRENT_SUCCESS_PREFIX} ${entry.table}:${entry.sysId}`,
     );
   } catch (error) {
     showPrefixedCommandError(
       runtime,
-      SN_SYNC_MESSAGES.OPEN_ACTIVE_FAILED_PREFIX,
+      SN_SYNC_MESSAGES.OPEN_CURRENT_FAILED_PREFIX,
       error,
       {
-        code: SN_SYNC_ERROR_CODES.OPEN_ACTIVE_IN_INSTANCE_FAILED,
-        command: SN_SYNC_COMMANDS.OPEN_ACTIVE_IN_INSTANCE,
+        code: SN_SYNC_ERROR_CODES.OPEN_CURRENT_IN_INSTANCE_FAILED,
+        command: SN_SYNC_COMMANDS.OPEN_CURRENT_IN_INSTANCE,
       },
     );
   }
 }
 
-export function registerSnOpenActiveInInstanceCommand(
+export function registerSnOpenCurrentInInstanceCommand(
   context: vscode.ExtensionContext,
-  authService: SnOpenActiveInInstanceAuthApi = new SnAuthService(),
+  authService: SnOpenCurrentInInstanceAuthApi = new SnAuthService(),
 ): void {
   registerCommandWithStatus({
     context,
-    commandId: SN_SYNC_COMMANDS.OPEN_ACTIVE_IN_INSTANCE,
+    commandId: SN_SYNC_COMMANDS.OPEN_CURRENT_IN_INSTANCE,
     task: () =>
-      runSnOpenActiveInInstanceCommand(
+      runSnOpenCurrentInInstanceCommand(
         context,
         authService,
         new SnSyncIndexService(context.workspaceState),
       ),
-    message: "sn-sync: opening active record in instance...",
+    message: "sn-sync: opening current record in instance...",
   });
 }
 

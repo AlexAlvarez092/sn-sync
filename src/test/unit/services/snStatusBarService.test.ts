@@ -193,7 +193,7 @@ suite("snStatusBarService", () => {
     registerSnStatusBar(context, runtime);
 
     assert.strictEqual(context.subscriptions.length, 1);
-    assert.strictEqual(runtime.items.length, 17);
+    assert.strictEqual(runtime.items.length, 19);
 
     context.subscriptions[0].dispose();
 
@@ -654,7 +654,7 @@ suite("snStatusBarService", () => {
       registerSnStatusBar(context);
 
       assert.strictEqual(context.subscriptions.length, 1);
-      assert.strictEqual(createdItems.length, 17);
+      assert.strictEqual(createdItems.length, 19);
 
       const menuCommand = registeredCommands.get(STATUS_BAR_MENU_COMMAND_ID);
       assert.ok(menuCommand);
@@ -778,7 +778,7 @@ suite("snStatusBarService", () => {
 
       registerSnStatusBar(context);
 
-      assert.strictEqual(createdItems.length, 17);
+      assert.strictEqual(createdItems.length, 19);
       assert.ok(createdItems.every((item) => item.visible === false));
 
       context.subscriptions[0].dispose();

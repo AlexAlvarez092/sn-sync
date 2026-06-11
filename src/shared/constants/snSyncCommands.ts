@@ -6,7 +6,7 @@ export const SN_SYNC_COMMANDS = {
   RESET: "sn-sync.reset",
   RESET_AUTH: "sn-sync.reset-auth",
   RUN_BACKGROUND_SCRIPT: "sn-sync.run-background-script",
-  OPEN_ACTIVE_IN_INSTANCE: "sn-sync.open-active-in-instance",
+  OPEN_CURRENT_IN_INSTANCE: "sn-sync.open-current-in-instance",
   PULL: "sn-sync.pull",
   PULL_ALL_FILES: "sn-sync.pull-all-files",
   PULL_CURRENT: "sn-sync.pull-current",

@@ -5,7 +5,7 @@ import { registerSnAuthConfigCommand } from "@commands/snAuthConfigCommand.js";
 import { registerSnInitCommand } from "@commands/snInitCommand.js";
 import { registerSnResetCommand } from "@commands/snResetCommand.js";
 import { registerSnResetAuthCommand } from "@commands/snResetAuthCommand.js";
-import { registerSnOpenActiveInInstanceCommand } from "@commands/snOpenActiveInInstanceCommand.js";
+import { registerSnOpenCurrentInInstanceCommand } from "@commands/snOpenCurrentInInstanceCommand.js";
 import { registerSnPullBySysIdCommand } from "@commands/snPullBySysIdCommand.js";
 import { registerSnPullCurrentCommand } from "@commands/snPullCurrentCommand.js";
 import { registerSnPullCommand } from "@commands/snPullCommand.js";
@@ -34,7 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
     context,
     services.backgroundScriptService,
   );
-  registerSnOpenActiveInInstanceCommand(context, services.authService);
+  registerSnOpenCurrentInInstanceCommand(context, services.authService);
   registerSnPullCommand(context);
   registerSnPullAllFilesCommand(
     context,

@@ -48,7 +48,7 @@ Public orchestrator commands:
 - `sn: pull`
 - `sn: push`
 - `sn: run background script`
-- `sn: open active in instance`
+- `sn: open current in instance`
 
 ## Keyboard shortcuts
 
@@ -88,7 +88,7 @@ Status bar setting details:
 - `sn-sync.statusBar.enabled`: enable or disable status bar shortcuts (`true` by default).
 - `sn-sync.statusBar.mode`: `minimal` or `expanded` (`minimal` by default).
 - `sn-sync.statusBar.visibleCommands`: subset of supported command IDs shown in status bar/menu.
-  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-config`, `sn-sync.auth-validate`, `sn-sync.reset`, `sn-sync.reset-auth`, `sn-sync.run-background-script`, `sn-sync.open-active-in-instance`, `sn-sync.pull`, `sn-sync.pull-all-files`, `sn-sync.pull-current`, `sn-sync.pull-table`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push`, `sn-sync.push-current`, `sn-sync.push-modified`, `sn-sync.push-report`
+  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-config`, `sn-sync.auth-validate`, `sn-sync.reset`, `sn-sync.reset-auth`, `sn-sync.run-background-script`, `sn-sync.open-current-in-instance`, `sn-sync.pull`, `sn-sync.pull-all-files`, `sn-sync.pull-current`, `sn-sync.pull-table`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push`, `sn-sync.push-current`, `sn-sync.push-modified`, `sn-sync.push-report`
 
 Recommended presets:
 
@@ -118,7 +118,7 @@ Expanded workflow (power users):
     "sn-sync.push-current",
     "sn-sync.push-modified",
     "sn-sync.push-report",
-    "sn-sync.open-active-in-instance"
+    "sn-sync.open-current-in-instance"
   ]
 }
 ```

@@ -85,7 +85,7 @@
               "sn-sync.reset",
               "sn-sync.reset-auth",
               "sn-sync.run-background-script",
-              "sn-sync.open-active-in-instance",
+              "sn-sync.open-current-in-instance",
               "sn-sync.pull",
               "sn-sync.pull-all-files",
               "sn-sync.pull-current",
@@ -136,8 +136,8 @@
         "title": "sn: run background script"
       },
       {
-        "command": "sn-sync.open-active-in-instance",
-        "title": "sn: open active in instance"
+        "command": "sn-sync.open-current-in-instance",
+        "title": "sn: open current in instance"
       },
       {
         "command": "sn-sync.pull",
@@ -182,7 +182,7 @@
         "when": "workspaceFolderCount > 0"
       },
       {
-        "command": "sn-sync.open-active-in-instance",
+        "command": "sn-sync.open-current-in-instance",
         "key": "ctrl+alt+o",
         "mac": "cmd+alt+o",
         "when": "editorTextFocus && workspaceFolderCount > 0"

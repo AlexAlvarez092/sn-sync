@@ -36,7 +36,7 @@ Registered commands:
 - sn-sync.reset
 - sn-sync.reset-auth
 - sn-sync.run-background-script
-- sn-sync.open-active-in-instance
+- sn-sync.open-current-in-instance
 - sn-sync.pull
 - sn-sync.pull-all-files
 - sn-sync.pull-current
@@ -115,7 +115,7 @@ Orchestrator commands (`sn: pull`, `sn: push`, `sn: auth`, `sn: reset`) now shar
 - Process: scope/update-set resolution
 - Output: markdown report only (read-only behavior)
 
-### 6) Open active in instance flow
+### 6) Open current in instance flow
 
 - Input: active editor file + index entry + resolved instance URL
 - Process: local path -> index lookup -> record URL build -> open external browser
@@ -249,7 +249,7 @@ flowchart TD
   CMD --> AUTHV[sn: auth validate]
   CMD --> RESETSEL[sn: reset]
   CMD --> AUTHR[sn: reset auth]
-  CMD --> OPEN[sn: open active in instance]
+  CMD --> OPEN[sn: open current in instance]
   CMD --> PULLSEL[sn: pull]
   CMD --> PULL[sn: pull all files]
   CMD --> PULLCUR[sn: pull current]
