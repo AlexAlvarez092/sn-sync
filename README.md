@@ -16,7 +16,7 @@ sn-sync helps you work with ServiceNow scripts in a local workflow:
 - Project initialization command.
 - Authentication setup and validation.
 - Explicit authentication mode selection: basic or OAuth (PKCE).
-- Pull all configured records or pull by sys_id.
+- Pull all configured records, current record, table-scoped records, or pull by sys_id.
 - Execute ServiceNow background scripts directly from VS Code.
 - Open the active indexed file directly in ServiceNow.
 - Push only the active file or all modified files.
@@ -31,9 +31,10 @@ sn-sync helps you work with ServiceNow scripts in a local workflow:
 3. Run `sn: auth`, choose `basic` or `oauth`, and complete the prompts.
 4. Run `sn: pull` to bring records into your local source folder.
 5. Edit files locally.
-6. Run `sn: push active` or `sn: push modified`.
+6. Run `sn: push` and choose `current file`, `all files`, or `report`.
 
-If you only need one specific record, use `sn: pull by sys_id`.
+If you only need one specific record, use `sn: pull current` or `sn: pull by sys_id`.
+If you only need one configured table, use `sn: pull table`.
 
 ## Commands
 
@@ -65,6 +66,14 @@ Opens the indexed active file as its ServiceNow record in your browser.
 
 Downloads all configured records into your local files.
 
+### `sn: pull current`
+
+Downloads the ServiceNow record associated with the current indexed file.
+
+### `sn: pull table`
+
+Prompts for a configured table and downloads records for that table only.
+
 ### `sn: pull by sys_id`
 
 Downloads one specific record by table + sys_id.
@@ -73,9 +82,13 @@ Downloads one specific record by table + sys_id.
 
 Resets the local sync index if you need a clean state.
 
-### `sn: push active`
+### `sn: push`
 
-Pushes only the active file in the editor, with interactive conflict resolution.
+Unified push entry point that lets you choose `all files`, `current file`, or `report`.
+
+### `sn: push current`
+
+Pushes only the current file in the editor, with interactive conflict resolution.
 
 ### `sn: push modified`
 
@@ -92,9 +105,7 @@ Default shortcuts for common sync workflows:
 
 - Pull: `cmd+alt+p` (macOS) / `ctrl+alt+p` (Windows/Linux)
 - Pull by sys_id: `cmd+alt+shift+p` / `ctrl+alt+shift+p`
-- Push active: `cmd+alt+u` / `ctrl+alt+u`
-- Push modified: `cmd+alt+shift+u` / `ctrl+alt+shift+u`
-- Push report: `cmd+alt+r` / `ctrl+alt+r`
+- Push (scope selector): `cmd+alt+u` / `ctrl+alt+u`
 - Open active in instance: `cmd+alt+o` / `ctrl+alt+o`
 
 These shortcuts are optional defaults. You can override or remove them in VS Code Keyboard Shortcuts.
@@ -126,7 +137,7 @@ Status bar setting details:
 - `sn-sync.statusBar.enabled`: enable or disable status bar shortcuts (`true` by default).
 - `sn-sync.statusBar.mode`: `minimal` or `expanded` (`minimal` by default).
 - `sn-sync.statusBar.visibleCommands`: subset of supported command IDs shown in status bar/menu.
-  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-validate`, `sn-sync.reset-auth`, `sn-sync.run-background-script`, `sn-sync.open-active-in-instance`, `sn-sync.pull`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push-active`, `sn-sync.push-modified`, `sn-sync.push-report`
+  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-validate`, `sn-sync.reset-auth`, `sn-sync.run-background-script`, `sn-sync.open-active-in-instance`, `sn-sync.pull`, `sn-sync.pull-current`, `sn-sync.pull-table`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push`, `sn-sync.push-current`, `sn-sync.push-modified`, `sn-sync.push-report`
 
 Recommended presets:
 
@@ -138,8 +149,7 @@ Minimal workflow (focus on pull + push):
   "sn-sync.statusBar.mode": "minimal",
   "sn-sync.statusBar.visibleCommands": [
     "sn-sync.pull",
-    "sn-sync.push-active",
-    "sn-sync.push-modified"
+      "sn-sync.push"
   ]
 }
 ```
@@ -154,8 +164,11 @@ Expanded workflow (power users):
     "sn-sync.auth",
     "sn-sync.auth-validate",
     "sn-sync.pull",
+    "sn-sync.pull-current",
+    "sn-sync.pull-table",
     "sn-sync.pull-by-sys-id",
-    "sn-sync.push-active",
+    "sn-sync.push",
+    "sn-sync.push-current",
     "sn-sync.push-modified",
     "sn-sync.push-report",
     "sn-sync.open-active-in-instance"
@@ -199,9 +212,11 @@ Technical and command-level docs are available in [docs/README.md](docs/README.m
 - [docs/sn-run-background-script.md](docs/sn-run-background-script.md)
 - [docs/sn-open-active-in-instance.md](docs/sn-open-active-in-instance.md)
 - [docs/sn-pull.md](docs/sn-pull.md)
+- [docs/sn-pull-current.md](docs/sn-pull-current.md)
+- [docs/sn-pull-table.md](docs/sn-pull-table.md)
 - [docs/sn-pull-by-sys-id.md](docs/sn-pull-by-sys-id.md)
 - [docs/sn-reset-index.md](docs/sn-reset-index.md)
-- [docs/sn-push-active.md](docs/sn-push-active.md)
+- [docs/sn-push-current.md](docs/sn-push-current.md)
 - [docs/sn-push-modified.md](docs/sn-push-modified.md)
 - [docs/sn-push-report.md](docs/sn-push-report.md)
 - [docs/error-handling.md](docs/error-handling.md)
