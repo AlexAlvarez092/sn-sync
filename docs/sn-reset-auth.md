@@ -1,8 +1,9 @@
-# Command: sn: reset auth
+# Command: sn: reset auth (internal delegate)
 
 - Command ID: sn-sync.reset-auth
 - Entry point: src/commands/snResetAuthCommand.ts
 - Registration: src/extension.ts
+- Exposure: internal delegate used by `sn: reset`
 
 ## Purpose
 
@@ -10,6 +11,7 @@ Remove the currently active instance authentication secret from VS Code Secret S
 
 ## When to use it
 
+- Normally through `sn: reset` -> `reset auth`.
 - You need to rotate credentials and want a clean auth state first.
 - The saved auth payload is stale or invalid.
 - You want to force a fresh `sn: auth` flow before future pull/push/report operations.

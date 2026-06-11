@@ -166,7 +166,7 @@ sequenceDiagram
 
 - Symptom: Push succeeds but file still appears modified
   - Cause: Local content changed again after the push or index state is stale.
-- Resolution: Save file, rerun push if needed, or run sn: reset index + sn: pull (all files) to rebuild baseline.
+- Resolution: Save file, rerun push if needed, or run `sn: reset` -> `reset index` and then `sn: pull` -> `all files` to rebuild baseline.
 
 - Symptom: Push fails with an invalid path segment error
   - Cause: The indexed entry contains a malformed table name or `sys_id`.

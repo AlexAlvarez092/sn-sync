@@ -1,8 +1,9 @@
-# Command: sn: reset index
+# Command: sn: reset index (internal delegate)
 
 - Command ID: sn-sync.reset-index
 - Entry point: src/commands/snResetIndexCommand.ts
 - Registration: src/extension.ts
+- Exposure: internal delegate used by `sn: reset`
 
 ## Purpose
 
@@ -10,6 +11,7 @@ Clear the local synchronization index (workspaceState) so baseline state can be 
 
 ## When to use it
 
+- Normally through `sn: reset` -> `reset index`.
 - Local index appears corrupted or inconsistent.
 - After large out-of-band filesystem changes.
 - Recovery step for persistent false modified-file detections.

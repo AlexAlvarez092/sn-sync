@@ -82,6 +82,7 @@
               "sn-sync.auth",
               "sn-sync.auth-config",
               "sn-sync.auth-validate",
+              "sn-sync.reset",
               "sn-sync.reset-auth",
               "sn-sync.run-background-script",
               "sn-sync.open-active-in-instance",
@@ -121,6 +122,10 @@
       {
         "command": "sn-sync.auth-validate",
         "title": "sn: auth validate"
+      },
+      {
+        "command": "sn-sync.reset",
+        "title": "sn: reset"
       },
       {
         "command": "sn-sync.reset-auth",
@@ -191,6 +196,14 @@
         },
         {
           "command": "sn-sync.auth-validate",
+          "when": "false"
+        },
+        {
+          "command": "sn-sync.reset-auth",
+          "when": "false"
+        },
+        {
+          "command": "sn-sync.reset-index",
           "when": "false"
         },
         {

@@ -3,6 +3,7 @@ export const SN_SYNC_COMMANDS = {
   AUTH: "sn-sync.auth",
   AUTH_CONFIG: "sn-sync.auth-config",
   AUTH_VALIDATE: "sn-sync.auth-validate",
+  RESET: "sn-sync.reset",
   RESET_AUTH: "sn-sync.reset-auth",
   RUN_BACKGROUND_SCRIPT: "sn-sync.run-background-script",
   OPEN_ACTIVE_IN_INSTANCE: "sn-sync.open-active-in-instance",

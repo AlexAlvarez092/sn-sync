@@ -83,12 +83,11 @@ body:
       options:
         - "sn: init"
         - "sn: auth"
-        - "sn: reset auth"
+        - "sn: reset"
         - "sn: run background script"
         - "sn: open active in instance"
         - "sn: pull all files"
         - "sn: pull by sys_id"
-        - "sn: reset index"
         - "sn: push current"
         - "sn: push modified"
         - "sn: push report"
