@@ -18,6 +18,7 @@ import { registerSnPushModifiedCommand } from "@commands/snPushModifiedCommand.j
 import { registerSnPushReportCommand } from "@commands/snPushReportCommand.js";
 import { registerSnRunBackgroundScriptCommand } from "@commands/snRunBackgroundScriptCommand.js";
 import { registerSnStatusBar } from "@services/snStatusBarService.js";
+import { flushScheduledTempMergeCleanup } from "@shared/services/snPushConflictResolutionService.js";
 
 export function activate(context: vscode.ExtensionContext) {
   registerSnInitCommand(context);
@@ -41,4 +42,6 @@ export function activate(context: vscode.ExtensionContext) {
   registerSnStatusBar(context);
 }
 
-export function deactivate() {}
+export async function deactivate(): Promise<void> {
+  await flushScheduledTempMergeCleanup();
+}

@@ -23,6 +23,7 @@ sn-sync follows a command-service split:
 
 On activation, the extension registers all command handlers from src/extension.ts.
 It also registers a status bar service that exposes quick command entry points.
+On deactivation, the extension flushes pending temporary merge-file cleanup tasks.
 
 Registered commands:
 
@@ -312,3 +313,4 @@ flowchart TD
 - Pull and push commands prioritize explicit conflict handling and safe remote writes.
 - push modified resolves conflicts per file and still reduces redundant PATCH requests when multiple fields of the same record are modified.
 - Command output messaging is centralized through constants to keep behavior predictable and testable.
+- Conflict merge flows create temporary files under the OS temp directory; cleanup is deferred and also flushed at extension deactivation.

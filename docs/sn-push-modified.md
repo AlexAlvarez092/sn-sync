@@ -75,6 +75,13 @@ The spinner is debounced to avoid flicker on very fast executions.
 - Remote writes to multiple ServiceNow records/fields (batched by record when several modified fields share the same table + sys_id).
 - Batch local baseline updates for uploaded files.
 - Immediate local file/baseline update for discard-local decisions.
+- For merge decisions, temporary remote-content files are created in the OS temp directory and scheduled for deferred cleanup.
+
+## Temporary merge-file cleanup
+
+- Cleanup delay defaults to 5 minutes.
+- Delay can be configured with environment variable `SN_SYNC_MERGE_CLEANUP_DELAY_MS`.
+- Pending cleanup tasks are flushed when the extension deactivates to reduce leftover temp files.
 
 ## Request safety model
 
