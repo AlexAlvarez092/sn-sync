@@ -19,15 +19,12 @@ import {
   getWorkspaceFolderOrShowError,
   runWithCommandStatus,
   showPrefixedCommandError,
-  withNotificationProgress,
 } from "@shared/services/snCommandRuntime.js";
+import { type FolderClearRuntime } from "@shared/services/snFolderService.js";
 import {
-  type FolderClearRuntime,
-  ensureDirectoryExists,
-} from "@shared/services/snFolderService.js";
-import { resolvePreferences } from "@shared/services/snPreferencesService.js";
-import { createPullFileWrittenHandler } from "@shared/services/snPullProgressService.js";
-import { resolveWorkspaceChildUri } from "@shared/services/snWorkspacePathService.js";
+  defaultScopedPullWithProgress,
+  runScopedPullWithIndex,
+} from "@shared/services/snScopedPullCommandService.js";
 
 export interface SnPullCurrentRuntime
   extends SnBaseCommandRuntime, Pick<FolderClearRuntime, "createDirectory"> {
@@ -45,7 +42,7 @@ const defaultRuntime: SnPullCurrentRuntime = {
   getCurrentTextEditor: () => vscode.window.activeTextEditor,
   createDirectory: (uri: vscode.Uri) =>
     vscode.workspace.fs.createDirectory(uri),
-  withProgress: withNotificationProgress,
+  withProgress: defaultScopedPullWithProgress,
 };
 
 export async function runSnPullCurrentCommand(
@@ -87,56 +84,26 @@ export async function runSnPullCurrentCommand(
   }
 
   try {
-    const settings = await configService.getSyncSettings(workspaceFolderUri);
-
-    if (settings.length === 0) {
-      void runtime.showInformationMessage(SN_SYNC_MESSAGES.PULL_NO_SETTINGS);
-      return;
-    }
-
-    const preferences = await resolvePreferences(
-      configService,
+    const summary = await runScopedPullWithIndex({
+      context,
       workspaceFolderUri,
-    );
-
-    const rootDirUri = resolveWorkspaceChildUri(workspaceFolderUri, [
-      {
-        value: preferences.rootDir,
-        label: "rootDir",
-        allowHierarchy: true,
-      },
-    ]);
-
-    await ensureDirectoryExists(runtime, rootDirUri);
-
-    const summary = await runtime.withProgress(
-      SN_SYNC_MESSAGES.PULL_PROGRESS_TITLE,
-      async (progress) => {
-        const indexUpdates: Array<{
-          localPath: string;
-          table: string;
-          sysId: string;
-          fieldName: string;
-          baseHash: string;
-        }> = [];
-        const onFileWritten = createPullFileWrittenHandler(
-          progress,
-          indexUpdates,
-        );
-
-        const settingSummary = pullService.pullRecordBySysId
-          ? await pullService.pullRecordBySysId(
+      runtime,
+      configService,
+      indexService,
+      runPull: async ({ settings, rootDir, onFileWritten }) =>
+        pullService.pullRecordBySysId
+          ? pullService.pullRecordBySysId(
               context,
               workspaceFolderUri,
               settings,
               entry.table,
               entry.sysId,
               {
-                rootDir: preferences.rootDir,
+                rootDir,
                 onFileWritten,
               },
             )
-          : await pullService.pullConfiguredScripts(
+          : pullService.pullConfiguredScripts(
               context,
               workspaceFolderUri,
               settings
@@ -146,17 +113,15 @@ export async function runSnPullCurrentCommand(
                   query: `sys_id=${entry.sysId}`,
                 })),
               {
-                rootDir: preferences.rootDir,
+                rootDir,
                 onFileWritten,
               },
-            );
+            ),
+    });
 
-        await indexService.recordPullFiles(workspaceFolderUri, indexUpdates);
-        progress.report({ increment: 100 });
-
-        return settingSummary;
-      },
-    );
+    if (!summary) {
+      return;
+    }
 
     void runtime.showInformationMessage(
       `${SN_SYNC_MESSAGES.PULL_CURRENT_SUCCESS_PREFIX} ${summary.files} files from ${summary.records} records (${entry.table}/${entry.sysId}).`,
