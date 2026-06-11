@@ -13,7 +13,7 @@ import {
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
 
-export interface SnResetAuthServiceApi {
+interface SnResetAuthServiceApi {
   resetAuth(
     context: vscode.ExtensionContext,
     workspaceFolderUri: vscode.Uri,

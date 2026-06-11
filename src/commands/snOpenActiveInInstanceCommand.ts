@@ -23,7 +23,7 @@ export interface SnOpenActiveInInstanceRuntime extends SnBaseCommandRuntime {
   openExternal(target: vscode.Uri): Thenable<boolean>;
 }
 
-export interface SnOpenActiveInInstanceAuthApi {
+interface SnOpenActiveInInstanceAuthApi {
   resolveConnectionAuth(
     context: vscode.ExtensionContext,
     workspaceFolderUri: vscode.Uri,

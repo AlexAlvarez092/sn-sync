@@ -24,12 +24,12 @@ interface SnAuthMethodChoice extends vscode.QuickPickItem {
   authType: SnAuthType;
 }
 
-export interface SnOAuthStartResult {
+interface SnOAuthStartResult {
   authorizationUrl: string;
   codeVerifier: string;
 }
 
-export interface SnAuthConfigCommandServiceApi {
+interface SnAuthConfigCommandServiceApi {
   saveAuth(
     context: vscode.ExtensionContext,
     workspaceFolderUri: vscode.Uri,
