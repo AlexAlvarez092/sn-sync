@@ -113,7 +113,8 @@ suite("snPullCurrentCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-current-no-editor"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-current-no-editor"),
         getCurrentTextEditor: () => undefined,
         showErrorMessage: async () => undefined,
         showInformationMessage: async (message: string) => {
@@ -125,7 +126,9 @@ suite("snPullCurrentCommand", () => {
       },
     );
 
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.PULL_CURRENT_NO_EDITOR]);
+    assert.deepStrictEqual(shownInfos, [
+      SN_SYNC_MESSAGES.PULL_CURRENT_NO_EDITOR,
+    ]);
   });
 
   test("shows info when current file is not indexed", async () => {
@@ -144,7 +147,8 @@ suite("snPullCurrentCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-current-not-indexed"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-current-not-indexed"),
         getCurrentTextEditor: () =>
           ({
             document: {
@@ -168,7 +172,9 @@ suite("snPullCurrentCommand", () => {
       },
     );
 
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.PULL_CURRENT_NOT_INDEXED]);
+    assert.deepStrictEqual(shownInfos, [
+      SN_SYNC_MESSAGES.PULL_CURRENT_NOT_INDEXED,
+    ]);
   });
 
   test("shows info when no settings are configured", async () => {
@@ -185,7 +191,8 @@ suite("snPullCurrentCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-current-no-settings"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-current-no-settings"),
         getCurrentTextEditor: () =>
           ({
             document: {
@@ -221,7 +228,11 @@ suite("snPullCurrentCommand", () => {
 
   test("pulls current record and records index updates", async () => {
     const shownInfos: string[] = [];
-    const capturedCalls: Array<{ table: string; sysId: string; settings: number }> = [];
+    const capturedCalls: Array<{
+      table: string;
+      sysId: string;
+      settings: number;
+    }> = [];
     const recordedUpdates: Array<{
       localPath: string;
       table: string;
@@ -291,7 +302,8 @@ suite("snPullCurrentCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-current-success"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-current-success"),
         getCurrentTextEditor: () =>
           ({
             document: {
@@ -362,11 +374,7 @@ suite("snPullCurrentCommand", () => {
         ],
       } as unknown as never,
       {
-        pullConfiguredScripts: async (
-          _context,
-          _workspaceUri,
-          settings,
-        ) => {
+        pullConfiguredScripts: async (_context, _workspaceUri, settings) => {
           pulledQueries.push(settings[0].query);
           return {
             settings: 1,
@@ -376,7 +384,8 @@ suite("snPullCurrentCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-current-fallback"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-current-fallback"),
         getCurrentTextEditor: () =>
           ({
             document: {
@@ -417,77 +426,72 @@ suite("snPullCurrentCommand", () => {
     await withPatchedWorkspaceFolders(
       [{ uri: workspaceUri, name: "tmp", index: 0 }],
       async () => {
-        await withPatchedWorkspaceGetWorkspaceFolder(
-          workspaceUri,
-          async () => {
-            await withPatchedWindowState(
-              {
-                document: {
-                  uri: vscode.Uri.joinPath(
-                    workspaceUri,
-                    "src/widgets/widget/widget.html",
-                  ),
-                },
-              } as unknown as vscode.TextEditor,
-              async (message: string) => {
-                shownErrors.push(message);
-                return undefined;
+        await withPatchedWorkspaceGetWorkspaceFolder(workspaceUri, async () => {
+          await withPatchedWindowState(
+            {
+              document: {
+                uri: vscode.Uri.joinPath(
+                  workspaceUri,
+                  "src/widgets/widget/widget.html",
+                ),
               },
-              async (message: string) => {
-                shownInfos.push(message);
-                return undefined;
-              },
-              async (_items) => undefined,
-              async (_options, task) => task({ report: () => undefined }),
-              async () => {
-                await runSnPullCurrentCommand(
-                  {} as vscode.ExtensionContext,
-                  {
-                    getSyncSettings: async () => [
-                      {
-                        folder: "widgets",
-                        table: "sp_widget",
-                        query: "active=true",
-                        key: "id",
-                        fields: [
-                          { extension: "html", field_name: "template" },
-                        ],
-                      },
-                    ],
-                  } as unknown as never,
-                  {
-                    pullConfiguredScripts: async () => ({
-                      settings: 1,
-                      records: 1,
-                      files: 1,
-                    }),
-                    pullRecordBySysId: async () => ({
-                      settings: 1,
-                      records: 1,
-                      files: 1,
-                    }),
-                  },
-                  undefined,
-                  {
-                    findEntryByLocalPath: async () => ({
-                      localPath: "src/widgets/widget/widget.html",
+            } as unknown as vscode.TextEditor,
+            async (message: string) => {
+              shownErrors.push(message);
+              return undefined;
+            },
+            async (message: string) => {
+              shownInfos.push(message);
+              return undefined;
+            },
+            async (_items) => undefined,
+            async (_options, task) => task({ report: () => undefined }),
+            async () => {
+              await runSnPullCurrentCommand(
+                {} as vscode.ExtensionContext,
+                {
+                  getSyncSettings: async () => [
+                    {
+                      folder: "widgets",
                       table: "sp_widget",
-                      sysId: "0123456789abcdef0123456789abcdef",
-                      fieldName: "template",
-                      baseHash: "sha256:base",
-                      updatedAt: "now",
-                    }),
-                    toWorkspaceRelativePath: () =>
-                      "src/widgets/widget/widget.html",
-                    getModifiedCandidates: async () => [],
-                    recordPullFiles: async () => undefined,
-                    updateBaseHashes: async () => undefined,
-                  },
-                );
-              },
-            );
-          },
-        );
+                      query: "active=true",
+                      key: "id",
+                      fields: [{ extension: "html", field_name: "template" }],
+                    },
+                  ],
+                } as unknown as never,
+                {
+                  pullConfiguredScripts: async () => ({
+                    settings: 1,
+                    records: 1,
+                    files: 1,
+                  }),
+                  pullRecordBySysId: async () => ({
+                    settings: 1,
+                    records: 1,
+                    files: 1,
+                  }),
+                },
+                undefined,
+                {
+                  findEntryByLocalPath: async () => ({
+                    localPath: "src/widgets/widget/widget.html",
+                    table: "sp_widget",
+                    sysId: "0123456789abcdef0123456789abcdef",
+                    fieldName: "template",
+                    baseHash: "sha256:base",
+                    updatedAt: "now",
+                  }),
+                  toWorkspaceRelativePath: () =>
+                    "src/widgets/widget/widget.html",
+                  getModifiedCandidates: async () => [],
+                  recordPullFiles: async () => undefined,
+                  updateBaseHashes: async () => undefined,
+                },
+              );
+            },
+          );
+        });
       },
     );
 
@@ -522,7 +526,8 @@ suite("snPullCurrentCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-current-failure"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-current-failure"),
         getCurrentTextEditor: () =>
           ({
             document: {
@@ -747,9 +752,7 @@ async function withPatchedWorkspaceGetWorkspaceFolder(
   run: () => Promise<void>,
 ): Promise<void> {
   const workspaceObject = vscode.workspace as unknown as {
-    getWorkspaceFolder: (
-      uri: vscode.Uri,
-    ) => vscode.WorkspaceFolder | undefined;
+    getWorkspaceFolder: (uri: vscode.Uri) => vscode.WorkspaceFolder | undefined;
   };
   const originalGetWorkspaceFolder = workspaceObject.getWorkspaceFolder;
 

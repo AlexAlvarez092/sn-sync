@@ -413,7 +413,11 @@ suite("snPullBySysIdCommand", () => {
   });
 
   test("uses batched pullRecordBySysId when available", async () => {
-    const batchedCalls: Array<{ table: string; sysId: string; settings: number }> = [];
+    const batchedCalls: Array<{
+      table: string;
+      sysId: string;
+      settings: number;
+    }> = [];
 
     await runSnPullBySysIdCommand(
       {} as vscode.ExtensionContext,

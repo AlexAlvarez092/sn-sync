@@ -122,7 +122,9 @@ export class SnPullService implements SnPullServiceApi {
     sysId: string,
     options?: SnPullOptions,
   ): Promise<SnPullSummary> {
-    const matchedSettings = settings.filter((setting) => setting.table === table);
+    const matchedSettings = settings.filter(
+      (setting) => setting.table === table,
+    );
 
     if (matchedSettings.length === 0) {
       return {

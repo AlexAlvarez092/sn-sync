@@ -43,7 +43,8 @@ export interface SnPullCurrentRuntime
 const defaultRuntime: SnPullCurrentRuntime = {
   ...defaultBaseRuntime,
   getCurrentTextEditor: () => vscode.window.activeTextEditor,
-  createDirectory: (uri: vscode.Uri) => vscode.workspace.fs.createDirectory(uri),
+  createDirectory: (uri: vscode.Uri) =>
+    vscode.workspace.fs.createDirectory(uri),
   withProgress: withNotificationProgress,
 };
 
@@ -63,7 +64,9 @@ export async function runSnPullCurrentCommand(
 
   const currentEditor = runtime.getCurrentTextEditor();
   if (!currentEditor) {
-    void runtime.showInformationMessage(SN_SYNC_MESSAGES.PULL_CURRENT_NO_EDITOR);
+    void runtime.showInformationMessage(
+      SN_SYNC_MESSAGES.PULL_CURRENT_NO_EDITOR,
+    );
     return;
   }
 
@@ -71,10 +74,15 @@ export async function runSnPullCurrentCommand(
     workspaceFolderUri,
     currentEditor.document.uri,
   );
-  const entry = await indexService.findEntryByLocalPath(workspaceFolderUri, localPath);
+  const entry = await indexService.findEntryByLocalPath(
+    workspaceFolderUri,
+    localPath,
+  );
 
   if (!entry) {
-    void runtime.showInformationMessage(SN_SYNC_MESSAGES.PULL_CURRENT_NOT_INDEXED);
+    void runtime.showInformationMessage(
+      SN_SYNC_MESSAGES.PULL_CURRENT_NOT_INDEXED,
+    );
     return;
   }
 
@@ -86,7 +94,10 @@ export async function runSnPullCurrentCommand(
       return;
     }
 
-    const preferences = await resolvePreferences(configService, workspaceFolderUri);
+    const preferences = await resolvePreferences(
+      configService,
+      workspaceFolderUri,
+    );
 
     const rootDirUri = resolveWorkspaceChildUri(workspaceFolderUri, [
       {
@@ -108,7 +119,10 @@ export async function runSnPullCurrentCommand(
           fieldName: string;
           baseHash: string;
         }> = [];
-        const onFileWritten = createPullFileWrittenHandler(progress, indexUpdates);
+        const onFileWritten = createPullFileWrittenHandler(
+          progress,
+          indexUpdates,
+        );
 
         const settingSummary = pullService.pullRecordBySysId
           ? await pullService.pullRecordBySysId(
