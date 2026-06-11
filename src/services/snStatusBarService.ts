@@ -78,32 +78,39 @@ const STATUS_BAR_COMMANDS: SnStatusBarCommandDescriptor[] = [
     priority: 91,
   },
   {
+    id: SN_SYNC_COMMANDS.PUSH,
+    label: "sn: push",
+    text: "sn push",
+    requiresActiveEditor: false,
+    priority: 90,
+  },
+  {
     id: SN_SYNC_COMMANDS.PUSH_ACTIVE,
     label: "sn: push active",
     text: "sn push active",
     requiresActiveEditor: true,
-    priority: 90,
+    priority: 89,
   },
   {
     id: SN_SYNC_COMMANDS.PUSH_MODIFIED,
     label: "sn: push modified",
     text: "sn push modified",
     requiresActiveEditor: false,
-    priority: 89,
+    priority: 88,
   },
   {
     id: SN_SYNC_COMMANDS.PUSH_REPORT,
     label: "sn: push report",
     text: "sn push report",
     requiresActiveEditor: false,
-    priority: 88,
+    priority: 87,
   },
 ];
 
 const DEFAULT_VISIBLE_COMMANDS = [
   SN_SYNC_COMMANDS.PULL,
-  SN_SYNC_COMMANDS.PUSH_ACTIVE,
-  SN_SYNC_COMMANDS.PUSH_MODIFIED,
+  SN_SYNC_COMMANDS.PUSH,
+  SN_SYNC_COMMANDS.PUSH_REPORT,
 ];
 
 interface SnStatusBarConfig {

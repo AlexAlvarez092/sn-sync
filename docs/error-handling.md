@@ -68,6 +68,7 @@ Current standardized command failure codes:
 - `SN_OPEN_ACTIVE_IN_INSTANCE_FAILED` -> `sn-sync.open-active-in-instance`
 - `SN_PULL_FAILED` -> `sn-sync.pull`
 - `SN_PULL_BY_SYS_ID_FAILED` -> `sn-sync.pull-by-sys-id`
+- `SN_PUSH_FAILED` -> `sn-sync.push`
 - `SN_PUSH_ACTIVE_FAILED` -> `sn-sync.push-active`
 - `SN_PUSH_MODIFIED_FAILED` -> `sn-sync.push-modified`
 - `SN_PUSH_REPORT_FAILED` -> `sn-sync.push-report`

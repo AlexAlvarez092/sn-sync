@@ -87,6 +87,7 @@
               "sn-sync.pull",
               "sn-sync.pull-by-sys-id",
               "sn-sync.reset-index",
+              "sn-sync.push",
               "sn-sync.push-active",
               "sn-sync.push-modified",
               "sn-sync.push-report"
@@ -94,8 +95,8 @@
           },
           "default": [
             "sn-sync.pull",
-            "sn-sync.push-active",
-            "sn-sync.push-modified"
+            "sn-sync.push",
+            "sn-sync.push-report"
           ],
           "description": "Commands shown in status bar or minimal menu. Use a subset of supported command IDs."
         }
@@ -139,16 +140,12 @@
         "title": "sn: reset index"
       },
       {
-        "command": "sn-sync.push-active",
-        "title": "sn: push active"
+        "command": "sn-sync.push",
+        "title": "sn: push"
       },
       {
         "command": "sn-sync.push-report",
         "title": "sn: push report"
-      },
-      {
-        "command": "sn-sync.push-modified",
-        "title": "sn: push modified"
       }
     ],
     "keybindings": [
@@ -165,15 +162,9 @@
         "when": "workspaceFolderCount > 0"
       },
       {
-        "command": "sn-sync.push-active",
+        "command": "sn-sync.push",
         "key": "ctrl+alt+u",
         "mac": "cmd+alt+u",
-        "when": "editorTextFocus && workspaceFolderCount > 0"
-      },
-      {
-        "command": "sn-sync.push-modified",
-        "key": "ctrl+alt+shift+u",
-        "mac": "cmd+alt+shift+u",
         "when": "workspaceFolderCount > 0"
       },
       {
