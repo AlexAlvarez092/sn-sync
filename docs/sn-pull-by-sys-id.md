@@ -37,13 +37,18 @@ Execute a targeted pull for a single ServiceNow record (by sys_id), using a tabl
 6. Show table picker (showQuickPick).
 7. If canceled, show SN_SYNC_MESSAGES.PULL_BY_SYS_ID_CANCELLED.
 8. Prompt for sys_id with showInputBox and inline non-empty validation.
+   - Input must match 32 hex characters.
 9. If canceled, show SN_SYNC_MESSAGES.PULL_BY_SYS_ID_CANCELLED.
 10. Trim final input.
 11. If empty after trim, show SN_SYNC_MESSAGES.PULL_BY_SYS_ID_INVALID_SYS_ID.
 12. Resolve preferences (rootDir) through resolvePreferences.
 13. Ensure rootDir exists.
-14. Build filteredSetting by cloning selected setting and forcing query to sys_id=<value>.
-15. Run pullService.pullConfiguredScripts with [filteredSetting], rootDir, and onFileWritten callback.
+14. Execute targeted pull with one of two paths:
+
+- Preferred path: pullService.pullRecordBySysId(context, workspaceFolderUri, settings, selected.table, sysId, ...).
+- Fallback path: clone selected setting with query forced to sys_id=<value> and call pullService.pullConfiguredScripts(...).
+
+15. Use onFileWritten callback for progress and index metadata accumulation.
 16. onFileWritten (created by createPullFileWrittenHandler):
     - reports Writing N files progress
     - accumulates complete metadata entries into indexUpdates
@@ -54,9 +59,10 @@ Execute a targeted pull for a single ServiceNow record (by sys_id), using a tabl
 
 ## Differences vs sn: pull
 
-- Processes exactly one selected setting.
+- Processes one selected table and can write files for all matching settings in that table.
 - Does not pre-clear rootDir.
 - Performs partial index update (recordPullFiles), not full snapshot replacement.
+- Uses table-scoped batched pull logic when available (`pullRecordBySysId`).
 
 ## Side effects
 

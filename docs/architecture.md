@@ -33,6 +33,8 @@ Registered commands:
 - sn-sync.run-background-script
 - sn-sync.open-active-in-instance
 - sn-sync.pull
+- sn-sync.pull-current
+- sn-sync.pull-table
 - sn-sync.pull-by-sys-id
 - sn-sync.reset-index
 - sn-sync.push
@@ -54,6 +56,18 @@ Status bar behavior:
 - Input: sync settings + auth + workspace preferences
 - Process: fetch records -> write files -> collect index metadata
 - Output: full index snapshot replacement
+
+### Pull current flow
+
+- Input: active editor file + indexed record metadata
+- Process: resolve current file index entry -> targeted pull by table + sys_id -> incremental index update
+- Output: refreshed local files for the selected record and updated index metadata
+
+### Pull table flow
+
+- Input: selected table from configured settings
+- Process: table selection -> table-scoped pull with batched multi-field requests per query group -> incremental index update
+- Output: refreshed local files for one table and updated index metadata
 
 ### 2) Push active flow
 
@@ -213,6 +227,8 @@ flowchart TD
   CMD --> AUTHR[sn: reset auth]
   CMD --> OPEN[sn: open active in instance]
   CMD --> PULL[sn: pull]
+  CMD --> PULLCUR[sn: pull current]
+  CMD --> PULLTBL[sn: pull table]
   CMD --> PULLID[sn: pull by sys_id]
   CMD --> RESET[sn: reset index]
   CMD --> PUSHA[sn: push current]
@@ -231,6 +247,16 @@ flowchart TD
   PULL --> PULLS[SnPullService]
   PULL --> INDEX[SnSyncIndexService]
   PULL --> PREF[snPreferencesService]
+
+  PULLCUR --> CFG
+  PULLCUR --> PULLS
+  PULLCUR --> INDEX
+  PULLCUR --> PREF
+
+  PULLTBL --> CFG
+  PULLTBL --> PULLS
+  PULLTBL --> INDEX
+  PULLTBL --> PREF
 
   PULLID --> CFG
   PULLID --> PULLS

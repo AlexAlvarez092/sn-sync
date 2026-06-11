@@ -25,6 +25,8 @@ Documented commands:
 - sn: run background script -> sn-sync.run-background-script
 - sn: open active in instance -> sn-sync.open-active-in-instance
 - sn: pull -> sn-sync.pull
+- sn: pull current -> sn-sync.pull-current
+- sn: pull table -> sn-sync.pull-table
 - sn: pull by sys_id -> sn-sync.pull-by-sys-id
 - sn: reset index -> sn-sync.reset-index
 - sn: push -> sn-sync.push
@@ -34,6 +36,7 @@ Push sub-options exposed by sn: push:
 
 - all files -> delegates to sn-sync.push-modified
 - current file -> delegates to sn-sync.push-current
+- report -> delegates to sn-sync.push-report
 
 Files:
 
@@ -44,6 +47,8 @@ Files:
 - sn-run-background-script.md
 - sn-open-active-in-instance.md
 - sn-pull.md
+- sn-pull-current.md
+- sn-pull-table.md
 - sn-pull-by-sys-id.md
 - sn-reset-index.md
 - sn-push.md

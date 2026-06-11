@@ -86,6 +86,7 @@
               "sn-sync.open-active-in-instance",
               "sn-sync.pull",
               "sn-sync.pull-current",
+              "sn-sync.pull-table",
               "sn-sync.pull-by-sys-id",
               "sn-sync.reset-index",
               "sn-sync.push",
@@ -134,6 +135,10 @@
       {
         "command": "sn-sync.pull-current",
         "title": "sn: pull current"
+      },
+      {
+        "command": "sn-sync.pull-table",
+        "title": "sn: pull table"
       },
       {
         "command": "sn-sync.pull-by-sys-id",
