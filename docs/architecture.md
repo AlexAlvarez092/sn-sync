@@ -25,6 +25,8 @@ On activation, the extension registers all command handlers from src/extension.t
 It also registers a status bar service that exposes quick command entry points.
 On deactivation, the extension flushes pending temporary merge-file cleanup tasks.
 
+Activation now uses a centralized service composition root (`createExtensionServices`) to build and share core services (auth, pull, push, report, index, config, background script) before wiring command registrations.
+
 Registered commands:
 
 - sn-sync.sn-init
@@ -67,6 +69,8 @@ Status bar behavior:
 - Process: choose `all files`, `current file`, `table`, or `by sys_id` via quick pick -> dispatch to dedicated pull flows
 - Output: delegates without duplicating pull implementation logic
 
+The pull specialized commands (`pull current`, `pull table`, `pull by sys_id`) now share a common scoped helper for settings resolution, root directory preparation, progress wiring, and index update persistence.
+
 ### Pull current flow
 
 - Input: active editor file + indexed record metadata
@@ -96,6 +100,8 @@ Status bar behavior:
 - Input: workspace context + user scope selection
 - Process: choose `all files` or `current file` via quick pick -> dispatch to `sn-sync.push-modified` or `sn-sync.push-current`
 - Output: delegates to existing push workflows without duplicating push logic
+
+Orchestrator commands (`sn: pull`, `sn: push`, `sn: auth`, `sn: reset`) now share a common scope-dispatch helper for quick-pick selection, cancellation handling, and prefixed error wrapping.
 
 ### 4) Run background script flow
 
@@ -149,6 +155,7 @@ Current shared runtime helpers:
 - withNotificationProgress: consistent notification progress UI across commands.
 - runWithCommandStatus: immediate status-bar command execution feedback with per-command message and debounce.
 - showPrefixedCommandError: standardized prefixed command error output.
+- runScopeDispatcherCommand: common quick-pick scope dispatch for orchestrator commands.
 
 ## Error strategy
 
@@ -217,6 +224,9 @@ Configuration security strategy:
 ## Key shared building blocks
 
 - snCommandRuntime: workspace + message runtime abstraction
+- snScopeDispatcherService: shared orchestrator quick-pick dispatch and error handling
+- snScopedPullCommandService: shared scoped pull setup (settings/preferences/progress/index updates)
+- snServiceFactory: extension-level composition root for service construction and reuse
 - snFolderService: ensureDirectoryExists and clearDirectory
 - hashService: normalized text hashing
 - snPreferencesService: fallback-safe preference resolution

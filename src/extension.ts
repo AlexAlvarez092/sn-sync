@@ -19,26 +19,52 @@ import { registerSnPushReportCommand } from "@commands/snPushReportCommand.js";
 import { registerSnRunBackgroundScriptCommand } from "@commands/snRunBackgroundScriptCommand.js";
 import { registerSnStatusBar } from "@services/snStatusBarService.js";
 import { flushScheduledTempMergeCleanup } from "@shared/services/snPushConflictResolutionService.js";
+import { createExtensionServices } from "@shared/services/snServiceFactory.js";
 
 export function activate(context: vscode.ExtensionContext) {
-  registerSnInitCommand(context);
+  const services = createExtensionServices(context);
+
+  registerSnInitCommand(context, services.configService);
   registerSnAuthCommand(context);
-  registerSnAuthConfigCommand(context);
-  registerSnAuthValidateCommand(context);
+  registerSnAuthConfigCommand(context, services.authService);
+  registerSnAuthValidateCommand(context, services.authService);
   registerSnResetCommand(context);
-  registerSnResetAuthCommand(context);
-  registerSnRunBackgroundScriptCommand(context);
-  registerSnOpenActiveInInstanceCommand(context);
+  registerSnResetAuthCommand(context, services.authService);
+  registerSnRunBackgroundScriptCommand(
+    context,
+    services.backgroundScriptService,
+  );
+  registerSnOpenActiveInInstanceCommand(context, services.authService);
   registerSnPullCommand(context);
-  registerSnPullAllFilesCommand(context);
-  registerSnPullCurrentCommand(context);
-  registerSnPullTableCommand(context);
-  registerSnPullBySysIdCommand(context);
-  registerSnResetIndexCommand(context);
+  registerSnPullAllFilesCommand(
+    context,
+    services.configService,
+    services.pullService,
+  );
+  registerSnPullCurrentCommand(
+    context,
+    services.configService,
+    services.pullService,
+  );
+  registerSnPullTableCommand(
+    context,
+    services.configService,
+    services.pullService,
+  );
+  registerSnPullBySysIdCommand(
+    context,
+    services.configService,
+    services.pullService,
+  );
+  registerSnResetIndexCommand(context, services.indexService);
   registerSnPushCommand(context);
-  registerSnPushCurrentCommand(context);
-  registerSnPushReportCommand(context);
-  registerSnPushModifiedCommand(context);
+  registerSnPushCurrentCommand(context, services.pushService);
+  registerSnPushReportCommand(
+    context,
+    services.indexService,
+    services.pushReportService,
+  );
+  registerSnPushModifiedCommand(context, services.pushService);
   registerSnStatusBar(context);
 }
 
