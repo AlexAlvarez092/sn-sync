@@ -1,7 +1,7 @@
-# Command: sn: push active
+# Command: sn: push current
 
-- Command ID: sn-sync.push-active
-- Entry point: src/commands/snPushActiveCommand.ts
+- Command ID: sn-sync.push-current
+- Entry point: src/commands/snPushCurrentCommand.ts
 - Registration: src/extension.ts
 
 ## Purpose
@@ -40,12 +40,12 @@ If guard 3 detects a mismatch, the command opens interactive conflict resolution
 1. Resolve workspaceFolderUri.
 2. If missing, show SN_SYNC_MESSAGES.NO_WORKSPACE.
 3. Resolve active editor.
-4. If missing, show SN_SYNC_MESSAGES.PUSH_ACTIVE_NO_EDITOR.
+4. If missing, show SN_SYNC_MESSAGES.PUSH_CURRENT_NO_EDITOR.
 5. Resolve workspace-relative localPath using indexService.toWorkspaceRelativePath.
 6. Resolve indexed entry using findEntryByLocalPath.
-7. If entry is missing, show SN_SYNC_MESSAGES.PUSH_ACTIVE_NOT_INDEXED.
+7. If entry is missing, show SN_SYNC_MESSAGES.PUSH_CURRENT_NOT_INDEXED.
 8. Read active editor text and compute localHash.
-9. If localHash equals entry.baseHash, show SN_SYNC_MESSAGES.PUSH_ACTIVE_NO_LOCAL_CHANGES.
+9. If localHash equals entry.baseHash, show SN_SYNC_MESSAGES.PUSH_CURRENT_NO_LOCAL_CHANGES.
 10. Fetch remote field content and compute remoteHash.
 11. If remoteHash differs from entry.baseHash, resolve conflict interactively:
     - Overwrite remote: push current local content.
@@ -55,7 +55,7 @@ If guard 3 detects a mismatch, the command opens interactive conflict resolution
 12. If no conflict, push local content via pushFieldContent.
 13. Update baseline hash from returned stored content and persist with indexService.updateBaseHashes.
 14. Show success with uploaded count and conflict summary.
-15. On any thrown error, show SN_SYNC_MESSAGES.PUSH_ACTIVE_FAILED_PREFIX + details.
+15. On any thrown error, show SN_SYNC_MESSAGES.PUSH_CURRENT_FAILED_PREFIX + details.
 
 ## Side effects
 
@@ -98,7 +98,7 @@ Final message includes a conflict summary with counters.
 ```mermaid
 sequenceDiagram
 	participant U as User
-	participant C as sn: push active command
+	participant C as sn: push current command
 	participant R as Runtime
 	participant I as SnSyncIndexService
 	participant P as SnPushService
@@ -111,15 +111,15 @@ sequenceDiagram
 	else Workspace exists
 		C->>R: getActiveTextEditor()
 		alt No active editor
-			C->>R: showInformationMessage(PUSH_ACTIVE_NO_EDITOR)
+			C->>R: showInformationMessage(PUSH_CURRENT_NO_EDITOR)
 		else Editor exists
 			C->>I: findEntryByLocalPath(localPath)
 			alt Not indexed
-				C->>R: showInformationMessage(PUSH_ACTIVE_NOT_INDEXED)
+				C->>R: showInformationMessage(PUSH_CURRENT_NOT_INDEXED)
 			else Indexed
 				C->>C: hash local content
 				alt No local changes
-					C->>R: showInformationMessage(PUSH_ACTIVE_NO_LOCAL_CHANGES)
+					C->>R: showInformationMessage(PUSH_CURRENT_NO_LOCAL_CHANGES)
 				else Local changes exist
 					C->>P: getRemoteFieldContent(entry)
 					P->>N: GET record field
@@ -133,16 +133,16 @@ sequenceDiagram
 							C->>P: pushFieldContent(entry, mergedContent)
 						else Discard local
 							C->>I: updateBaseHashes(hash(remoteContent))
-							C->>R: showInformationMessage(PUSH_ACTIVE_SUCCESS + summary)
+							C->>R: showInformationMessage(PUSH_CURRENT_SUCCESS + summary)
 						else Skip
-							C->>R: showInformationMessage(PUSH_ACTIVE_SUCCESS + summary)
+							C->>R: showInformationMessage(PUSH_CURRENT_SUCCESS + summary)
 						end
 					else No conflict
 						C->>P: pushFieldContent(entry, localContent)
 						P->>N: PATCH record field
 						N-->>P: stored field value
 						C->>I: updateBaseHashes(hash(storedValue))
-						C->>R: showInformationMessage(PUSH_ACTIVE_SUCCESS + summary)
+						C->>R: showInformationMessage(PUSH_CURRENT_SUCCESS + summary)
 					end
 				end
 			end

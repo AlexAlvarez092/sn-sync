@@ -27,9 +27,13 @@ Documented commands:
 - sn: pull -> sn-sync.pull
 - sn: pull by sys_id -> sn-sync.pull-by-sys-id
 - sn: reset index -> sn-sync.reset-index
-- sn: push active -> sn-sync.push-active
-- sn: push modified -> sn-sync.push-modified
+- sn: push -> sn-sync.push
 - sn: push report -> sn-sync.push-report
+
+Push sub-options exposed by sn: push:
+
+- all files -> delegates to sn-sync.push-modified
+- current file -> delegates to sn-sync.push-current
 
 Files:
 
@@ -42,7 +46,8 @@ Files:
 - sn-pull.md
 - sn-pull-by-sys-id.md
 - sn-reset-index.md
-- sn-push-active.md
+- sn-push.md
+- sn-push-current.md
 - sn-push-modified.md
 - sn-push-report.md
 - error-handling.md

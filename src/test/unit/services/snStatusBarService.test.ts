@@ -193,7 +193,7 @@ suite("snStatusBarService", () => {
     registerSnStatusBar(context, runtime);
 
     assert.strictEqual(context.subscriptions.length, 1);
-    assert.strictEqual(runtime.items.length, 13);
+    assert.strictEqual(runtime.items.length, 14);
 
     context.subscriptions[0].dispose();
 
@@ -214,7 +214,11 @@ suite("snStatusBarService", () => {
         false,
       );
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_ACTIVE).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH).visible,
+        false,
+      );
+      assert.strictEqual(
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_CURRENT).visible,
         false,
       );
       assert.strictEqual(
@@ -245,11 +249,15 @@ suite("snStatusBarService", () => {
         true,
       );
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_MODIFIED).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH).visible,
         true,
       );
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_ACTIVE).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_CURRENT).visible,
+        false,
+      );
+      assert.strictEqual(
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_MODIFIED).visible,
         false,
       );
       assert.strictEqual(
@@ -306,12 +314,35 @@ suite("snStatusBarService", () => {
         true,
       );
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_ACTIVE).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_CURRENT).visible,
         false,
       );
       assert.strictEqual(
         getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_MODIFIED).visible,
         false,
+      );
+      assert.strictEqual(
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH).visible,
+        false,
+      );
+    } finally {
+      service.dispose();
+    }
+  });
+
+  test("shows active-editor command when it is configured and editor is open", () => {
+    const runtime = new FakeStatusBarRuntime();
+    runtime.config.mode = "expanded";
+    runtime.workspaceOpen = true;
+    runtime.activeEditor = true;
+    runtime.config.visibleCommands = [SN_SYNC_COMMANDS.PUSH_CURRENT];
+
+    const service = new SnStatusBarService(runtime);
+
+    try {
+      assert.strictEqual(
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_CURRENT).visible,
+        true,
       );
     } finally {
       service.dispose();
@@ -369,12 +400,16 @@ suite("snStatusBarService", () => {
         true,
       );
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_ACTIVE).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH).visible,
         true,
       );
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_MODIFIED).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_REPORT).visible,
         true,
+      );
+      assert.strictEqual(
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_CURRENT).visible,
+        false,
       );
     } finally {
       service.dispose();
@@ -387,7 +422,7 @@ suite("snStatusBarService", () => {
     runtime.workspaceOpen = true;
     runtime.activeEditor = true;
     runtime.setQuickPickResult({
-      label: "sn: push active",
+      label: "sn: push",
     });
 
     const service = new SnStatusBarService(runtime);
@@ -400,9 +435,7 @@ suite("snStatusBarService", () => {
 
       await menuCommand!();
 
-      assert.deepStrictEqual(runtime.executedCommands, [
-        SN_SYNC_COMMANDS.PUSH_ACTIVE,
-      ]);
+      assert.deepStrictEqual(runtime.executedCommands, [SN_SYNC_COMMANDS.PUSH]);
     } finally {
       service.dispose();
     }
@@ -621,7 +654,7 @@ suite("snStatusBarService", () => {
       registerSnStatusBar(context);
 
       assert.strictEqual(context.subscriptions.length, 1);
-      assert.strictEqual(createdItems.length, 13);
+      assert.strictEqual(createdItems.length, 14);
 
       const menuCommand = registeredCommands.get(STATUS_BAR_MENU_COMMAND_ID);
       assert.ok(menuCommand);
@@ -745,7 +778,7 @@ suite("snStatusBarService", () => {
 
       registerSnStatusBar(context);
 
-      assert.strictEqual(createdItems.length, 13);
+      assert.strictEqual(createdItems.length, 14);
       assert.ok(createdItems.every((item) => item.visible === false));
 
       context.subscriptions[0].dispose();

@@ -35,7 +35,8 @@ Registered commands:
 - sn-sync.pull
 - sn-sync.pull-by-sys-id
 - sn-sync.reset-index
-- sn-sync.push-active
+- sn-sync.push
+- sn-sync.push-current
 - sn-sync.push-report
 - sn-sync.push-modified
 
@@ -65,6 +66,12 @@ Status bar behavior:
 - Input: all modified index candidates
 - Process: full conflict pre-check -> interactive per-file resolution -> group selected files by record identity -> one PATCH per record group
 - Output: batch remote writes + batch baseline updates for uploaded files + optional local discard updates
+
+### Unified push entry flow
+
+- Input: workspace context + user scope selection
+- Process: choose `all files` or `current file` via quick pick -> dispatch to `sn-sync.push-modified` or `sn-sync.push-current`
+- Output: delegates to existing push workflows without duplicating push logic
 
 ### 4) Run background script flow
 
@@ -208,7 +215,7 @@ flowchart TD
   CMD --> PULL[sn: pull]
   CMD --> PULLID[sn: pull by sys_id]
   CMD --> RESET[sn: reset index]
-  CMD --> PUSHA[sn: push active]
+  CMD --> PUSHA[sn: push current]
   CMD --> PUSHM[sn: push modified]
   CMD --> PUSHR[sn: push report]
   EXT --> SB[SnStatusBarService]
