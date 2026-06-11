@@ -62,4 +62,4 @@ The spinner is debounced to avoid flicker on very fast executions.
 
 - Symptom: Command fails with auth/config error.
   - Cause: Missing or invalid saved credentials/instance configuration.
-  - Resolution: Run sn: auth and sn: auth validate.
+  - Resolution: Run `sn: auth`, choose `validate auth`, and if needed rerun `configure auth`.

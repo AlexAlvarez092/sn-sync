@@ -146,12 +146,12 @@ sequenceDiagram
   - Resolution: Confirm local edits are saved and indexed.
 
 - Symptom: Report fails with auth/HTTP error
-   - Cause: Missing/invalid credentials or command-level runtime failure.
-   - Resolution: Run sn: auth validate, verify network access, and retry.
+  - Cause: Missing/invalid credentials or command-level runtime failure.
+  - Resolution: Run `sn: auth`, choose `validate auth`, verify network access, and retry.
 
 - Symptom: Report opens with warnings in the Note column
-   - Cause: Partial metadata resolution failed for one or more records/scopes (for example permissions, table availability, invalid identifiers, or transient HTTP failures).
-   - Resolution: Review note text per row, fix the specific permission/config/data issue, then rerun report.
+  - Cause: Partial metadata resolution failed for one or more records/scopes (for example permissions, table availability, invalid identifiers, or transient HTTP failures).
+  - Resolution: Review note text per row, fix the specific permission/config/data issue, then rerun report.
 
 - Symptom: Report opens but update set fields are empty
   - Cause: Scope/update set resolution returned no match.

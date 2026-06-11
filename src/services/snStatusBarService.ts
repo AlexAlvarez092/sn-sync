@@ -29,18 +29,25 @@ const STATUS_BAR_COMMANDS: SnStatusBarCommandDescriptor[] = [
     priority: 98,
   },
   {
+    id: SN_SYNC_COMMANDS.AUTH_CONFIG,
+    label: "sn: auth config",
+    text: "sn auth config",
+    requiresActiveEditor: false,
+    priority: 97,
+  },
+  {
     id: SN_SYNC_COMMANDS.AUTH_VALIDATE,
     label: "sn: auth validate",
     text: "sn validate",
     requiresActiveEditor: false,
-    priority: 97,
+    priority: 96,
   },
   {
     id: SN_SYNC_COMMANDS.RESET_AUTH,
     label: "sn: reset auth",
     text: "sn reset auth",
     requiresActiveEditor: false,
-    priority: 96,
+    priority: 95,
   },
   {
     id: SN_SYNC_COMMANDS.RUN_BACKGROUND_SCRIPT,

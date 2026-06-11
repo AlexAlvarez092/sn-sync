@@ -48,7 +48,7 @@ SnAuthService.resetAuth:
 
 ## Functional impact after reset
 
-- Auth-dependent commands (pull/push/report/auth validate) will fail with auth-not-configured until `sn: auth` is run again.
+- Auth-dependent commands (pull/push/report/auth validation) will fail with auth-not-configured until `sn: auth` is run again.
 - `instance` selector in `.snsyncrc` is preserved; only credentials are removed.
 
 ## Error handling

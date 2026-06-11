@@ -63,6 +63,7 @@ Redacted values are replaced with `[REDACTED]`.
 Current standardized command failure codes:
 
 - `SN_AUTH_FAILED` -> `sn-sync.auth`
+- `SN_AUTH_CONFIG_FAILED` -> `sn-sync.auth-config`
 - `SN_AUTH_VALIDATE_FAILED` -> `sn-sync.auth-validate`
 - `SN_INIT_FAILED` -> `sn-sync.sn-init`
 - `SN_OPEN_ACTIVE_IN_INSTANCE_FAILED` -> `sn-sync.open-active-in-instance`
@@ -81,7 +82,7 @@ Current standardized command failure codes:
 2. Open output channel `sn-sync diagnostics` and locate matching entries by `code` and timestamp.
 3. Confirm whether category is auth/conflict/network/validation/unknown.
 4. Apply category-first remediation:
-   - auth: re-run `sn: auth` / `sn: auth validate`
+   - auth: re-run `sn: auth`, choose `validate auth`, and if needed rerun `configure auth`
    - conflict: run pull, merge, and retry
    - network: retry and verify instance/network availability
    - validation: verify command inputs, workspace preconditions, and indexed/configured ServiceNow identifiers (for example blank `sys_id`, missing workspace, or invalid/empty configuration values)

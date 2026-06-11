@@ -3,10 +3,11 @@ import * as vscode from "vscode";
 import {
   registerSnAuthCommand,
   runSnAuthCommand,
-  type SnAuthRuntime,
 } from "@commands/snAuthCommand.js";
-import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
-import { createTempWorkspaceUri } from "@test/helpers/testRuntime.js";
+import {
+  SN_SYNC_COMMANDS,
+  SN_SYNC_MESSAGES,
+} from "@shared/constants/snSyncConstants.js";
 
 suite("snAuthCommand", () => {
   test("registers command and stores disposable in context subscriptions", () => {
@@ -24,492 +25,96 @@ suite("snAuthCommand", () => {
 
   test("shows error when no workspace folder is open", async () => {
     const shownErrors: string[] = [];
-    const runtime: SnAuthRuntime = {
+
+    await runSnAuthCommand({
       getWorkspaceFolderUri: () => undefined,
-      askInput: async () => undefined,
-      askChoice: async () => undefined,
-      openExternal: async () => true,
       showErrorMessage: async (message: string) => {
         shownErrors.push(message);
         return undefined;
       },
       showInformationMessage: async () => undefined,
-    };
-
-    await runSnAuthCommand(
-      {} as vscode.ExtensionContext,
-      {
-        saveAuth: async (): Promise<void> => {
-          throw new Error("must not be called");
-        },
-        beginOAuthSignIn: async () => {
-          throw new Error("must not be called");
-        },
+      showQuickPick: async () => {
+        throw new Error("must-not-be-called");
       },
-      runtime,
-    );
+      executeCommand: async () => {
+        throw new Error("must-not-be-called");
+      },
+    });
 
     assert.deepStrictEqual(shownErrors, [SN_SYNC_MESSAGES.NO_WORKSPACE]);
   });
 
-  test("shows cancelled info when method selection is dismissed", async () => {
+  test("shows info when quick pick is cancelled", async () => {
     const shownInfos: string[] = [];
+    let executed = false;
 
-    await runSnAuthCommand(
-      {} as vscode.ExtensionContext,
-      {
-        saveAuth: async (): Promise<void> => {
-          throw new Error("must not be called");
-        },
-        beginOAuthSignIn: async () => {
-          throw new Error("must not be called");
-        },
+    await runSnAuthCommand({
+      getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+      showErrorMessage: async () => undefined,
+      showInformationMessage: async (message: string) => {
+        shownInfos.push(message);
+        return undefined;
       },
-      {
-        getWorkspaceFolderUri: () =>
-          createTempWorkspaceUri("auth-cancel-method"),
-        askChoice: async () => undefined,
-        askInput: async () => undefined,
-        openExternal: async () => true,
-        showErrorMessage: async () => undefined,
-        showInformationMessage: async (message: string) => {
-          shownInfos.push(message);
-          return undefined;
-        },
+      showQuickPick: async () => undefined,
+      executeCommand: async () => {
+        executed = true;
       },
-    );
-
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.AUTH_CANCELLED]);
-  });
-
-  test("collects basic auth inputs and saves them", async () => {
-    const shownInfos: string[] = [];
-    const workspaceUri = createTempWorkspaceUri("auth-basic-success");
-    const answers = [
-      "dev1",
-      "https://dev1.service-now.com",
-      "admin",
-      "super-secret",
-    ];
-    let askInputCall = 0;
-    let receivedAuthInput: unknown;
-
-    await runSnAuthCommand(
-      {} as vscode.ExtensionContext,
-      {
-        saveAuth: async (
-          _context: vscode.ExtensionContext,
-          _workspaceFolderUri: vscode.Uri,
-          authInput: unknown,
-        ): Promise<void> => {
-          receivedAuthInput = authInput;
-        },
-        beginOAuthSignIn: async () => {
-          throw new Error("must not be called");
-        },
-      },
-      {
-        getWorkspaceFolderUri: () => workspaceUri,
-        askChoice: async () => ({ label: "basic", authType: "basic" }),
-        askInput: async () => {
-          const value = answers[askInputCall];
-          askInputCall += 1;
-          return value;
-        },
-        openExternal: async () => true,
-        showErrorMessage: async () => undefined,
-        showInformationMessage: async (message: string) => {
-          shownInfos.push(message);
-          return undefined;
-        },
-      },
-    );
-
-    assert.deepStrictEqual(receivedAuthInput, {
-      authType: "basic",
-      instanceName: "dev1",
-      instanceUrl: "https://dev1.service-now.com",
-      username: "admin",
-      password: "super-secret",
     });
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.AUTH_SUCCESS]);
-  });
 
-  test("shows cancelled info when basic instance name prompt is dismissed", async () => {
-    const shownInfos: string[] = [];
-
-    await runSnAuthCommand(
-      {} as vscode.ExtensionContext,
-      {
-        saveAuth: async (): Promise<void> => {
-          throw new Error("must not be called");
-        },
-        beginOAuthSignIn: async () => {
-          throw new Error("must not be called");
-        },
-      },
-      {
-        getWorkspaceFolderUri: () =>
-          createTempWorkspaceUri("auth-cancel-instance"),
-        askChoice: async () => ({ label: "basic", authType: "basic" }),
-        askInput: async () => undefined,
-        openExternal: async () => true,
-        showErrorMessage: async () => undefined,
-        showInformationMessage: async (message: string) => {
-          shownInfos.push(message);
-          return undefined;
-        },
-      },
-    );
-
+    assert.strictEqual(executed, false);
     assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.AUTH_CANCELLED]);
   });
 
-  test("shows cancelled info when basic username prompt is dismissed", async () => {
-    const shownInfos: string[] = [];
-    const answers = ["dev1", "https://dev1.service-now.com", undefined];
-    let askInputCall = 0;
+  test("dispatches to auth config", async () => {
+    const executedCommands: string[] = [];
 
-    await runSnAuthCommand(
-      {} as vscode.ExtensionContext,
-      {
-        saveAuth: async (): Promise<void> => {
-          throw new Error("must not be called");
-        },
-        beginOAuthSignIn: async () => {
-          throw new Error("must not be called");
-        },
+    await runSnAuthCommand({
+      getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+      showErrorMessage: async () => undefined,
+      showInformationMessage: async () => undefined,
+      showQuickPick: <T extends vscode.QuickPickItem>(items: readonly T[]) =>
+        Promise.resolve(items[0]),
+      executeCommand: async (command: string) => {
+        executedCommands.push(command);
       },
-      {
-        getWorkspaceFolderUri: () =>
-          createTempWorkspaceUri("auth-cancel-username"),
-        askChoice: async () => ({ label: "basic", authType: "basic" }),
-        askInput: async () => {
-          const value = answers[askInputCall];
-          askInputCall += 1;
-          return value;
-        },
-        openExternal: async () => true,
-        showErrorMessage: async () => undefined,
-        showInformationMessage: async (message: string) => {
-          shownInfos.push(message);
-          return undefined;
-        },
-      },
-    );
-
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.AUTH_CANCELLED]);
-  });
-
-  test("shows cancelled info when basic instance URL prompt is dismissed", async () => {
-    const shownInfos: string[] = [];
-    const answers = ["dev1", undefined];
-    let askInputCall = 0;
-
-    await runSnAuthCommand(
-      {} as vscode.ExtensionContext,
-      {
-        saveAuth: async (): Promise<void> => {
-          throw new Error("must not be called");
-        },
-        beginOAuthSignIn: async () => {
-          throw new Error("must not be called");
-        },
-      },
-      {
-        getWorkspaceFolderUri: () =>
-          createTempWorkspaceUri("auth-cancel-instance-url"),
-        askChoice: async () => ({ label: "basic", authType: "basic" }),
-        askInput: async () => {
-          const value = answers[askInputCall];
-          askInputCall += 1;
-          return value;
-        },
-        openExternal: async () => true,
-        showErrorMessage: async () => undefined,
-        showInformationMessage: async (message: string) => {
-          shownInfos.push(message);
-          return undefined;
-        },
-      },
-    );
-
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.AUTH_CANCELLED]);
-  });
-
-  test("shows cancelled info when basic password prompt is dismissed", async () => {
-    const shownInfos: string[] = [];
-    const answers = [
-      "dev1",
-      "https://dev1.service-now.com",
-      "admin",
-      undefined,
-    ];
-    let askInputCall = 0;
-
-    await runSnAuthCommand(
-      {} as vscode.ExtensionContext,
-      {
-        saveAuth: async (): Promise<void> => {
-          throw new Error("must not be called");
-        },
-        beginOAuthSignIn: async () => {
-          throw new Error("must not be called");
-        },
-      },
-      {
-        getWorkspaceFolderUri: () =>
-          createTempWorkspaceUri("auth-cancel-password"),
-        askChoice: async () => ({ label: "basic", authType: "basic" }),
-        askInput: async () => {
-          const value = answers[askInputCall];
-          askInputCall += 1;
-          return value;
-        },
-        openExternal: async () => true,
-        showErrorMessage: async () => undefined,
-        showInformationMessage: async (message: string) => {
-          shownInfos.push(message);
-          return undefined;
-        },
-      },
-    );
-
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.AUTH_CANCELLED]);
-  });
-
-  test("collects oauth inputs, opens browser, and saves them", async () => {
-    const shownInfos: string[] = [];
-    const openedUris: string[] = [];
-    const workspaceUri = createTempWorkspaceUri("auth-oauth-success");
-    const answers = [
-      "dev1",
-      "https://dev1.service-now.com",
-      "sdk-client-id",
-      "oauth-code-123",
-    ];
-    let askInputCall = 0;
-    let receivedAuthInput: unknown;
-    let oauthBeginArgs:
-      | {
-          workspaceFolderUri: vscode.Uri;
-          instanceUrl: string;
-          clientId: string;
-        }
-      | undefined;
-
-    await runSnAuthCommand(
-      {} as vscode.ExtensionContext,
-      {
-        saveAuth: async (
-          _context: vscode.ExtensionContext,
-          _workspaceFolderUri: vscode.Uri,
-          authInput: unknown,
-        ): Promise<void> => {
-          receivedAuthInput = authInput;
-        },
-        beginOAuthSignIn: async (
-          currentWorkspaceFolderUri: vscode.Uri,
-          instanceUrl: string,
-          clientId: string,
-        ) => {
-          oauthBeginArgs = {
-            workspaceFolderUri: currentWorkspaceFolderUri,
-            instanceUrl,
-            clientId,
-          };
-          return {
-            authorizationUrl: "https://dev1.service-now.com/oauth_auth.do?x=1",
-            codeVerifier: "verifier-1",
-          };
-        },
-      },
-      {
-        getWorkspaceFolderUri: () => workspaceUri,
-        askChoice: async () => ({ label: "oauth", authType: "oauth" }),
-        askInput: async () => {
-          const value = answers[askInputCall];
-          askInputCall += 1;
-          return value;
-        },
-        openExternal: async (uri: vscode.Uri) => {
-          openedUris.push(uri.toString());
-          return true;
-        },
-        showErrorMessage: async () => undefined,
-        showInformationMessage: async (message: string) => {
-          shownInfos.push(message);
-          return undefined;
-        },
-      },
-    );
-
-    assert.strictEqual(
-      oauthBeginArgs?.workspaceFolderUri.toString(),
-      workspaceUri.toString(),
-    );
-    assert.strictEqual(
-      oauthBeginArgs?.instanceUrl,
-      "https://dev1.service-now.com",
-    );
-    assert.strictEqual(oauthBeginArgs?.clientId, "sdk-client-id");
-    assert.deepStrictEqual(openedUris, [
-      "https://dev1.service-now.com/oauth_auth.do?x%3D1",
-    ]);
-    assert.deepStrictEqual(receivedAuthInput, {
-      authType: "oauth",
-      instanceName: "dev1",
-      instanceUrl: "https://dev1.service-now.com",
-      clientId: "sdk-client-id",
-      authorizationCode: "oauth-code-123",
-      codeVerifier: "verifier-1",
     });
-    assert.deepStrictEqual(shownInfos, [
-      SN_SYNC_MESSAGES.AUTH_OAUTH_OPEN_BROWSER_INFO,
-      SN_SYNC_MESSAGES.AUTH_SUCCESS,
-    ]);
+
+    assert.deepStrictEqual(executedCommands, [SN_SYNC_COMMANDS.AUTH_CONFIG]);
   });
 
-  test("shows cancelled info when oauth code prompt is dismissed", async () => {
-    const shownInfos: string[] = [];
-    const answers = [
-      "dev1",
-      "https://dev1.service-now.com",
-      "sdk-client-id",
-      undefined,
-    ];
-    let askInputCall = 0;
-    let saveCalled = false;
+  test("dispatches to auth validate", async () => {
+    const executedCommands: string[] = [];
 
-    await runSnAuthCommand(
-      {} as vscode.ExtensionContext,
-      {
-        saveAuth: async (): Promise<void> => {
-          saveCalled = true;
-        },
-        beginOAuthSignIn: async () => ({
-          authorizationUrl: "https://dev1.service-now.com/oauth_auth.do?x=1",
-          codeVerifier: "verifier-1",
-        }),
+    await runSnAuthCommand({
+      getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+      showErrorMessage: async () => undefined,
+      showInformationMessage: async () => undefined,
+      showQuickPick: <T extends vscode.QuickPickItem>(items: readonly T[]) =>
+        Promise.resolve(items[1]),
+      executeCommand: async (command: string) => {
+        executedCommands.push(command);
       },
-      {
-        getWorkspaceFolderUri: () =>
-          createTempWorkspaceUri("auth-oauth-cancel"),
-        askChoice: async () => ({ label: "oauth", authType: "oauth" }),
-        askInput: async () => {
-          const value = answers[askInputCall];
-          askInputCall += 1;
-          return value;
-        },
-        openExternal: async () => true,
-        showErrorMessage: async () => undefined,
-        showInformationMessage: async (message: string) => {
-          shownInfos.push(message);
-          return undefined;
-        },
-      },
-    );
+    });
 
-    assert.strictEqual(saveCalled, false);
-    assert.deepStrictEqual(shownInfos, [
-      SN_SYNC_MESSAGES.AUTH_OAUTH_OPEN_BROWSER_INFO,
-      SN_SYNC_MESSAGES.AUTH_CANCELLED,
-    ]);
+    assert.deepStrictEqual(executedCommands, [SN_SYNC_COMMANDS.AUTH_VALIDATE]);
   });
 
-  test("shows cancelled info when oauth client id prompt is dismissed", async () => {
-    const shownInfos: string[] = [];
-    const answers = ["dev1", "https://dev1.service-now.com", undefined];
-    let askInputCall = 0;
-
-    await runSnAuthCommand(
-      {} as vscode.ExtensionContext,
-      {
-        saveAuth: async (): Promise<void> => {
-          throw new Error("must not be called");
-        },
-        beginOAuthSignIn: async () => {
-          throw new Error("must not be called");
-        },
-      },
-      {
-        getWorkspaceFolderUri: () =>
-          createTempWorkspaceUri("auth-oauth-cancel-client-id"),
-        askChoice: async () => ({ label: "oauth", authType: "oauth" }),
-        askInput: async () => {
-          const value = answers[askInputCall];
-          askInputCall += 1;
-          return value;
-        },
-        openExternal: async () => true,
-        showErrorMessage: async () => undefined,
-        showInformationMessage: async (message: string) => {
-          shownInfos.push(message);
-          return undefined;
-        },
-      },
-    );
-
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.AUTH_CANCELLED]);
-  });
-
-  test("shows detailed error when save auth fails", async () => {
-    const shownErrors: string[] = [];
-
-    await runSnAuthCommand(
-      {} as vscode.ExtensionContext,
-      {
-        saveAuth: async (): Promise<void> => {
-          throw new Error("save-failed");
-        },
-        beginOAuthSignIn: async () => {
-          throw new Error("must not be called");
-        },
-      },
-      {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("auth-failure"),
-        askChoice: async () => ({ label: "basic", authType: "basic" }),
-        askInput: async () => "x",
-        openExternal: async () => true,
-        showErrorMessage: async (message: string) => {
-          shownErrors.push(message);
-          return undefined;
-        },
-        showInformationMessage: async () => undefined,
-      },
-    );
-
-    assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.AUTH_FAILED_PREFIX} (SN_AUTH_FAILED) save-failed`,
-    ]);
-  });
-
-  test("register callback executes command with default runtime", async () => {
+  test("register callback executes auth command", async () => {
     const shownErrors: string[] = [];
     const context = {
       subscriptions: [] as vscode.Disposable[],
     } as unknown as vscode.ExtensionContext;
 
     await withCapturedRegisterCommand(async (invokeRegistered) => {
-      registerSnAuthCommand(context, {
-        saveAuth: async (): Promise<void> => {
-          throw new Error("must-not-be-called");
-        },
-        beginOAuthSignIn: async () => {
-          throw new Error("must-not-be-called");
-        },
-      });
+      registerSnAuthCommand(context);
 
       await withPatchedWorkspaceFolders(undefined, async () => {
-        await withPatchedWindowAndEnvMethods(
-          async () => undefined,
-          async () => undefined,
+        await withPatchedWindowMessages(
           async (message: string) => {
             shownErrors.push(message);
             return undefined;
           },
           async () => undefined,
-          async () => true,
           async () => {
             await invokeRegistered();
           },
@@ -520,106 +125,78 @@ suite("snAuthCommand", () => {
     assert.deepStrictEqual(shownErrors, [SN_SYNC_MESSAGES.NO_WORKSPACE]);
   });
 
-  test("uses default runtime and shows success when workspace exists", async () => {
-    const workspaceUri = createTempWorkspaceUri("auth-default-runtime-success");
-    const shownInfos: string[] = [];
-    const answers = [
-      "dev-default",
-      "https://dev-default.service-now.com",
-      "admin",
-      "secret",
-    ];
-    let askCall = 0;
-    let saveCalled = false;
+  test("shows error when executeCommand throws", async () => {
+    const shownErrors: string[] = [];
 
-    const context = {
-      subscriptions: [] as vscode.Disposable[],
-    } as unknown as vscode.ExtensionContext;
-
-    await withPatchedWorkspaceFolders(
-      [{ uri: workspaceUri, name: "tmp", index: 0 }],
-      async () => {
-        await withPatchedWindowAndEnvMethods(
-          async () => ({ label: "basic", authType: "basic" }),
-          async () => {
-            const value = answers[askCall];
-            askCall += 1;
-            return value;
-          },
-          async () => undefined,
-          async (message: string) => {
-            shownInfos.push(message);
-            return undefined;
-          },
-          async () => true,
-          async () => {
-            await runSnAuthCommand(context, {
-              saveAuth: async (): Promise<void> => {
-                saveCalled = true;
-              },
-              beginOAuthSignIn: async () => {
-                throw new Error("must not be called");
-              },
-            });
-          },
-        );
+    await runSnAuthCommand({
+      getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+      showErrorMessage: async (message: string) => {
+        shownErrors.push(message);
+        return undefined;
       },
-    );
+      showInformationMessage: async () => undefined,
+      showQuickPick: <T extends vscode.QuickPickItem>(items: readonly T[]) =>
+        Promise.resolve(items[0]),
+      executeCommand: async () => {
+        throw new Error("exec-failed");
+      },
+    });
 
-    assert.strictEqual(saveCalled, true);
-    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.AUTH_SUCCESS]);
+    assert.strictEqual(shownErrors.length, 1);
+    assert.ok(shownErrors[0].includes("exec-failed"));
   });
 
-  test("uses default runtime oauth path and opens external browser", async () => {
-    const workspaceUri = createTempWorkspaceUri("auth-default-runtime-oauth");
+  test("default runtime uses vscode.window.showQuickPick and cancels", async () => {
     const shownInfos: string[] = [];
-    const answers = [
-      "dev-default",
-      "https://dev-default.service-now.com",
-      "client-default",
-      "oauth-code-default",
-    ];
-    let askCall = 0;
-    let openExternalCalled = false;
 
     await withPatchedWorkspaceFolders(
-      [{ uri: workspaceUri, name: "tmp", index: 0 }],
+      [{ uri: vscode.Uri.file("/tmp/ws"), name: "tmp", index: 0 }],
       async () => {
-        await withPatchedWindowAndEnvMethods(
-          async () => ({ label: "oauth", authType: "oauth" }),
-          async () => {
-            const value = answers[askCall];
-            askCall += 1;
-            return value;
-          },
+        await withPatchedWindowShowQuickPick(
           async () => undefined,
-          async (message: string) => {
-            shownInfos.push(message);
-            return undefined;
-          },
           async () => {
-            openExternalCalled = true;
-            return true;
-          },
-          async () => {
-            await runSnAuthCommand({} as vscode.ExtensionContext, {
-              saveAuth: async (): Promise<void> => undefined,
-              beginOAuthSignIn: async () => ({
-                authorizationUrl:
-                  "https://dev-default.service-now.com/oauth_auth.do?x=1",
-                codeVerifier: "verifier-1",
-              }),
-            });
+            await withPatchedWindowMessages(
+              async () => undefined,
+              async (message: string) => {
+                shownInfos.push(message);
+                return undefined;
+              },
+              async () => {
+                await runSnAuthCommand();
+              },
+            );
           },
         );
       },
     );
 
-    assert.strictEqual(openExternalCalled, true);
-    assert.deepStrictEqual(shownInfos, [
-      SN_SYNC_MESSAGES.AUTH_OAUTH_OPEN_BROWSER_INFO,
-      SN_SYNC_MESSAGES.AUTH_SUCCESS,
-    ]);
+    assert.deepStrictEqual(shownInfos, [SN_SYNC_MESSAGES.AUTH_CANCELLED]);
+  });
+
+  test("default runtime uses vscode.commands.executeCommand", async () => {
+    const executedCommands: string[] = [];
+
+    await withPatchedWorkspaceFolders(
+      [{ uri: vscode.Uri.file("/tmp/ws"), name: "tmp", index: 0 }],
+      async () => {
+        await withPatchedWindowShowQuickPick(
+          async <T extends vscode.QuickPickItem>(items: readonly T[]) =>
+            items[0],
+          async () => {
+            await withPatchedCommandsExecuteCommand(
+              async (command: string) => {
+                executedCommands.push(command);
+              },
+              async () => {
+                await runSnAuthCommand();
+              },
+            );
+          },
+        );
+      },
+    );
+
+    assert.deepStrictEqual(executedCommands, [SN_SYNC_COMMANDS.AUTH_CONFIG]);
   });
 });
 
@@ -645,7 +222,7 @@ function withPatchedRegisterCommand(run: () => void): void {
 }
 
 async function withCapturedRegisterCommand(
-  run: (invokeRegistered: () => Promise<void>) => Promise<void>,
+  run: (invokeRegistered: () => Promise<unknown>) => Promise<void>,
 ): Promise<void> {
   const commandsObject = vscode.commands as unknown as {
     registerCommand: (
@@ -654,20 +231,20 @@ async function withCapturedRegisterCommand(
     ) => vscode.Disposable;
   };
   const originalRegisterCommand = commandsObject.registerCommand;
-  let registered: (() => unknown) | undefined;
+  let callback: ((...args: unknown[]) => unknown) | undefined;
 
   commandsObject.registerCommand = (
     _command: string,
-    callback: (...args: unknown[]) => unknown,
+    commandCallback: (...args: unknown[]) => unknown,
   ) => {
-    registered = callback as () => unknown;
+    callback = commandCallback;
     return new vscode.Disposable(() => undefined);
   };
 
   try {
     await run(async () => {
-      assert.ok(registered);
-      await Promise.resolve(registered?.());
+      assert.ok(callback);
+      return callback?.();
     });
   } finally {
     commandsObject.registerCommand = originalRegisterCommand;
@@ -701,53 +278,68 @@ async function withPatchedWorkspaceFolders(
   }
 }
 
-async function withPatchedWindowAndEnvMethods(
-  showQuickPick: (
-    items: readonly vscode.QuickPickItem[],
-    options: vscode.QuickPickOptions,
-  ) => Thenable<vscode.QuickPickItem | undefined>,
-  showInputBox: (
-    options: vscode.InputBoxOptions,
-  ) => Thenable<string | undefined>,
+async function withPatchedWindowMessages(
   showErrorMessage: (message: string) => Thenable<string | undefined>,
   showInformationMessage: (message: string) => Thenable<string | undefined>,
-  openExternal: (uri: vscode.Uri) => Thenable<boolean>,
   run: () => Promise<void>,
 ): Promise<void> {
   const windowObject = vscode.window as unknown as {
-    showQuickPick: (
-      items: readonly vscode.QuickPickItem[],
-      options: vscode.QuickPickOptions,
-    ) => Thenable<vscode.QuickPickItem | undefined>;
-    showInputBox: (
-      options: vscode.InputBoxOptions,
-    ) => Thenable<string | undefined>;
     showErrorMessage: (message: string) => Thenable<string | undefined>;
     showInformationMessage: (message: string) => Thenable<string | undefined>;
   };
-  const envObject = vscode.env as unknown as {
-    openExternal: (uri: vscode.Uri) => Thenable<boolean>;
+
+  const originalShowErrorMessage = windowObject.showErrorMessage;
+  const originalShowInformationMessage = windowObject.showInformationMessage;
+
+  windowObject.showErrorMessage = showErrorMessage;
+  windowObject.showInformationMessage = showInformationMessage;
+
+  try {
+    await run();
+  } finally {
+    windowObject.showErrorMessage = originalShowErrorMessage;
+    windowObject.showInformationMessage = originalShowInformationMessage;
+  }
+}
+
+async function withPatchedWindowShowQuickPick(
+  showQuickPick: <T extends vscode.QuickPickItem>(
+    items: readonly T[],
+    options?: vscode.QuickPickOptions,
+  ) => Thenable<T | undefined>,
+  run: () => Promise<void>,
+): Promise<void> {
+  const windowObject = vscode.window as unknown as {
+    showQuickPick: <T extends vscode.QuickPickItem>(
+      items: readonly T[],
+      options?: vscode.QuickPickOptions,
+    ) => Thenable<T | undefined>;
   };
 
   const originalShowQuickPick = windowObject.showQuickPick;
-  const originalShowInputBox = windowObject.showInputBox;
-  const originalShowErrorMessage = windowObject.showErrorMessage;
-  const originalShowInformationMessage = windowObject.showInformationMessage;
-  const originalOpenExternal = envObject.openExternal;
-
   windowObject.showQuickPick = showQuickPick;
-  windowObject.showInputBox = showInputBox;
-  windowObject.showErrorMessage = showErrorMessage;
-  windowObject.showInformationMessage = showInformationMessage;
-  envObject.openExternal = openExternal;
 
   try {
     await run();
   } finally {
     windowObject.showQuickPick = originalShowQuickPick;
-    windowObject.showInputBox = originalShowInputBox;
-    windowObject.showErrorMessage = originalShowErrorMessage;
-    windowObject.showInformationMessage = originalShowInformationMessage;
-    envObject.openExternal = originalOpenExternal;
+  }
+}
+
+async function withPatchedCommandsExecuteCommand(
+  executeCommand: (command: string) => Thenable<unknown>,
+  run: () => Promise<void>,
+): Promise<void> {
+  const commandsObject = vscode.commands as unknown as {
+    executeCommand: (command: string) => Thenable<unknown>;
+  };
+
+  const originalExecuteCommand = commandsObject.executeCommand;
+  commandsObject.executeCommand = executeCommand;
+
+  try {
+    await run();
+  } finally {
+    commandsObject.executeCommand = originalExecuteCommand;
   }
 }

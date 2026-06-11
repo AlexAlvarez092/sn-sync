@@ -83,7 +83,6 @@ body:
       options:
         - "sn: init"
         - "sn: auth"
-        - "sn: auth validate"
         - "sn: reset auth"
         - "sn: run background script"
         - "sn: open active in instance"
