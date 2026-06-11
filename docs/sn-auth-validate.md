@@ -93,7 +93,7 @@ sequenceDiagram
 
 - Symptom: Invalid credentials error (401)
   - Cause: Basic credentials are invalid, or OAuth token/client context is no longer accepted.
-	- Resolution: Run `sn: auth`, choose `configure auth`, and save fresh credentials/tokens.
+  - Resolution: Run `sn: auth`, choose `configure auth`, and save fresh credentials/tokens.
 
 - Symptom: HTTP/network validation failures
   - Cause: Connectivity, DNS, proxy, or instance URL problems.

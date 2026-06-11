@@ -79,9 +79,7 @@ export async function runSnAuthCommand(
   }
 }
 
-export function registerSnAuthCommand(
-  context: vscode.ExtensionContext,
-): void {
+export function registerSnAuthCommand(context: vscode.ExtensionContext): void {
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.AUTH,
     () =>

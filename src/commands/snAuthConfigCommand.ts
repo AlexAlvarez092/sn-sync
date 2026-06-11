@@ -105,12 +105,9 @@ export function registerSnAuthConfigCommand(
   const disposable = vscode.commands.registerCommand(
     SN_SYNC_COMMANDS.AUTH_CONFIG,
     () =>
-      runWithCommandStatus(
-        () => runSnAuthConfigCommand(context, authService),
-        {
-          message: "sn-sync: saving auth...",
-        },
-      ),
+      runWithCommandStatus(() => runSnAuthConfigCommand(context, authService), {
+        message: "sn-sync: saving auth...",
+      }),
   );
 
   context.subscriptions.push(disposable);
