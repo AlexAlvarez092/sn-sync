@@ -20,8 +20,7 @@ import type {
 } from "@services/snPullService.js";
 
 export interface SnScopedPullRuntime
-  extends SnBaseCommandRuntime,
-    Pick<FolderClearRuntime, "createDirectory"> {
+  extends SnBaseCommandRuntime, Pick<FolderClearRuntime, "createDirectory"> {
   withProgress<T>(
     title: string,
     task: (
@@ -44,7 +43,9 @@ export async function runScopedPullWithIndex(args: {
     onFileWritten: (event: SnPullProgressEvent) => void | Promise<void>;
   }) => Promise<SnPullSummary>;
 }): Promise<SnPullSummary | undefined> {
-  const settings = await args.configService.getSyncSettings(args.workspaceFolderUri);
+  const settings = await args.configService.getSyncSettings(
+    args.workspaceFolderUri,
+  );
 
   if (settings.length === 0) {
     void args.runtime.showInformationMessage(SN_SYNC_MESSAGES.PULL_NO_SETTINGS);
@@ -76,7 +77,10 @@ export async function runScopedPullWithIndex(args: {
         fieldName: string;
         baseHash: string;
       }> = [];
-      const onFileWritten = createPullFileWrittenHandler(progress, indexUpdates);
+      const onFileWritten = createPullFileWrittenHandler(
+        progress,
+        indexUpdates,
+      );
 
       const summary = await args.runPull({
         settings,
@@ -84,7 +88,10 @@ export async function runScopedPullWithIndex(args: {
         onFileWritten,
       });
 
-      await args.indexService.recordPullFiles(args.workspaceFolderUri, indexUpdates);
+      await args.indexService.recordPullFiles(
+        args.workspaceFolderUri,
+        indexUpdates,
+      );
       progress.report({ increment: 100 });
 
       return summary;
