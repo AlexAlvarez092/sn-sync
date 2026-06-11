@@ -154,6 +154,7 @@ Current shared runtime helpers:
 - getWorkspaceFolderOrShowError: standard workspace precondition and NO_WORKSPACE message.
 - withNotificationProgress: consistent notification progress UI across commands.
 - runWithCommandStatus: immediate status-bar command execution feedback with per-command message and debounce.
+- registerCommandWithStatus: shared command registration helper that wraps `runWithCommandStatus` and pushes disposables to subscriptions.
 - showPrefixedCommandError: standardized prefixed command error output.
 - runScopeDispatcherCommand: common quick-pick scope dispatch for orchestrator commands.
 
@@ -224,6 +225,7 @@ Configuration security strategy:
 ## Key shared building blocks
 
 - snCommandRuntime: workspace + message runtime abstraction
+  - includes command-status registration wrapper (`registerCommandWithStatus`) to reduce repeated registration boilerplate
 - snScopeDispatcherService: shared orchestrator quick-pick dispatch and error handling
 - snScopedPullCommandService: shared scoped pull setup (settings/preferences/progress/index updates)
 - snServiceFactory: extension-level composition root for service construction and reuse

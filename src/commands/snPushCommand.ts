@@ -6,7 +6,7 @@ import {
 } from "@shared/constants/snSyncConstants.js";
 import {
   defaultBaseRuntime,
-  runWithCommandStatus,
+  registerCommandWithStatus,
 } from "@shared/services/snCommandRuntime.js";
 import {
   type SnScopeDispatcherRuntime,
@@ -57,13 +57,10 @@ export async function runSnPushCommand(
 }
 
 export function registerSnPushCommand(context: vscode.ExtensionContext): void {
-  const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.PUSH,
-    () =>
-      runWithCommandStatus(() => runSnPushCommand(defaultRuntime), {
-        message: "sn-sync: selecting push scope...",
-      }),
-  );
-
-  context.subscriptions.push(disposable);
+  registerCommandWithStatus({
+    context,
+    commandId: SN_SYNC_COMMANDS.PUSH,
+    task: () => runSnPushCommand(defaultRuntime),
+    message: "sn-sync: selecting push scope...",
+  });
 }

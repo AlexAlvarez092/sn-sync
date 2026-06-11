@@ -6,7 +6,7 @@ import {
 } from "@shared/constants/snSyncConstants.js";
 import {
   defaultBaseRuntime,
-  runWithCommandStatus,
+  registerCommandWithStatus,
 } from "@shared/services/snCommandRuntime.js";
 import {
   type SnScopeDispatcherRuntime,
@@ -62,13 +62,10 @@ export async function runSnPullCommand(
 }
 
 export function registerSnPullCommand(context: vscode.ExtensionContext): void {
-  const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.PULL,
-    () =>
-      runWithCommandStatus(() => runSnPullCommand(defaultRuntime), {
-        message: "sn-sync: selecting pull scope...",
-      }),
-  );
-
-  context.subscriptions.push(disposable);
+  registerCommandWithStatus({
+    context,
+    commandId: SN_SYNC_COMMANDS.PULL,
+    task: () => runSnPullCommand(defaultRuntime),
+    message: "sn-sync: selecting pull scope...",
+  });
 }

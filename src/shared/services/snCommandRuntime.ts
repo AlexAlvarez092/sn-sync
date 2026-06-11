@@ -37,6 +37,13 @@ export interface RunWithCommandStatusOptions {
   debounceMs?: number;
 }
 
+export interface RegisterCommandWithStatusOptions
+  extends RunWithCommandStatusOptions {
+  context: vscode.ExtensionContext;
+  commandId: string;
+  task: () => Thenable<void>;
+}
+
 export function runWithCommandStatus<T>(
   task: () => Thenable<T>,
   options: RunWithCommandStatusOptions = {},
@@ -58,6 +65,19 @@ export function runWithCommandStatus<T>(
       clearTimeout(timer);
       status?.dispose();
     });
+}
+
+export function registerCommandWithStatus(
+  options: RegisterCommandWithStatusOptions,
+): void {
+  const disposable = vscode.commands.registerCommand(options.commandId, () =>
+    runWithCommandStatus(options.task, {
+      message: options.message,
+      debounceMs: options.debounceMs,
+    }),
+  );
+
+  options.context.subscriptions.push(disposable);
 }
 
 export function getWorkspaceFolderOrShowError(

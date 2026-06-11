@@ -6,7 +6,7 @@ import {
 } from "@shared/constants/snSyncConstants.js";
 import {
   defaultBaseRuntime,
-  runWithCommandStatus,
+  registerCommandWithStatus,
 } from "@shared/services/snCommandRuntime.js";
 import {
   type SnScopeDispatchItem,
@@ -52,13 +52,10 @@ export async function runSnAuthCommand(
 }
 
 export function registerSnAuthCommand(context: vscode.ExtensionContext): void {
-  const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.AUTH,
-    () =>
-      runWithCommandStatus(() => runSnAuthCommand(), {
-        message: "sn-sync: selecting auth command...",
-      }),
-  );
-
-  context.subscriptions.push(disposable);
+  registerCommandWithStatus({
+    context,
+    commandId: SN_SYNC_COMMANDS.AUTH,
+    task: () => runSnAuthCommand(),
+    message: "sn-sync: selecting auth command...",
+  });
 }

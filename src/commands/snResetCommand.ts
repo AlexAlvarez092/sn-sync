@@ -6,7 +6,7 @@ import {
 } from "@shared/constants/snSyncConstants.js";
 import {
   defaultBaseRuntime,
-  runWithCommandStatus,
+  registerCommandWithStatus,
 } from "@shared/services/snCommandRuntime.js";
 import {
   type SnScopeDispatchItem,
@@ -52,13 +52,10 @@ export async function runSnResetCommand(
 }
 
 export function registerSnResetCommand(context: vscode.ExtensionContext): void {
-  const disposable = vscode.commands.registerCommand(
-    SN_SYNC_COMMANDS.RESET,
-    () =>
-      runWithCommandStatus(() => runSnResetCommand(), {
-        message: "sn-sync: selecting reset command...",
-      }),
-  );
-
-  context.subscriptions.push(disposable);
+  registerCommandWithStatus({
+    context,
+    commandId: SN_SYNC_COMMANDS.RESET,
+    task: () => runSnResetCommand(),
+    message: "sn-sync: selecting reset command...",
+  });
 }
