@@ -61,6 +61,13 @@ export interface SnPullServiceApi {
     sysId: string,
     options?: SnPullOptions,
   ): Promise<SnPullSummary>;
+  pullTable?(
+    context: vscode.ExtensionContext,
+    workspaceFolderUri: vscode.Uri,
+    settings: ExtensionConfigSetting[],
+    table: string,
+    options?: SnPullOptions,
+  ): Promise<SnPullSummary>;
 }
 
 export class SnPullService implements SnPullServiceApi {
@@ -173,6 +180,83 @@ export class SnPullService implements SnPullServiceApi {
 
       if (wroteRecord) {
         pulledRecords += 1;
+      }
+    }
+
+    return {
+      settings: matchedSettings.length,
+      records: pulledRecords,
+      files: writtenFiles,
+    };
+  }
+
+  public async pullTable(
+    context: vscode.ExtensionContext,
+    workspaceFolderUri: vscode.Uri,
+    settings: ExtensionConfigSetting[],
+    table: string,
+    options?: SnPullOptions,
+  ): Promise<SnPullSummary> {
+    const matchedSettings = settings.filter(
+      (setting) => setting.table === table,
+    );
+
+    if (matchedSettings.length === 0) {
+      return {
+        settings: 0,
+        records: 0,
+        files: 0,
+      };
+    }
+
+    const groupedByQuery = new Map<string, ExtensionConfigSetting[]>();
+    for (const setting of matchedSettings) {
+      const group = groupedByQuery.get(setting.query) ?? [];
+      group.push(setting);
+      groupedByQuery.set(setting.query, group);
+    }
+
+    let pulledRecords = 0;
+    let writtenFiles = 0;
+
+    for (const [query, querySettings] of groupedByQuery.entries()) {
+      const fieldNames = new Set<string>();
+      for (const setting of querySettings) {
+        for (const fieldName of this.getFieldNamesForSetting(setting)) {
+          fieldNames.add(fieldName);
+        }
+      }
+
+      const records = await this.requestAllTableRows(
+        context,
+        workspaceFolderUri,
+        table,
+        query,
+        Array.from(fieldNames).join(","),
+      );
+
+      for (const record of records) {
+        let wroteRecord = false;
+
+        for (const setting of querySettings) {
+          const keyValue = this.normalizeRecordValue(record[setting.key]);
+          if (!keyValue) {
+            continue;
+          }
+
+          wroteRecord = true;
+          writtenFiles += await this.writeRecordFiles(
+            workspaceFolderUri,
+            setting,
+            keyValue,
+            record,
+            options,
+          );
+        }
+
+        if (wroteRecord) {
+          pulledRecords += 1;
+        }
       }
     }
 

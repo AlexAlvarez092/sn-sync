@@ -1589,4 +1589,175 @@ suite("snPullService", () => {
       files: 0,
     });
   });
+
+  test("pullTable returns empty summary when no settings match table", async () => {
+    const service = new SnPullService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "secret",
+        }),
+      } as unknown as never,
+      (async () => {
+        throw new Error("must-not-be-called");
+      }) as typeof fetch,
+    );
+
+    const summary = await service.pullTable!(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      [
+        {
+          folder: "security_rules",
+          table: "sys_security_acl",
+          query: "active=true",
+          key: "name",
+          fields: [{ extension: "js", field_name: "script" }],
+        },
+      ],
+      "sp_widget",
+    );
+
+    assert.deepStrictEqual(summary, {
+      settings: 0,
+      records: 0,
+      files: 0,
+    });
+  });
+
+  test("pullTable batches by shared query and writes files for all matched settings", async () => {
+    await withTempDir("sn-sync-pull-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+      const requestedUrls: string[] = [];
+
+      const service = new SnPullService(
+        {
+          resolveConnectionAuth: async () => ({
+            instanceName: "dev",
+            instanceUrl: "https://dev.service-now.com",
+            username: "admin",
+            password: "secret",
+          }),
+        } as unknown as never,
+        (async (url: string | URL | Request): Promise<Response> => {
+          requestedUrls.push(url.toString());
+
+          return {
+            ok: true,
+            json: async () => ({
+              result: [
+                {
+                  sys_id: "0123456789abcdef0123456789abcdef",
+                  id: "my_widget",
+                  template: "<div></div>",
+                  css: ".x{}",
+                },
+              ],
+            }),
+          } as Response;
+        }) as typeof fetch,
+      );
+
+      const summary = await service.pullTable!(
+        {} as vscode.ExtensionContext,
+        workspaceUri,
+        [
+          {
+            folder: "widgets",
+            table: "sp_widget",
+            query: "active=true",
+            key: "id",
+            fields: [{ extension: "html", field_name: "template" }],
+          },
+          {
+            folder: "widgets",
+            table: "sp_widget",
+            query: "active=true",
+            key: "id",
+            fields: [{ extension: "css", field_name: "css" }],
+          },
+          {
+            folder: "security_rules",
+            table: "sys_security_acl",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
+          },
+        ],
+        "sp_widget",
+      );
+
+      assert.strictEqual(requestedUrls.length, 2);
+      assert.ok(requestedUrls[0].includes("sysparm_query=active%3Dtrue"));
+      assert.deepStrictEqual(summary, {
+        settings: 2,
+        records: 1,
+        files: 2,
+      });
+
+      assert.strictEqual(
+        await fs.readFile(
+          path.join(tempDir, "src", "widgets", "my_widget.html"),
+          "utf-8",
+        ),
+        "<div></div>",
+      );
+      assert.strictEqual(
+        await fs.readFile(
+          path.join(tempDir, "src", "widgets", "my_widget.css"),
+          "utf-8",
+        ),
+        ".x{}",
+      );
+    });
+  });
+
+  test("pullTable skips records that miss key values for matched settings", async () => {
+    const service = new SnPullService(
+      {
+        resolveConnectionAuth: async () => ({
+          instanceName: "dev",
+          instanceUrl: "https://dev.service-now.com",
+          username: "admin",
+          password: "secret",
+        }),
+      } as unknown as never,
+      (async (): Promise<Response> => {
+        return {
+          ok: true,
+          json: async () => ({
+            result: [
+              {
+                sys_id: "0123456789abcdef0123456789abcdef",
+                template: "<div></div>",
+              },
+            ],
+          }),
+        } as Response;
+      }) as typeof fetch,
+    );
+
+    const summary = await service.pullTable!(
+      {} as vscode.ExtensionContext,
+      vscode.Uri.file("/tmp/ws"),
+      [
+        {
+          folder: "widgets",
+          table: "sp_widget",
+          query: "active=true",
+          key: "id",
+          fields: [{ extension: "html", field_name: "template" }],
+        },
+      ],
+      "sp_widget",
+    );
+
+    assert.deepStrictEqual(summary, {
+      settings: 1,
+      records: 0,
+      files: 0,
+    });
+  });
 });
