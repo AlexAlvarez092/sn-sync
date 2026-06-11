@@ -90,7 +90,7 @@ body:
         - "sn: pull"
         - "sn: pull by sys_id"
         - "sn: reset index"
-        - "sn: push active"
+        - "sn: push current"
         - "sn: push modified"
         - "sn: push report"
         - "Other / unknown"

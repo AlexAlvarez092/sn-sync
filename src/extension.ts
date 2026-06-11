@@ -8,7 +8,7 @@ import { registerSnPullBySysIdCommand } from "@commands/snPullBySysIdCommand.js"
 import { registerSnPullCommand } from "@commands/snPullCommand.js";
 import { registerSnResetIndexCommand } from "@commands/snResetIndexCommand.js";
 import { registerSnPushCommand } from "@commands/snPushCommand.js";
-import { registerSnPushActiveCommand } from "@commands/snPushActiveCommand.js";
+import { registerSnPushCurrentCommand } from "@commands/snPushCurrentCommand.js";
 import { registerSnPushModifiedCommand } from "@commands/snPushModifiedCommand.js";
 import { registerSnPushReportCommand } from "@commands/snPushReportCommand.js";
 import { registerSnRunBackgroundScriptCommand } from "@commands/snRunBackgroundScriptCommand.js";
@@ -25,7 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerSnPullBySysIdCommand(context);
   registerSnResetIndexCommand(context);
   registerSnPushCommand(context);
-  registerSnPushActiveCommand(context);
+  registerSnPushCurrentCommand(context);
   registerSnPushReportCommand(context);
   registerSnPushModifiedCommand(context);
   registerSnStatusBar(context);

@@ -85,9 +85,9 @@ const STATUS_BAR_COMMANDS: SnStatusBarCommandDescriptor[] = [
     priority: 90,
   },
   {
-    id: SN_SYNC_COMMANDS.PUSH_ACTIVE,
-    label: "sn: push active",
-    text: "sn push active",
+    id: SN_SYNC_COMMANDS.PUSH_CURRENT,
+    label: "sn: push current",
+    text: "sn push current",
     requiresActiveEditor: true,
     priority: 89,
   },

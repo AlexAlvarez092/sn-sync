@@ -51,8 +51,8 @@ export async function runSnPushCommand(
         },
         {
           label: SN_SYNC_MESSAGES.PUSH_SCOPE_CURRENT_FILE_LABEL,
-          description: "Push active file",
-          command: SN_SYNC_COMMANDS.PUSH_ACTIVE,
+          description: "Push current file",
+          command: SN_SYNC_COMMANDS.PUSH_CURRENT,
         },
       ],
       {
@@ -68,20 +68,25 @@ export async function runSnPushCommand(
 
     await runtime.executeCommand(selectedScope.command);
   } catch (error) {
-    showPrefixedCommandError(runtime, SN_SYNC_MESSAGES.PUSH_FAILED_PREFIX, error, {
-      code: SN_SYNC_ERROR_CODES.PUSH_FAILED,
-      command: SN_SYNC_COMMANDS.PUSH,
-    });
+    showPrefixedCommandError(
+      runtime,
+      SN_SYNC_MESSAGES.PUSH_FAILED_PREFIX,
+      error,
+      {
+        code: SN_SYNC_ERROR_CODES.PUSH_FAILED,
+        command: SN_SYNC_COMMANDS.PUSH,
+      },
+    );
   }
 }
 
-export function registerSnPushCommand(
-  context: vscode.ExtensionContext,
-): void {
-  const disposable = vscode.commands.registerCommand(SN_SYNC_COMMANDS.PUSH, () =>
-    runWithCommandStatus(() => runSnPushCommand(defaultRuntime), {
-      message: "sn-sync: selecting push scope...",
-    }),
+export function registerSnPushCommand(context: vscode.ExtensionContext): void {
+  const disposable = vscode.commands.registerCommand(
+    SN_SYNC_COMMANDS.PUSH,
+    () =>
+      runWithCommandStatus(() => runSnPushCommand(defaultRuntime), {
+        message: "sn-sync: selecting push scope...",
+      }),
   );
 
   context.subscriptions.push(disposable);

@@ -4,13 +4,13 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import {
-  registerSnPushActiveCommand,
-  runSnPushActiveCommand,
-} from "@commands/snPushActiveCommand.js";
+  registerSnPushCurrentCommand,
+  runSnPushCurrentCommand,
+} from "@commands/snPushCurrentCommand.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 import { hashText } from "@shared/services/hashService.js";
 
-suite("snPushActiveCommand", () => {
+suite("snPushCurrentCommand", () => {
   test("registers command and stores disposable in context subscriptions", () => {
     const context = {
       subscriptions: [] as vscode.Disposable[],
@@ -21,7 +21,7 @@ suite("snPushActiveCommand", () => {
     } as unknown as vscode.ExtensionContext;
 
     withPatchedRegisterCommand(() => {
-      registerSnPushActiveCommand(context);
+      registerSnPushCurrentCommand(context);
 
       assert.strictEqual(context.subscriptions.length, 1);
       context.subscriptions[0].dispose();
@@ -39,7 +39,7 @@ suite("snPushActiveCommand", () => {
     } as unknown as vscode.ExtensionContext;
 
     await withCapturedRegisterCommand(async (invokeRegistered) => {
-      registerSnPushActiveCommand(context, {
+      registerSnPushCurrentCommand(context, {
         getRemoteFieldContent: async () => "",
         pushFieldContent: async () => "",
       });
@@ -74,7 +74,7 @@ suite("snPushActiveCommand", () => {
             return undefined;
           },
           async () => {
-            await runSnPushActiveCommand(
+            await runSnPushCurrentCommand(
               {} as vscode.ExtensionContext,
               {
                 getRemoteFieldContent: async () => "",
@@ -94,14 +94,14 @@ suite("snPushActiveCommand", () => {
     );
 
     assert.deepStrictEqual(shownInfos, [
-      SN_SYNC_MESSAGES.PUSH_ACTIVE_NO_EDITOR,
+      SN_SYNC_MESSAGES.PUSH_CURRENT_NO_EDITOR,
     ]);
   });
 
   test("shows error when no workspace is open", async () => {
     const shownErrors: string[] = [];
 
-    await runSnPushActiveCommand(
+    await runSnPushCurrentCommand(
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "",
@@ -116,7 +116,7 @@ suite("snPushActiveCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => undefined,
-        getActiveTextEditor: () => undefined,
+        getCurrentTextEditor: () => undefined,
         showErrorMessage: async (message: string) => {
           shownErrors.push(message);
           return undefined;
@@ -131,7 +131,7 @@ suite("snPushActiveCommand", () => {
   test("shows info when no active editor exists", async () => {
     const shownInfos: string[] = [];
 
-    await runSnPushActiveCommand(
+    await runSnPushCurrentCommand(
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "",
@@ -146,7 +146,7 @@ suite("snPushActiveCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
-        getActiveTextEditor: () => undefined,
+        getCurrentTextEditor: () => undefined,
         showErrorMessage: async () => undefined,
         showInformationMessage: async (message: string) => {
           shownInfos.push(message);
@@ -156,14 +156,14 @@ suite("snPushActiveCommand", () => {
     );
 
     assert.deepStrictEqual(shownInfos, [
-      SN_SYNC_MESSAGES.PUSH_ACTIVE_NO_EDITOR,
+      SN_SYNC_MESSAGES.PUSH_CURRENT_NO_EDITOR,
     ]);
   });
 
   test("shows info when active file is not indexed", async () => {
     const shownInfos: string[] = [];
 
-    await runSnPushActiveCommand(
+    await runSnPushCurrentCommand(
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "",
@@ -178,7 +178,7 @@ suite("snPushActiveCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
-        getActiveTextEditor: () =>
+        getCurrentTextEditor: () =>
           ({
             document: {
               uri: vscode.Uri.file("/tmp/ws/src/a.js"),
@@ -194,15 +194,15 @@ suite("snPushActiveCommand", () => {
     );
 
     assert.deepStrictEqual(shownInfos, [
-      SN_SYNC_MESSAGES.PUSH_ACTIVE_NOT_INDEXED,
+      SN_SYNC_MESSAGES.PUSH_CURRENT_NOT_INDEXED,
     ]);
   });
 
-  test("shows info when active file has no local changes", async () => {
+  test("shows info when current file has no local changes", async () => {
     const shownInfos: string[] = [];
     let fetchedRemote = false;
 
-    await runSnPushActiveCommand(
+    await runSnPushCurrentCommand(
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => {
@@ -227,7 +227,7 @@ suite("snPushActiveCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
-        getActiveTextEditor: () =>
+        getCurrentTextEditor: () =>
           ({
             document: {
               uri: vscode.Uri.file("/tmp/ws/src/a.js"),
@@ -244,7 +244,7 @@ suite("snPushActiveCommand", () => {
 
     assert.strictEqual(fetchedRemote, false);
     assert.deepStrictEqual(shownInfos, [
-      SN_SYNC_MESSAGES.PUSH_ACTIVE_NO_LOCAL_CHANGES,
+      SN_SYNC_MESSAGES.PUSH_CURRENT_NO_LOCAL_CHANGES,
     ]);
   });
 
@@ -252,7 +252,7 @@ suite("snPushActiveCommand", () => {
     const shownErrors: string[] = [];
     let pushed = false;
 
-    await runSnPushActiveCommand(
+    await runSnPushCurrentCommand(
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "remote-new",
@@ -277,7 +277,7 @@ suite("snPushActiveCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
-        getActiveTextEditor: () =>
+        getCurrentTextEditor: () =>
           ({
             document: {
               uri: vscode.Uri.file("/tmp/ws/src/a.js"),
@@ -294,7 +294,7 @@ suite("snPushActiveCommand", () => {
 
     assert.strictEqual(pushed, false);
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PUSH_ACTIVE_CONFLICT_PREFIX} src/a.js`,
+      `${SN_SYNC_MESSAGES.PUSH_CURRENT_CONFLICT_PREFIX} src/a.js`,
     ]);
   });
 
@@ -302,7 +302,7 @@ suite("snPushActiveCommand", () => {
     let pushedContent = "";
     let updated = false;
 
-    await runSnPushActiveCommand(
+    await runSnPushCurrentCommand(
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "remote-new",
@@ -329,7 +329,7 @@ suite("snPushActiveCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
-        getActiveTextEditor: () =>
+        getCurrentTextEditor: () =>
           ({
             document: {
               uri: vscode.Uri.file("/tmp/ws/src/a.js"),
@@ -349,7 +349,7 @@ suite("snPushActiveCommand", () => {
   test("resolves active conflict by pushing merged content", async () => {
     let pushedContent = "";
 
-    await runSnPushActiveCommand(
+    await runSnPushCurrentCommand(
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "remote-new",
@@ -374,7 +374,7 @@ suite("snPushActiveCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
-        getActiveTextEditor: () =>
+        getCurrentTextEditor: () =>
           ({
             document: {
               uri: vscode.Uri.file("/tmp/ws/src/a.js"),
@@ -404,7 +404,7 @@ suite("snPushActiveCommand", () => {
     const shownInfos: string[] = [];
 
     try {
-      await runSnPushActiveCommand(
+      await runSnPushCurrentCommand(
         {} as vscode.ExtensionContext,
         {
           getRemoteFieldContent: async () => "remote-new",
@@ -431,7 +431,7 @@ suite("snPushActiveCommand", () => {
         },
         {
           getWorkspaceFolderUri: () => workspaceUri,
-          getActiveTextEditor: () =>
+          getCurrentTextEditor: () =>
             ({
               document: {
                 uri: vscode.Uri.file(localFilePath),
@@ -462,7 +462,7 @@ suite("snPushActiveCommand", () => {
     let updated = false;
     const shownInfos: string[] = [];
 
-    await runSnPushActiveCommand(
+    await runSnPushCurrentCommand(
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "remote-new",
@@ -489,7 +489,7 @@ suite("snPushActiveCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
-        getActiveTextEditor: () =>
+        getCurrentTextEditor: () =>
           ({
             document: {
               uri: vscode.Uri.file("/tmp/ws/src/a.js"),
@@ -512,10 +512,10 @@ suite("snPushActiveCommand", () => {
     assert.ok(shownInfos[0].includes("Skipped: 1"));
   });
 
-  test("shows detailed error when push active throws", async () => {
+  test("shows detailed error when push current throws", async () => {
     const shownErrors: string[] = [];
 
-    await runSnPushActiveCommand(
+    await runSnPushCurrentCommand(
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => {
@@ -539,7 +539,7 @@ suite("snPushActiveCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
-        getActiveTextEditor: () =>
+        getCurrentTextEditor: () =>
           ({
             document: {
               uri: vscode.Uri.file("/tmp/ws/src/a.js"),
@@ -555,16 +555,16 @@ suite("snPushActiveCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PUSH_ACTIVE_FAILED_PREFIX} (SN_PUSH_ACTIVE_FAILED) remote-fail`,
+      `${SN_SYNC_MESSAGES.PUSH_CURRENT_FAILED_PREFIX} (SN_PUSH_CURRENT_FAILED) remote-fail`,
     ]);
   });
 
-  test("pushes active file when no conflict is detected", async () => {
+  test("pushes current file when no conflict is detected", async () => {
     const shownInfos: string[] = [];
     let pushed = false;
     let updated = false;
 
-    await runSnPushActiveCommand(
+    await runSnPushCurrentCommand(
       {} as vscode.ExtensionContext,
       {
         getRemoteFieldContent: async () => "old",
@@ -591,7 +591,7 @@ suite("snPushActiveCommand", () => {
       },
       {
         getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
-        getActiveTextEditor: () =>
+        getCurrentTextEditor: () =>
           ({
             document: {
               uri: vscode.Uri.file("/tmp/ws/src/a.js"),
@@ -609,7 +609,7 @@ suite("snPushActiveCommand", () => {
     assert.strictEqual(pushed, true);
     assert.strictEqual(updated, true);
     assert.deepStrictEqual(shownInfos, [
-      `${SN_SYNC_MESSAGES.PUSH_ACTIVE_SUCCESS} 1 file uploaded.`,
+      `${SN_SYNC_MESSAGES.PUSH_CURRENT_SUCCESS} 1 file uploaded.`,
     ]);
   });
 });

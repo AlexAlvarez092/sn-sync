@@ -12,7 +12,7 @@ Provides a single entry point for push operations and asks which scope to run.
 When executed, the command shows a Quick Pick with:
 
 - all files: runs sn-sync.push-modified
-- current file: runs sn-sync.push-active
+- current file: runs sn-sync.push-current
 
 If the picker is cancelled, the command exits with an informational message.
 
@@ -24,5 +24,5 @@ If the picker is cancelled, the command exits with an informational message.
 
 The underlying push logic, conflict handling, and index updates remain implemented in:
 
-- src/commands/snPushActiveCommand.ts
+- src/commands/snPushCurrentCommand.ts
 - src/commands/snPushModifiedCommand.ts

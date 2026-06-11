@@ -72,9 +72,8 @@ suite("snPushCommand", () => {
       getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
       showErrorMessage: async () => undefined,
       showInformationMessage: async () => undefined,
-      showQuickPick: <T extends vscode.QuickPickItem>(
-        items: readonly T[],
-      ) => Promise.resolve(items[0]),
+      showQuickPick: <T extends vscode.QuickPickItem>(items: readonly T[]) =>
+        Promise.resolve(items[0]),
       executeCommand: async (command: string) => {
         executedCommands.push(command);
       },
@@ -83,22 +82,21 @@ suite("snPushCommand", () => {
     assert.deepStrictEqual(executedCommands, [SN_SYNC_COMMANDS.PUSH_MODIFIED]);
   });
 
-  test("dispatches to push active for current file", async () => {
+  test("dispatches to push current for current file", async () => {
     const executedCommands: string[] = [];
 
     await runSnPushCommand({
       getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
       showErrorMessage: async () => undefined,
       showInformationMessage: async () => undefined,
-      showQuickPick: <T extends vscode.QuickPickItem>(
-        items: readonly T[],
-      ) => Promise.resolve(items[1]),
+      showQuickPick: <T extends vscode.QuickPickItem>(items: readonly T[]) =>
+        Promise.resolve(items[1]),
       executeCommand: async (command: string) => {
         executedCommands.push(command);
       },
     });
 
-    assert.deepStrictEqual(executedCommands, [SN_SYNC_COMMANDS.PUSH_ACTIVE]);
+    assert.deepStrictEqual(executedCommands, [SN_SYNC_COMMANDS.PUSH_CURRENT]);
   });
 });
 

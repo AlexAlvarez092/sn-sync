@@ -218,7 +218,7 @@ suite("snStatusBarService", () => {
         false,
       );
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_ACTIVE).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_CURRENT).visible,
         false,
       );
       assert.strictEqual(
@@ -253,7 +253,7 @@ suite("snStatusBarService", () => {
         true,
       );
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_ACTIVE).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_CURRENT).visible,
         false,
       );
       assert.strictEqual(
@@ -314,7 +314,7 @@ suite("snStatusBarService", () => {
         true,
       );
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_ACTIVE).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_CURRENT).visible,
         false,
       );
       assert.strictEqual(
@@ -389,7 +389,7 @@ suite("snStatusBarService", () => {
         true,
       );
       assert.strictEqual(
-        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_ACTIVE).visible,
+        getCommandItem(runtime, SN_SYNC_COMMANDS.PUSH_CURRENT).visible,
         false,
       );
     } finally {
@@ -416,9 +416,7 @@ suite("snStatusBarService", () => {
 
       await menuCommand!();
 
-      assert.deepStrictEqual(runtime.executedCommands, [
-        SN_SYNC_COMMANDS.PUSH,
-      ]);
+      assert.deepStrictEqual(runtime.executedCommands, [SN_SYNC_COMMANDS.PUSH]);
     } finally {
       service.dispose();
     }

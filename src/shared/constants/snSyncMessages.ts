@@ -75,16 +75,16 @@ export const SN_SYNC_MESSAGES = {
   PULL_SUCCESS_PREFIX: "sn-sync pull completed.",
   PULL_FAILED_PREFIX: "Failed to pull scripts from ServiceNow:",
   PUSH_PROGRESS_TITLE: "Pushing scripts to ServiceNow...",
-  PUSH_ACTIVE_NO_EDITOR:
-    "No active file found. Open a file from this workspace and try again.",
-  PUSH_ACTIVE_NOT_INDEXED:
-    "Active file is not indexed. Run 'sn: pull' or 'sn: pull by sys_id' first.",
-  PUSH_ACTIVE_NO_LOCAL_CHANGES:
-    "No local changes detected for the active file.",
-  PUSH_ACTIVE_CONFLICT_PREFIX:
-    "Push aborted: remote conflicts detected for active file. No files were uploaded:",
-  PUSH_ACTIVE_SUCCESS: "sn-sync push active completed.",
-  PUSH_ACTIVE_FAILED_PREFIX: "Failed to push active file to ServiceNow:",
+  PUSH_CURRENT_NO_EDITOR:
+    "No current file found. Open a file from this workspace and try again.",
+  PUSH_CURRENT_NOT_INDEXED:
+    "Current file is not indexed. Run 'sn: pull' or 'sn: pull by sys_id' first.",
+  PUSH_CURRENT_NO_LOCAL_CHANGES:
+    "No local changes detected for the current file.",
+  PUSH_CURRENT_CONFLICT_PREFIX:
+    "Push aborted: remote conflicts detected for current file. No files were uploaded:",
+  PUSH_CURRENT_SUCCESS: "sn-sync push current completed.",
+  PUSH_CURRENT_FAILED_PREFIX: "Failed to push current file to ServiceNow:",
   PUSH_SCOPE_PROMPT: "Choose push scope",
   PUSH_SCOPE_ALL_FILES_LABEL: "all files",
   PUSH_SCOPE_CURRENT_FILE_LABEL: "current file",

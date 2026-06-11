@@ -33,7 +33,7 @@ Documented commands:
 Push sub-options exposed by sn: push:
 
 - all files -> delegates to sn-sync.push-modified
-- current file -> delegates to sn-sync.push-active
+- current file -> delegates to sn-sync.push-current
 
 Files:
 
@@ -47,7 +47,7 @@ Files:
 - sn-pull-by-sys-id.md
 - sn-reset-index.md
 - sn-push.md
-- sn-push-active.md
+- sn-push-current.md
 - sn-push-modified.md
 - sn-push-report.md
 - error-handling.md
