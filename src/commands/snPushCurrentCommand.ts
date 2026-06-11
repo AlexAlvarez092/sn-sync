@@ -46,6 +46,15 @@ const defaultRuntime: SnPushCurrentRuntime = {
   resolveConflict: resolvePushConflictInteractive,
 };
 
+function formatPushCurrentEntryContext(entry: {
+  localPath: string;
+  table: string;
+  sysId: string;
+  fieldName: string;
+}): string {
+  return `localPath=${entry.localPath}, table=${entry.table}, sys_id=${entry.sysId}, field=${entry.fieldName}`;
+}
+
 export async function runSnPushCurrentCommand(
   context: vscode.ExtensionContext,
   pushService: SnPushServiceApi,
@@ -92,11 +101,13 @@ export async function runSnPushCurrentCommand(
       return;
     }
 
-    const remoteContent = await pushService.getRemoteFieldContent(
-      context,
-      workspaceFolderUri,
-      entry,
-    );
+    const remoteContent = await pushService
+      .getRemoteFieldContent(context, workspaceFolderUri, entry)
+      .catch((error) => {
+        throw new Error(
+          `Failed to fetch remote content (${formatPushCurrentEntryContext(entry)}): ${String(error)}`,
+        );
+      });
     const remoteHash = hashText(remoteContent);
 
     let contentToPush = localContent;
@@ -180,12 +191,13 @@ export async function runSnPushCurrentCommand(
       }
     }
 
-    const storedContent = await pushService.pushFieldContent(
-      context,
-      workspaceFolderUri,
-      entry,
-      contentToPush,
-    );
+    const storedContent = await pushService
+      .pushFieldContent(context, workspaceFolderUri, entry, contentToPush)
+      .catch((error) => {
+        throw new Error(
+          `Failed to push current content (${formatPushCurrentEntryContext(entry)}): ${String(error)}`,
+        );
+      });
 
     await indexService.updateBaseHashes(workspaceFolderUri, [
       {
@@ -216,6 +228,12 @@ export async function runSnPushCurrentCommand(
       {
         code: SN_SYNC_ERROR_CODES.PUSH_CURRENT_FAILED,
         command: SN_SYNC_COMMANDS.PUSH_CURRENT,
+        context: {
+          localPath: entry.localPath,
+          table: entry.table,
+          sysId: entry.sysId,
+          fieldName: entry.fieldName,
+        },
       },
     );
   }
