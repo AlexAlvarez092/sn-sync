@@ -140,7 +140,9 @@ Service-level strategy:
 
 - Validate auth availability before network calls
 - Validate and encode dynamic ServiceNow path segments before URL assembly
-- Resolve basic auth deterministically from Secret Storage (`sn: auth`)
+- Resolve explicit auth type from Secret Storage (`sn: auth`) without implicit fallback between methods
+  - basic: build Authorization header from username/password
+  - oauth: use bearer token and refresh when near expiry (when refresh token is available)
 - Validate instance URL policy both at auth save time and at runtime auth resolution
   - HTTPS only
   - default host allowlist (`service-now.com`)

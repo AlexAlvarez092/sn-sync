@@ -5,7 +5,8 @@ This folder contains technical documentation for all extension commands and the 
 Authentication model summary:
 
 - Connection auth is resolved from VS Code Secret Storage only.
-- Runtime resolution uses basic credentials saved by `sn: auth`.
+- Runtime resolution uses the explicit auth type saved by `sn: auth` (`basic` or `oauth`).
+- OAuth flow uses Authorization Code + PKCE with browser sign-in and pasted authorization code.
 - Instance URL policy enforces HTTPS and allows only `service-now.com` hosts by default.
 - Custom hosts are opt-in via `sn-sync.auth.allowCustomHosts` and `sn-sync.auth.customHosts`.
 

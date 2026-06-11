@@ -1,4 +1,7 @@
 export const SN_SYNC_INPUTS = {
+  AUTH_METHOD_PROMPT: "Authentication method",
+  AUTH_METHOD_BASIC_LABEL: "basic",
+  AUTH_METHOD_OAUTH_LABEL: "oauth",
   AUTH_INSTANCE_NAME_PROMPT: "Instance name",
   AUTH_INSTANCE_NAME_PLACEHOLDER: "my-dev-instance",
   AUTH_INSTANCE_URL_PROMPT: "Instance URL",
@@ -12,6 +15,11 @@ export const SN_SYNC_INPUTS = {
   RUN_BACKGROUND_CUSTOM_SCOPE_PLACEHOLDER: "x_your_scope_name",
   RUN_BACKGROUND_CUSTOM_SCOPE_PROMPT: "Enter the target ServiceNow scope id",
   RUN_BACKGROUND_CUSTOM_SCOPE_REQUIRED: "Scope id is required",
+  AUTH_OAUTH_CLIENT_ID_PROMPT: "OAuth client ID",
+  AUTH_OAUTH_CLIENT_ID_PLACEHOLDER: "Paste the SDK OAuth client ID",
+  AUTH_OAUTH_CODE_PROMPT: "OAuth authorization code",
+  AUTH_OAUTH_CODE_PLACEHOLDER:
+    "Paste the code shown by ServiceNow SDK OAuth page",
   PULL_BY_SYS_ID_PROMPT: "sys_id",
   PULL_BY_SYS_ID_PLACEHOLDER: "Paste a ServiceNow sys_id",
 } as const;
