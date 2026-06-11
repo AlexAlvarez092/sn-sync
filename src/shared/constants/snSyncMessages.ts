@@ -30,6 +30,16 @@ export const SN_SYNC_MESSAGES = {
     "This will delete the active auth secret. Continue?",
   RESET_AUTH_CONFIRM_ACTION: "Delete auth",
   RESET_AUTH_CANCELLED: "sn-sync reset auth cancelled.",
+  RUN_BACKGROUND_SCRIPT_CANCELLED: "sn-sync run background script cancelled.",
+  RUN_BACKGROUND_SCRIPT_CONFIRM_ACTION: "Run script",
+  RUN_BACKGROUND_SCRIPT_EMPTY_FILE:
+    "Selected script file is empty. Add script content and try again.",
+  RUN_BACKGROUND_SCRIPT_INVALID_LANGUAGE:
+    "Active editor must be a JavaScript/TypeScript script file.",
+  RUN_BACKGROUND_SCRIPT_PANEL_TITLE: "Scripts Background result",
+  RUN_BACKGROUND_SCRIPT_SUCCESS: "sn-sync background script completed.",
+  RUN_BACKGROUND_SCRIPT_FAILED_PREFIX:
+    "Failed to run ServiceNow background script:",
   OPEN_ACTIVE_NO_EDITOR:
     "No active file found. Open a file from this workspace and try again.",
   OPEN_ACTIVE_NOT_INDEXED:

@@ -22,6 +22,7 @@ Documented commands:
 - sn: auth -> sn-sync.auth
 - sn: auth validate -> sn-sync.auth-validate
 - sn: reset auth -> sn-sync.reset-auth
+- sn: run background script -> sn-sync.run-background-script
 - sn: open active in instance -> sn-sync.open-active-in-instance
 - sn: pull -> sn-sync.pull
 - sn: pull by sys_id -> sn-sync.pull-by-sys-id
@@ -36,6 +37,7 @@ Files:
 - sn-auth.md
 - sn-auth-validate.md
 - sn-reset-auth.md
+- sn-run-background-script.md
 - sn-open-active-in-instance.md
 - sn-pull.md
 - sn-pull-by-sys-id.md

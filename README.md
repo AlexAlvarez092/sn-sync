@@ -17,6 +17,7 @@ sn-sync helps you work with ServiceNow scripts in a local workflow:
 - Authentication setup and validation.
 - Explicit authentication mode selection: basic or OAuth (PKCE).
 - Pull all configured records or pull by sys_id.
+- Execute ServiceNow background scripts directly from VS Code.
 - Open the active indexed file directly in ServiceNow.
 - Push only the active file or all modified files.
 - Interactive conflict actions per file: overwrite, merge, discard local, skip.
@@ -51,6 +52,10 @@ Checks that your currently saved auth for the workspace is valid.
 ### `sn: reset auth`
 
 Removes the currently active instance credentials from VS Code Secret Storage.
+
+### `sn: run background script`
+
+Executes a local file as a ServiceNow Scripts - Background script against the authenticated instance.
 
 ### `sn: open active in instance`
 
@@ -121,7 +126,7 @@ Status bar setting details:
 - `sn-sync.statusBar.enabled`: enable or disable status bar shortcuts (`true` by default).
 - `sn-sync.statusBar.mode`: `minimal` or `expanded` (`minimal` by default).
 - `sn-sync.statusBar.visibleCommands`: subset of supported command IDs shown in status bar/menu.
-  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-validate`, `sn-sync.reset-auth`, `sn-sync.open-active-in-instance`, `sn-sync.pull`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push-active`, `sn-sync.push-modified`, `sn-sync.push-report`
+  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-validate`, `sn-sync.reset-auth`, `sn-sync.run-background-script`, `sn-sync.open-active-in-instance`, `sn-sync.pull`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push-active`, `sn-sync.push-modified`, `sn-sync.push-report`
 
 Recommended presets:
 
@@ -191,6 +196,7 @@ Technical and command-level docs are available in [docs/README.md](docs/README.m
 - [docs/sn-auth.md](docs/sn-auth.md)
 - [docs/sn-auth-validate.md](docs/sn-auth-validate.md)
 - [docs/sn-reset-auth.md](docs/sn-reset-auth.md)
+- [docs/sn-run-background-script.md](docs/sn-run-background-script.md)
 - [docs/sn-open-active-in-instance.md](docs/sn-open-active-in-instance.md)
 - [docs/sn-pull.md](docs/sn-pull.md)
 - [docs/sn-pull-by-sys-id.md](docs/sn-pull-by-sys-id.md)
@@ -209,7 +215,7 @@ Quick contribution flow:
 1. Pick or open an issue and assign it to yourself.
 2. Create a branch using project conventions (`feature/*`, `fix/*`, `docs/*`).
 3. Implement with focused commits and clear messages.
-4. Run `npm run coverage` before opening a PR.
+4. Run `npm run coverage` to ensure 100% test coverage is maintained.
 5. Open a PR using the template and link the issue with `Closes #...`.
 
 For full contribution standards and examples, see [CONTRIBUTING.md](CONTRIBUTING.md).

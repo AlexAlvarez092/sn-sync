@@ -82,6 +82,7 @@
               "sn-sync.auth",
               "sn-sync.auth-validate",
               "sn-sync.reset-auth",
+              "sn-sync.run-background-script",
               "sn-sync.open-active-in-instance",
               "sn-sync.pull",
               "sn-sync.pull-by-sys-id",
@@ -116,6 +117,10 @@
       {
         "command": "sn-sync.reset-auth",
         "title": "sn: reset auth"
+      },
+      {
+        "command": "sn-sync.run-background-script",
+        "title": "sn: run background script"
       },
       {
         "command": "sn-sync.open-active-in-instance",

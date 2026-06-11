@@ -10,6 +10,7 @@ import { registerSnResetIndexCommand } from "@commands/snResetIndexCommand.js";
 import { registerSnPushActiveCommand } from "@commands/snPushActiveCommand.js";
 import { registerSnPushModifiedCommand } from "@commands/snPushModifiedCommand.js";
 import { registerSnPushReportCommand } from "@commands/snPushReportCommand.js";
+import { registerSnRunBackgroundScriptCommand } from "@commands/snRunBackgroundScriptCommand.js";
 import { registerSnStatusBar } from "@services/snStatusBarService.js";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -17,6 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerSnAuthCommand(context);
   registerSnAuthValidateCommand(context);
   registerSnResetAuthCommand(context);
+  registerSnRunBackgroundScriptCommand(context);
   registerSnOpenActiveInInstanceCommand(context);
   registerSnPullCommand(context);
   registerSnPullBySysIdCommand(context);

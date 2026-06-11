@@ -30,6 +30,7 @@ Registered commands:
 - sn-sync.auth
 - sn-sync.auth-validate
 - sn-sync.reset-auth
+- sn-sync.run-background-script
 - sn-sync.open-active-in-instance
 - sn-sync.pull
 - sn-sync.pull-by-sys-id
@@ -65,13 +66,19 @@ Status bar behavior:
 - Process: full conflict pre-check -> interactive per-file resolution -> group selected files by record identity -> one PATCH per record group
 - Output: batch remote writes + batch baseline updates for uploaded files + optional local discard updates
 
-### 4) Push report flow
+### 4) Run background script flow
+
+- Input: script file content + authenticated instance context
+- Process: resolve script source (active editor or file prompt) -> validate content -> confirm instance/user -> send to ServiceNow background script endpoint -> capture and display output
+- Output: execution result + output channel log display
+
+### 5) Push report flow
 
 - Input: modified candidates
 - Process: scope/update-set resolution
 - Output: markdown report only (read-only behavior)
 
-### 5) Open active in instance flow
+### 6) Open active in instance flow
 
 - Input: active editor file + index entry + resolved instance URL
 - Process: local path -> index lookup -> record URL build -> open external browser
@@ -150,11 +157,24 @@ Pull filesystem strategy:
 - `SnPullService` sanitizes generated path segments (record keys and subdir parts) for filesystem-safe filenames.
 - Index metadata (`localPath`, `table`, `sysId`, `fieldName`, `baseHash`) is emitted through pull callbacks and persisted as command-level snapshots/updates.
 
+Background script execution strategy:
+
+- `SnBackgroundScriptService` executes scripts via the ServiceNow `/sys.scripts.do` endpoint.
+- Scope resolution uses a multi-step fallback approach:
+  1. Explicit scope name (user input or configuration)
+  2. HTML parsing of the scripts page for available scope options
+  3. API lookup via `sys_scope` table for scope identification
+  4. Default to global scope when no scope options are available
+- Scope matching supports exact names, canonical forms (special chars removed), and fuzzy substring matching.
+- HTML parsing extracts the `ck` (cross-site request forgery token) for form submission security.
+- Script output is captured from `<pre>` tags in the HTML response and displayed in the output channel.
+- Common logging calls (`gs.info`, `gs.log`, `gs.warn`, `gs.error`, `gs.print`) are wrapped to ensure output visibility in VS Code.
+
 Transport strategy:
 
 - snHttpService provides createGotFetchTransport as the shared fetch-compatible transport.
 - snHttpService also centralizes ServiceNow Table API URL construction for dynamic path segments such as table names, sys_ids, and update set ids.
-- Pull/push/push-report/auth-validate use that common transport path.
+- Pull/push/push-report/auth-validate/background-script use that common transport path.
 - This avoids behavior drift between commands and keeps timeout and response handling consistent.
 
 Configuration security strategy:

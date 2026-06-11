@@ -50,7 +50,7 @@ Suggested prefixes:
 - Keep behavior deterministic and testable.
 - Prefer explicit error handling and user-facing messages.
 - Avoid introducing breaking changes unless discussed first.
-- Maintain or improve test coverage.
+- **Maintain 100% test coverage** (statements, branches, functions, lines).
 - Keep public command behavior documented in `docs/`.
 
 ## Tests and validation
@@ -60,6 +60,8 @@ Run before opening a PR:
 ```bash
 npm run coverage
 ```
+
+This must report **100% coverage** across all metrics (statements, branches, functions, lines).
 
 If your change affects command behavior, update/add:
 
