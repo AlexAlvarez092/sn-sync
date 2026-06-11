@@ -31,7 +31,7 @@ Provide clear validation steps.
 ## Checklist
 
 - [ ] I ran `npm run coverage` locally.
-- [ ] Tests pass and coverage remains acceptable.
+- [ ] Test coverage is 100% (statements, branches, functions, lines).
 - [ ] I updated docs when behavior changed.
 - [ ] I did not include secrets, credentials, or tokens.
 - [ ] I kept changes focused and backwards-safe (or documented breakage).

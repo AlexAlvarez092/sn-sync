@@ -17,6 +17,7 @@ sn-sync helps you work with ServiceNow scripts in a local workflow:
 - Authentication setup and validation.
 - Multiple authentication modes with deterministic priority.
 - Pull all configured records or pull by sys_id.
+- Execute ServiceNow background scripts directly from VS Code.
 - Open the active indexed file directly in ServiceNow.
 - Push only the active file or all modified files.
 - Interactive conflict actions per file: overwrite, merge, discard local, skip.
@@ -214,7 +215,7 @@ Quick contribution flow:
 1. Pick or open an issue and assign it to yourself.
 2. Create a branch using project conventions (`feature/*`, `fix/*`, `docs/*`).
 3. Implement with focused commits and clear messages.
-4. Run `npm run coverage` before opening a PR.
+4. Run `npm run coverage` to ensure 100% test coverage is maintained.
 5. Open a PR using the template and link the issue with `Closes #...`.
 
 For full contribution standards and examples, see [CONTRIBUTING.md](CONTRIBUTING.md).
