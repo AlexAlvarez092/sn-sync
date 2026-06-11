@@ -59,7 +59,9 @@ export async function runSnPushCurrentCommand(
 
   const currentEditor = runtime.getCurrentTextEditor();
   if (!currentEditor) {
-    void runtime.showInformationMessage(SN_SYNC_MESSAGES.PUSH_CURRENT_NO_EDITOR);
+    void runtime.showInformationMessage(
+      SN_SYNC_MESSAGES.PUSH_CURRENT_NO_EDITOR,
+    );
     return;
   }
 
