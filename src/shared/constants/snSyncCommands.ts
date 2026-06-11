@@ -6,6 +6,7 @@ export const SN_SYNC_COMMANDS = {
   RUN_BACKGROUND_SCRIPT: "sn-sync.run-background-script",
   OPEN_ACTIVE_IN_INSTANCE: "sn-sync.open-active-in-instance",
   PULL: "sn-sync.pull",
+  PULL_CURRENT: "sn-sync.pull-current",
   PULL_BY_SYS_ID: "sn-sync.pull-by-sys-id",
   RESET_INDEX: "sn-sync.reset-index",
   PUSH: "sn-sync.push",

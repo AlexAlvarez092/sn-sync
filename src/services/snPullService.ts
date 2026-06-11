@@ -53,6 +53,14 @@ export interface SnPullServiceApi {
     settings: ExtensionConfigSetting[],
     options?: SnPullOptions,
   ): Promise<SnPullSummary>;
+  pullRecordBySysId?(
+    context: vscode.ExtensionContext,
+    workspaceFolderUri: vscode.Uri,
+    settings: ExtensionConfigSetting[],
+    table: string,
+    sysId: string,
+    options?: SnPullOptions,
+  ): Promise<SnPullSummary>;
 }
 
 export class SnPullService implements SnPullServiceApi {
@@ -72,22 +80,14 @@ export class SnPullService implements SnPullServiceApi {
     let writtenFiles = 0;
 
     for (const setting of settings) {
-      const fieldNames = new Set<string>([setting.key, "sys_id"]);
-
-      for (const field of setting.fields) {
-        fieldNames.add(field.field_name);
-      }
-
-      for (const token of this.extractSubDirTokens(setting.subDirPattern)) {
-        fieldNames.add(token);
-      }
+      const fieldNames = this.getFieldNamesForSetting(setting);
 
       const records = await this.requestAllTableRows(
         context,
         workspaceFolderUri,
         setting.table,
         setting.query,
-        Array.from(fieldNames).join(","),
+        fieldNames.join(","),
       );
 
       for (const record of records) {
@@ -112,6 +112,87 @@ export class SnPullService implements SnPullServiceApi {
       records: pulledRecords,
       files: writtenFiles,
     };
+  }
+
+  public async pullRecordBySysId(
+    context: vscode.ExtensionContext,
+    workspaceFolderUri: vscode.Uri,
+    settings: ExtensionConfigSetting[],
+    table: string,
+    sysId: string,
+    options?: SnPullOptions,
+  ): Promise<SnPullSummary> {
+    const matchedSettings = settings.filter((setting) => setting.table === table);
+
+    if (matchedSettings.length === 0) {
+      return {
+        settings: 0,
+        records: 0,
+        files: 0,
+      };
+    }
+
+    const fieldNames = new Set<string>();
+    for (const setting of matchedSettings) {
+      for (const fieldName of this.getFieldNamesForSetting(setting)) {
+        fieldNames.add(fieldName);
+      }
+    }
+
+    const records = await this.requestAllTableRows(
+      context,
+      workspaceFolderUri,
+      table,
+      `sys_id=${sysId}`,
+      Array.from(fieldNames).join(","),
+    );
+
+    let pulledRecords = 0;
+    let writtenFiles = 0;
+
+    for (const record of records) {
+      let wroteRecord = false;
+
+      for (const setting of matchedSettings) {
+        const keyValue = this.normalizeRecordValue(record[setting.key]);
+        if (!keyValue) {
+          continue;
+        }
+
+        wroteRecord = true;
+        writtenFiles += await this.writeRecordFiles(
+          workspaceFolderUri,
+          setting,
+          keyValue,
+          record,
+          options,
+        );
+      }
+
+      if (wroteRecord) {
+        pulledRecords += 1;
+      }
+    }
+
+    return {
+      settings: matchedSettings.length,
+      records: pulledRecords,
+      files: writtenFiles,
+    };
+  }
+
+  private getFieldNamesForSetting(setting: ExtensionConfigSetting): string[] {
+    const fieldNames = new Set<string>([setting.key, "sys_id"]);
+
+    for (const field of setting.fields) {
+      fieldNames.add(field.field_name);
+    }
+
+    for (const token of this.extractSubDirTokens(setting.subDirPattern)) {
+      fieldNames.add(token);
+    }
+
+    return [...fieldNames];
   }
 
   private async writeRecordFiles(
