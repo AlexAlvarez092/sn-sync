@@ -112,7 +112,8 @@ suite("snPullTableCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-table-no-settings"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-table-no-settings"),
         showErrorMessage: async () => undefined,
         showInformationMessage: async (message: string) => {
           shownInfos.push(message);
@@ -151,7 +152,8 @@ suite("snPullTableCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-table-cancel"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-table-cancel"),
         showErrorMessage: async () => undefined,
         showInformationMessage: async (message: string) => {
           shownInfos.push(message);
@@ -196,14 +198,17 @@ suite("snPullTableCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-table-plural"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-table-plural"),
         showErrorMessage: async () => undefined,
         showInformationMessage: async (message: string) => {
           shownInfos.push(message);
           return undefined;
         },
         showQuickPick: async (items) => {
-          pickerDescriptions.push(...items.map((item) => item.description ?? ""));
+          pickerDescriptions.push(
+            ...items.map((item) => item.description ?? ""),
+          );
           return undefined;
         },
         createDirectory: async () => undefined,
@@ -289,13 +294,15 @@ suite("snPullTableCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-table-success"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-table-success"),
         showErrorMessage: async () => undefined,
         showInformationMessage: async (message: string) => {
           shownInfos.push(message);
           return undefined;
         },
-        showQuickPick: async (items) => items.find((item) => item.label === "sp_widget"),
+        showQuickPick: async (items) =>
+          items.find((item) => item.label === "sp_widget"),
         createDirectory: async () => undefined,
         withProgress: async (_title, task) => task({ report: () => undefined }),
       },
@@ -365,13 +372,15 @@ suite("snPullTableCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-table-fallback"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-table-fallback"),
         showErrorMessage: async () => undefined,
         showInformationMessage: async (message: string) => {
           shownInfos.push(message);
           return undefined;
         },
-        showQuickPick: async (items) => items.find((item) => item.label === "sp_widget"),
+        showQuickPick: async (items) =>
+          items.find((item) => item.label === "sp_widget"),
         createDirectory: async () => undefined,
         withProgress: async (_title, task) => task({ report: () => undefined }),
       },
@@ -416,7 +425,8 @@ suite("snPullTableCommand", () => {
         },
       },
       {
-        getWorkspaceFolderUri: () => createTempWorkspaceUri("pull-table-failed"),
+        getWorkspaceFolderUri: () =>
+          createTempWorkspaceUri("pull-table-failed"),
         showErrorMessage: async (message: string) => {
           shownErrors.push(message);
           return undefined;
@@ -565,7 +575,11 @@ async function withPatchedWorkspaceFolders(
     await run();
   } finally {
     if (originalDescriptor) {
-      Object.defineProperty(vscode.workspace, "workspaceFolders", originalDescriptor);
+      Object.defineProperty(
+        vscode.workspace,
+        "workspaceFolders",
+        originalDescriptor,
+      );
     }
   }
 }

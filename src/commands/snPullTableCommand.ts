@@ -82,7 +82,9 @@ export async function runSnPullTableCommand(
 
     const uniqueTables = [...new Set(settings.map((setting) => setting.table))];
     const items: TableQuickPickItem[] = uniqueTables.map((table) => {
-      const settingCount = settings.filter((setting) => setting.table === table).length;
+      const settingCount = settings.filter(
+        (setting) => setting.table === table,
+      ).length;
       return {
         label: table,
         description: `${settingCount} setting${settingCount === 1 ? "" : "s"}`,
@@ -96,11 +98,16 @@ export async function runSnPullTableCommand(
     });
 
     if (!selected) {
-      void runtime.showInformationMessage(SN_SYNC_MESSAGES.PULL_TABLE_CANCELLED);
+      void runtime.showInformationMessage(
+        SN_SYNC_MESSAGES.PULL_TABLE_CANCELLED,
+      );
       return;
     }
 
-    const preferences = await resolvePreferences(configService, workspaceFolderUri);
+    const preferences = await resolvePreferences(
+      configService,
+      workspaceFolderUri,
+    );
 
     const rootDirUri = resolveWorkspaceChildUri(workspaceFolderUri, [
       {
@@ -122,7 +129,10 @@ export async function runSnPullTableCommand(
           fieldName: string;
           baseHash: string;
         }> = [];
-        const onFileWritten = createPullFileWrittenHandler(progress, indexUpdates);
+        const onFileWritten = createPullFileWrittenHandler(
+          progress,
+          indexUpdates,
+        );
 
         const settingSummary = pullService.pullTable
           ? await pullService.pullTable(
@@ -156,10 +166,15 @@ export async function runSnPullTableCommand(
       `${SN_SYNC_MESSAGES.PULL_TABLE_SUCCESS_PREFIX} ${summary.files} files from ${summary.records} records (${selected.table}).`,
     );
   } catch (error) {
-    showPrefixedCommandError(runtime, SN_SYNC_MESSAGES.PULL_TABLE_FAILED_PREFIX, error, {
-      code: SN_SYNC_ERROR_CODES.PULL_TABLE_FAILED,
-      command: SN_SYNC_COMMANDS.PULL_TABLE,
-    });
+    showPrefixedCommandError(
+      runtime,
+      SN_SYNC_MESSAGES.PULL_TABLE_FAILED_PREFIX,
+      error,
+      {
+        code: SN_SYNC_ERROR_CODES.PULL_TABLE_FAILED,
+        command: SN_SYNC_COMMANDS.PULL_TABLE,
+      },
+    );
   }
 }
 
@@ -168,20 +183,22 @@ export function registerSnPullTableCommand(
   configService: SnSyncConfigService = new SnSyncConfigService(),
   pullService: SnPullServiceApi = new SnPullService(),
 ): void {
-  const disposable = vscode.commands.registerCommand(SN_SYNC_COMMANDS.PULL_TABLE, () =>
-    runWithCommandStatus(
-      () =>
-        runSnPullTableCommand(
-          context,
-          configService,
-          pullService,
-          defaultRuntime,
-          new SnSyncIndexService(context.workspaceState),
-        ),
-      {
-        message: "sn-sync: pulling table...",
-      },
-    ),
+  const disposable = vscode.commands.registerCommand(
+    SN_SYNC_COMMANDS.PULL_TABLE,
+    () =>
+      runWithCommandStatus(
+        () =>
+          runSnPullTableCommand(
+            context,
+            configService,
+            pullService,
+            defaultRuntime,
+            new SnSyncIndexService(context.workspaceState),
+          ),
+        {
+          message: "sn-sync: pulling table...",
+        },
+      ),
   );
 
   context.subscriptions.push(disposable);
