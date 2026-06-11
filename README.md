@@ -54,7 +54,11 @@ Saves your ServiceNow connection auth for the workspace (basic credentials or OA
 
 Checks that your currently saved auth for the workspace is valid.
 
-### `sn: reset auth`
+### `sn: reset`
+
+Unified reset entry point that lets you choose `reset auth` or `reset index`.
+
+### `sn: reset auth` (internal delegate)
 
 Removes the currently active instance credentials from VS Code Secret Storage.
 
@@ -91,7 +95,7 @@ Prompts for a configured table and downloads records for that table only.
 
 Downloads one specific record by table + sys_id.
 
-### `sn: reset index`
+### `sn: reset index` (internal delegate)
 
 Resets the local sync index if you need a clean state.
 
@@ -150,7 +154,7 @@ Status bar setting details:
 - `sn-sync.statusBar.enabled`: enable or disable status bar shortcuts (`true` by default).
 - `sn-sync.statusBar.mode`: `minimal` or `expanded` (`minimal` by default).
 - `sn-sync.statusBar.visibleCommands`: subset of supported command IDs shown in status bar/menu.
-  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-config`, `sn-sync.auth-validate`, `sn-sync.reset-auth`, `sn-sync.run-background-script`, `sn-sync.open-active-in-instance`, `sn-sync.pull`, `sn-sync.pull-all-files`, `sn-sync.pull-current`, `sn-sync.pull-table`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push`, `sn-sync.push-current`, `sn-sync.push-modified`, `sn-sync.push-report`
+  - supported values: `sn-sync.sn-init`, `sn-sync.auth`, `sn-sync.auth-config`, `sn-sync.auth-validate`, `sn-sync.reset`, `sn-sync.reset-auth`, `sn-sync.run-background-script`, `sn-sync.open-active-in-instance`, `sn-sync.pull`, `sn-sync.pull-all-files`, `sn-sync.pull-current`, `sn-sync.pull-table`, `sn-sync.pull-by-sys-id`, `sn-sync.reset-index`, `sn-sync.push`, `sn-sync.push-current`, `sn-sync.push-modified`, `sn-sync.push-report`
 
 Recommended presets:
 
@@ -219,6 +223,7 @@ Technical and command-level docs are available in [docs/README.md](docs/README.m
 - [docs/sn-auth.md](docs/sn-auth.md)
 - [docs/sn-auth-config.md](docs/sn-auth-config.md)
 - [docs/sn-auth-validate.md](docs/sn-auth-validate.md)
+- [docs/sn-reset.md](docs/sn-reset.md)
 - [docs/sn-reset-auth.md](docs/sn-reset-auth.md)
 - [docs/sn-run-background-script.md](docs/sn-run-background-script.md)
 - [docs/sn-open-active-in-instance.md](docs/sn-open-active-in-instance.md)

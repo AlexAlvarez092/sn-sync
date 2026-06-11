@@ -30,6 +30,11 @@ export const SN_SYNC_MESSAGES = {
     "ServiceNow login validation failed with status:",
   AUTH_VALIDATE_NETWORK_ERROR_PREFIX:
     "ServiceNow login validation failed before receiving a response:",
+  RESET_SCOPE_PROMPT: "Choose reset action",
+  RESET_SCOPE_AUTH_LABEL: "reset auth",
+  RESET_SCOPE_INDEX_LABEL: "reset index",
+  RESET_CANCELLED: "sn-sync reset cancelled.",
+  RESET_FAILED_PREFIX: "Failed to run reset command:",
   RESET_AUTH_SUCCESS: "sn-sync auth reset completed.",
   RESET_AUTH_FAILED_PREFIX: "Failed to reset sn-sync auth:",
   RESET_AUTH_CONFIRM_PROMPT:

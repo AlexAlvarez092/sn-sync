@@ -22,7 +22,8 @@ Documented commands:
 - sn: auth -> sn-sync.auth
 - sn: auth config -> sn-sync.auth-config (internal delegate)
 - sn: auth validate -> sn-sync.auth-validate (internal delegate)
-- sn: reset auth -> sn-sync.reset-auth
+- sn: reset -> sn-sync.reset
+- sn: reset auth -> sn-sync.reset-auth (internal delegate)
 - sn: run background script -> sn-sync.run-background-script
 - sn: open active in instance -> sn-sync.open-active-in-instance
 - sn: pull -> sn-sync.pull
@@ -30,7 +31,7 @@ Documented commands:
 - sn: pull current -> sn-sync.pull-current
 - sn: pull table -> sn-sync.pull-table
 - sn: pull by sys_id -> sn-sync.pull-by-sys-id
-- sn: reset index -> sn-sync.reset-index
+- sn: reset index -> sn-sync.reset-index (internal delegate)
 - sn: push -> sn-sync.push
 - sn: push report -> sn-sync.push-report
 
@@ -46,6 +47,7 @@ Files:
 - sn-auth.md
 - sn-auth-config.md
 - sn-auth-validate.md
+- sn-reset.md
 - sn-reset-auth.md
 - sn-run-background-script.md
 - sn-open-active-in-instance.md

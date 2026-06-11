@@ -73,6 +73,7 @@ Current standardized command failure codes:
 - `SN_PUSH_CURRENT_FAILED` -> `sn-sync.push-current`
 - `SN_PUSH_MODIFIED_FAILED` -> `sn-sync.push-modified`
 - `SN_PUSH_REPORT_FAILED` -> `sn-sync.push-report`
+- `SN_RESET_FAILED` -> `sn-sync.reset`
 - `SN_RESET_AUTH_FAILED` -> `sn-sync.reset-auth`
 - `SN_RESET_INDEX_FAILED` -> `sn-sync.reset-index`
 

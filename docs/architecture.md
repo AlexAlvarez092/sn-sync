@@ -30,6 +30,7 @@ Registered commands:
 - sn-sync.auth
 - sn-sync.auth-config
 - sn-sync.auth-validate
+- sn-sync.reset
 - sn-sync.reset-auth
 - sn-sync.run-background-script
 - sn-sync.open-active-in-instance
@@ -203,7 +204,6 @@ Transport strategy:
 
 - snHttpService provides createGotFetchTransport as the shared fetch-compatible transport.
 - snHttpService also centralizes ServiceNow Table API URL construction for dynamic path segments such as table names, sys_ids, and update set ids.
-- Pull/push/push-report/auth-validate/background-script use that common transport path.
 - Pull/push/push-report/auth validation/background-script use that common transport path.
 - This avoids behavior drift between commands and keeps timeout and response handling consistent.
 
@@ -234,6 +234,7 @@ flowchart TD
   CMD --> AUTH[sn: auth]
   CMD --> AUTHCFG[sn: auth config]
   CMD --> AUTHV[sn: auth validate]
+  CMD --> RESETSEL[sn: reset]
   CMD --> AUTHR[sn: reset auth]
   CMD --> OPEN[sn: open active in instance]
   CMD --> PULLSEL[sn: pull]
@@ -250,6 +251,8 @@ flowchart TD
   INIT --> CFG[SnSyncConfigService]
   AUTH --> AUTHCFG
   AUTH --> AUTHV
+  RESETSEL --> AUTHR
+  RESETSEL --> RESET
   AUTHCFG --> AUTHS[SnAuthService]
   AUTHV --> AUTHS
   AUTHR --> AUTHS
@@ -305,7 +308,7 @@ flowchart TD
 
 ## Operational notes for developers
 
-- The index is foundational for push safety. If index state is invalid, run sn: reset index followed by a pull.
+- The index is foundational for push safety. If index state is invalid, run `sn: reset`, choose `reset index`, then run a pull.
 - Pull and push commands prioritize explicit conflict handling and safe remote writes.
 - push modified resolves conflicts per file and still reduces redundant PATCH requests when multiple fields of the same record are modified.
 - Command output messaging is centralized through constants to keep behavior predictable and testable.
