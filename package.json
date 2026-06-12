@@ -170,21 +170,18 @@
     ],
     "keybindings": [
       {
-        "command": "sn-sync.pull",
-        "key": "ctrl+alt+p",
-        "mac": "cmd+alt+p",
-        "when": "workspaceFolderCount > 0"
-      },
-      {
-        "command": "sn-sync.push",
-        "key": "ctrl+alt+u",
-        "mac": "cmd+alt+u",
-        "when": "workspaceFolderCount > 0"
-      },
-      {
         "command": "sn-sync.open-current-in-instance",
-        "key": "ctrl+alt+o",
-        "mac": "cmd+alt+o",
+        "key": "ctrl+shift+o",
+        "when": "editorTextFocus && workspaceFolderCount > 0"
+      },
+      {
+        "command": "sn-sync.pull-current",
+        "key": "ctrl+shift+c ctrl+shift+down",
+        "when": "editorTextFocus && workspaceFolderCount > 0"
+      },
+      {
+        "command": "sn-sync.push-current",
+        "key": "ctrl+shift+c ctrl+shift+up",
         "when": "editorTextFocus && workspaceFolderCount > 0"
       }
     ],
