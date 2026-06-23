@@ -55,6 +55,7 @@ Before running the workflow, make sure:
 2. The workflow file exists at `.github/workflows/release.yml`.
 3. `package.json` contains the target version to release.
 4. Your release tag matches the `package.json` version exactly (without the `v` prefix in `package.json`).
+5. GitHub Actions secret `MARKETPLACE_TOKEN` is configured with a valid Azure DevOps PAT that has `Marketplace (Manage)` scope.
 
 Example:
 
@@ -115,6 +116,8 @@ For each run, the workflow:
 6. Packages extension with `npx @vscode/vsce package`.
 7. Resolves generated `.vsix` file.
 8. Creates GitHub Release and uploads `.vsix`.
+9. Validates `MARKETPLACE_TOKEN` presence (tag runs only).
+10. Publishes the same `.vsix` to VS Code Marketplace (tag runs only).
 
 ## Validation rules
 
@@ -127,7 +130,8 @@ After a successful tag-triggered run:
 
 1. A GitHub Release is created for the tag.
 2. The generated `.vsix` is attached to that release.
-3. Auto-generated release notes are included.
+3. The extension is published to VS Code Marketplace.
+4. Auto-generated release notes are included.
 
 ## Troubleshooting
 
@@ -169,3 +173,28 @@ Fix:
 
 1. Confirm workflow/job has `contents: write` permission.
 2. Confirm GitHub Actions policy allows creating releases.
+
+### Workflow fails with "Missing required secret: MARKETPLACE_TOKEN"
+
+Cause:
+
+- The secret was not configured in repository Actions secrets.
+
+Fix:
+
+1. Go to GitHub -> Settings -> Secrets and variables -> Actions.
+2. Create secret `MARKETPLACE_TOKEN`.
+3. Paste an Azure DevOps PAT with `Marketplace (Manage)` scope.
+
+### Marketplace publish fails with 401/403
+
+Cause:
+
+- Invalid/expired PAT, wrong organization scope, or missing Marketplace scope.
+
+Fix:
+
+1. Regenerate PAT in Azure DevOps.
+2. Set organization access to `All accessible organizations`.
+3. Ensure scope includes `Marketplace (Manage)`.
+4. Update `MARKETPLACE_TOKEN` in GitHub secrets and rerun.
