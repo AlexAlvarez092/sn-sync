@@ -1,3 +1,7 @@
+---
+nav_exclude: true
+---
+
 # Command: sn: pull all files
 
 - Command ID: sn-sync.pull-all-files

@@ -1,3 +1,7 @@
+---
+nav_exclude: true
+---
+
 # Command: sn: run background script
 
 - Command ID: sn-sync.run-background-script

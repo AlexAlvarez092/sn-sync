@@ -1,3 +1,7 @@
+---
+nav_exclude: true
+---
+
 # Command: sn: push current
 
 - Command ID: sn-sync.push-current

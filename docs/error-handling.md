@@ -1,3 +1,10 @@
+---
+layout: default
+title: Error Handling
+parent: Developer Reference
+nav_order: 2
+---
+
 # Error handling and diagnostics
 
 This document describes the standardized error model used by sn-sync commands and how to troubleshoot errors consistently.

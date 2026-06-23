@@ -1,3 +1,7 @@
+---
+nav_exclude: true
+---
+
 # Command: sn: pull current
 
 - Command ID: sn-sync.pull-current

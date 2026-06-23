@@ -1,3 +1,7 @@
+---
+nav_exclude: true
+---
+
 # Command: sn: push report
 
 - Command ID: sn-sync.push-report
