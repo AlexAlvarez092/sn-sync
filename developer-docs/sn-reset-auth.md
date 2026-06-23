@@ -1,7 +1,3 @@
----
-nav_exclude: true
----
-
 # Command: sn: reset auth (internal delegate)
 
 - Command ID: sn-sync.reset-auth

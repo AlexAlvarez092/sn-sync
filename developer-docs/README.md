@@ -1,10 +1,3 @@
----
-layout: default
-title: Developer Reference
-nav_order: 6
-has_children: true
----
-
 # sn-sync Documentation
 
 This folder contains technical documentation for all extension commands and the overall architecture.

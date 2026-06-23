@@ -1,7 +1,3 @@
----
-nav_exclude: true
----
-
 # Command: sn: auth config
 
 - Command ID: sn-sync.auth-config

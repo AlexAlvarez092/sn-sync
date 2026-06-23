@@ -1,10 +1,3 @@
----
-layout: default
-title: Release Workflow
-parent: Developer Reference
-nav_order: 3
----
-
 # Release Workflow
 
 - Workflow file: `.github/workflows/release.yml`

@@ -1,7 +1,3 @@
----
-nav_exclude: true
----
-
 # Command: sn: init
 
 - Command ID: sn-sync.sn-init

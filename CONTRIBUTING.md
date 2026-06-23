@@ -6,7 +6,7 @@ This project welcomes bug reports, feature proposals, documentation improvements
 
 ## Before you start
 
-1. Read the docs under `docs/`.
+1. Read the docs under `developer-docs/`.
 2. Search existing issues and PRs to avoid duplicates.
 3. Open an issue first for significant changes, so we can align on scope.
 
@@ -51,7 +51,7 @@ Suggested prefixes:
 - Prefer explicit error handling and user-facing messages.
 - Avoid introducing breaking changes unless discussed first.
 - **Maintain 100% test coverage** (statements, branches, functions, lines).
-- Keep public command behavior documented in `docs/`.
+- Keep public command behavior documented in `developer-docs/`.
 
 ## Tests and validation
 
@@ -66,7 +66,7 @@ This must report **100% coverage** across all metrics (statements, branches, fun
 If your change affects command behavior, update/add:
 
 - unit tests in `src/test/unit/**`
-- command docs in `docs/`
+- command docs in `developer-docs/`
 
 ## Pull request process
 

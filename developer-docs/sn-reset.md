@@ -1,7 +1,3 @@
----
-nav_exclude: true
----
-
 # Command: sn: reset
 
 - Command ID: sn-sync.reset
