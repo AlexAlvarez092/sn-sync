@@ -1,7 +1,3 @@
----
-nav_exclude: true
----
-
 # Command: sn: pull by sys_id
 
 - Command ID: sn-sync.pull-by-sys-id

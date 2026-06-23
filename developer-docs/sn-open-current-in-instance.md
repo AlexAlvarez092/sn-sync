@@ -1,7 +1,3 @@
----
-nav_exclude: true
----
-
 # Command: sn: open current in instance
 
 - Command ID: sn-sync.open-current-in-instance

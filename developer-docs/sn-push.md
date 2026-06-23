@@ -1,7 +1,3 @@
----
-nav_exclude: true
----
-
 # Command: sn: push
 
 - Command ID: sn-sync.push

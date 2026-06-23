@@ -1,7 +1,3 @@
----
-nav_exclude: true
----
-
 # Command: sn: auth validate (internal delegate)
 
 - Command ID: sn-sync.auth-validate

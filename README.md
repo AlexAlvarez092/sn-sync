@@ -38,7 +38,7 @@ If you only need one configured table, use `sn: pull table`.
 
 ## Commands
 
-The complete command catalog and per-command behavior are documented in [docs/README.md](docs/README.md).
+The complete command catalog and per-command behavior are documented in [developer-docs/README.md](developer-docs/README.md).
 
 Public orchestrator commands:
 
@@ -125,12 +125,12 @@ Expanded workflow (power users):
 
 The workspace uses a `.snsyncrc` file only for non-sensitive sync configuration (`instance` selector + `settings`).
 
-Architecture, runtime, auth model, and transport details are maintained in [docs/architecture.md](docs/architecture.md).
-Error taxonomy, diagnostics, and redaction rules are maintained in [docs/error-handling.md](docs/error-handling.md).
+Architecture, runtime, auth model, and transport details are maintained in [developer-docs/architecture.md](developer-docs/architecture.md).
+Error taxonomy, diagnostics, and redaction rules are maintained in [developer-docs/error-handling.md](developer-docs/error-handling.md).
 
 ## Need more detailed documentation?
 
-Technical and command-level docs are centralized in [docs/README.md](docs/README.md).
+Technical and command-level docs are centralized in [developer-docs/README.md](developer-docs/README.md).
 
 ## For contributors
 

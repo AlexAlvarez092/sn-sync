@@ -1,10 +1,3 @@
----
-layout: default
-title: Architecture
-parent: Developer Reference
-nav_order: 1
----
-
 # sn-sync Architecture
 
 ## Scope
