@@ -32,17 +32,23 @@ Pull records for one configured table only, without running a full pull.
 7. If canceled, show `SN_SYNC_MESSAGES.PULL_TABLE_CANCELLED`.
 8. Resolve effective preferences via `resolvePreferences`.
 9. Ensure `rootDir` exists with `ensureDirectoryExists`.
-10. Start progress notification with `SN_SYNC_MESSAGES.PULL_PROGRESS_TITLE`.
-11. Collect pull metadata via shared `onFileWritten` callback (`createPullFileWrittenHandler`).
-12. Execute table-scoped pull:
+10. Evaluate `pull.clearBeforePull` preference:
+
+- `delete`: clear `rootDir` before pull.
+- `keep`: skip cleanup.
+- `ask`: prompt user (`Clear src` / `Keep src`) before proceeding.
+
+11. Start progress notification with `SN_SYNC_MESSAGES.PULL_PROGRESS_TITLE`.
+12. Collect pull metadata via shared `onFileWritten` callback (`createPullFileWrittenHandler`).
+13. Execute table-scoped pull:
 
 - Preferred path: `pullService.pullTable(...)`.
 - Fallback path: `pullService.pullConfiguredScripts(...)` using settings filtered by selected table.
 
-13. Persist index updates with `indexService.recordPullFiles(...)`.
-14. Report progress completion.
-15. Show success with `SN_SYNC_MESSAGES.PULL_TABLE_SUCCESS_PREFIX` + files/records/table.
-16. On error, show `SN_SYNC_MESSAGES.PULL_TABLE_FAILED_PREFIX` + normalized details.
+14. Persist index state with `indexService.replacePullSnapshot(...)`.
+15. Report progress completion.
+16. Show success with `SN_SYNC_MESSAGES.PULL_TABLE_SUCCESS_PREFIX` + files/records/table.
+17. On error, show `SN_SYNC_MESSAGES.PULL_TABLE_FAILED_PREFIX` + normalized details.
 
 ## Batching behavior
 
@@ -59,15 +65,16 @@ This avoids one request per synced field and keeps multi-field records efficient
 
 ## Index behavior
 
-This command performs incremental index updates (`recordPullFiles`) for files written during the command.
+This command replaces the stored pull snapshot (`replacePullSnapshot`) with files written during the command.
 
-Unlike full pull (`replacePullSnapshot`), it does not clear entries outside the current table scope.
+As with `sn: pull all files`, index entries not included in this run are removed from the snapshot.
 
 ## Side effects
 
 - Creates `rootDir` if it does not exist.
+- Optionally clears `rootDir` before pull based on `pull.clearBeforePull`.
 - Writes local files for selected table records.
-- Updates sync index entries for written files.
+- Replaces sync index snapshot with written files.
 
 ## Direct dependencies
 
@@ -105,10 +112,11 @@ sequenceDiagram
             C->>R: showInformationMessage(PULL_TABLE_CANCELLED)
          else Table selected
             C->>PREF: resolvePreferences()
+            C->>R: evaluate clearBeforePull
             C->>R: withProgress(PULL_PROGRESS_TITLE)
             C->>P: pullTable(selectedTable)
             P-->>C: onFileWritten callbacks + summary
-            C->>I: recordPullFiles(indexUpdates)
+            C->>I: replacePullSnapshot(indexUpdates)
             C->>R: showInformationMessage(PULL_TABLE_SUCCESS_PREFIX + totals)
          end
       end

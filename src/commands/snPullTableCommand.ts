@@ -13,6 +13,7 @@ import {
   SN_SYNC_ERROR_CODES,
   SN_SYNC_MESSAGES,
 } from "@shared/constants/snSyncConstants.js";
+import type { SnPullClearBeforePull } from "@shared/models/config.js";
 import {
   type SnBaseCommandRuntime,
   defaultBaseRuntime,
@@ -20,22 +21,30 @@ import {
   registerCommandWithStatus,
   showPrefixedCommandError,
 } from "@shared/services/snCommandRuntime.js";
-import { type FolderClearRuntime } from "@shared/services/snFolderService.js";
 import {
-  defaultScopedPullWithProgress,
-  runScopedPullWithIndex,
-} from "@shared/services/snScopedPullCommandService.js";
+  type FolderClearRuntime,
+  clearDirectory,
+  ensureDirectoryExists,
+} from "@shared/services/snFolderService.js";
+import { resolvePreferences } from "@shared/services/snPreferencesService.js";
+import { createPullFileWrittenHandler } from "@shared/services/snPullProgressService.js";
+import { resolveWorkspaceChildUri } from "@shared/services/snWorkspacePathService.js";
+import { defaultScopedPullWithProgress } from "@shared/services/snScopedPullCommandService.js";
 
 interface TableQuickPickItem extends vscode.QuickPickItem {
   table: string;
 }
 
 export interface SnPullTableRuntime
-  extends SnBaseCommandRuntime, Pick<FolderClearRuntime, "createDirectory"> {
+  extends SnBaseCommandRuntime, FolderClearRuntime {
   showQuickPick<T extends vscode.QuickPickItem>(
     items: readonly T[],
     options: vscode.QuickPickOptions,
   ): Thenable<T | undefined>;
+  showWarningMessage(
+    message: string,
+    ...items: string[]
+  ): Thenable<string | undefined>;
   withProgress<T>(
     title: string,
     task: (
@@ -46,6 +55,11 @@ export interface SnPullTableRuntime
 
 const defaultRuntime: SnPullTableRuntime = {
   ...defaultBaseRuntime,
+  showWarningMessage: (message: string, ...items: string[]) =>
+    vscode.window.showWarningMessage(message, ...items),
+  readDirectory: (uri: vscode.Uri) => vscode.workspace.fs.readDirectory(uri),
+  delete: (uri: vscode.Uri, options) =>
+    vscode.workspace.fs.delete(uri, options),
   createDirectory: (uri: vscode.Uri) =>
     vscode.workspace.fs.createDirectory(uri),
   showQuickPick: <T extends vscode.QuickPickItem>(
@@ -101,37 +115,87 @@ export async function runSnPullTableCommand(
       return;
     }
 
-    const summary = await runScopedPullWithIndex({
-      context,
-      workspaceFolderUri,
-      runtime,
+    const preferences = await resolvePreferences(
       configService,
-      indexService,
-      runPull: async ({ settings, rootDir, onFileWritten }) =>
-        pullService.pullTable
-          ? pullService.pullTable(
+      workspaceFolderUri,
+    );
+    const rootDirUri = resolveWorkspaceChildUri(workspaceFolderUri, [
+      {
+        value: preferences.rootDir,
+        label: "rootDir",
+        allowHierarchy: true,
+      },
+    ]);
+
+    await ensureDirectoryExists(runtime, rootDirUri);
+
+    const shouldDeleteBeforePull = await shouldDeleteBeforePullTableCommand(
+      runtime,
+      preferences.pull.clearBeforePull,
+      preferences.rootDir,
+    );
+
+    if (shouldDeleteBeforePull) {
+      await clearDirectory(runtime, rootDirUri);
+    }
+
+    const summary = await runtime.withProgress(
+      SN_SYNC_MESSAGES.PULL_PROGRESS_TITLE,
+      async (progress) => {
+        const indexUpdates: Array<{
+          localPath: string;
+          table: string;
+          sysId: string;
+          fieldName: string;
+          baseHash: string;
+        }> = [];
+        const onFileWritten = createPullFileWrittenHandler(
+          progress,
+          indexUpdates,
+        );
+
+        const settingsForTable = settings.filter(
+          (setting) => setting.table === selected.table,
+        );
+
+        const result = pullService.pullTable
+          ? await pullService.pullTable(
               context,
               workspaceFolderUri,
               settings,
               selected.table,
               {
-                rootDir,
+                rootDir: preferences.rootDir,
                 onFileWritten,
               },
             )
-          : pullService.pullConfiguredScripts(
+          : await pullService.pullConfiguredScripts(
               context,
               workspaceFolderUri,
-              settings.filter((setting) => setting.table === selected.table),
+              settingsForTable,
               {
-                rootDir,
+                rootDir: preferences.rootDir,
                 onFileWritten,
               },
-            ),
-    });
+            );
+
+        if (!indexService.replacePullSnapshot) {
+          throw new Error("Index service does not support replacePullSnapshot");
+        }
+
+        await indexService.replacePullSnapshot(
+          workspaceFolderUri,
+          indexUpdates,
+        );
+
+        progress.report({ increment: 100 });
+
+        return result;
+      },
+    );
 
     void runtime.showInformationMessage(
-      `${SN_SYNC_MESSAGES.PULL_TABLE_SUCCESS_PREFIX} ${summary!.files} files from ${summary!.records} records (${selected.table}).`,
+      `${SN_SYNC_MESSAGES.PULL_TABLE_SUCCESS_PREFIX} ${summary.files} files from ${summary.records} records (${selected.table}).`,
     );
   } catch (error) {
     showPrefixedCommandError(
@@ -144,6 +208,28 @@ export async function runSnPullTableCommand(
       },
     );
   }
+}
+
+async function shouldDeleteBeforePullTableCommand(
+  runtime: Pick<SnPullTableRuntime, "showWarningMessage">,
+  clearBeforePull: SnPullClearBeforePull,
+  rootDir: string,
+): Promise<boolean> {
+  if (clearBeforePull === "delete") {
+    return true;
+  }
+
+  if (clearBeforePull === "keep") {
+    return false;
+  }
+
+  const clearSrcChoice = await runtime.showWarningMessage(
+    SN_SYNC_MESSAGES.PULL_ALL_FILES_CLEAR_SRC_PROMPT.replace("src", rootDir),
+    SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION,
+    SN_SYNC_MESSAGES.PULL_ALL_FILES_CLEAR_SRC_SKIP_ACTION,
+  );
+
+  return clearSrcChoice === SN_SYNC_MESSAGES.CLEAR_SRC_CONFIRM_ACTION;
 }
 
 export function registerSnPullTableCommand(
