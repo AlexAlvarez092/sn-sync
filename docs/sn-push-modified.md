@@ -1,3 +1,7 @@
+---
+nav_exclude: true
+---
+
 # Command: sn: push modified
 
 - Command ID: sn-sync.push-modified

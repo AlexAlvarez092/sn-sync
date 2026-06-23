@@ -1,3 +1,7 @@
+---
+nav_exclude: true
+---
+
 # Issue Triage Policy
 
 This policy defines how maintainers classify and prioritize issues in this repository.

@@ -1,3 +1,7 @@
+---
+nav_exclude: true
+---
+
 # Command: sn: pull table
 
 - Command ID: sn-sync.pull-table

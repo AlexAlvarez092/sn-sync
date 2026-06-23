@@ -1,3 +1,7 @@
+---
+nav_exclude: true
+---
+
 # Command: sn: reset index (internal delegate)
 
 - Command ID: sn-sync.reset-index
