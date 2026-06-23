@@ -1,5 +1,11 @@
 # sn-sync
 
+[![VS Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/AlexAlvarez.sn-sync?label=marketplace&color=blue)](https://marketplace.visualstudio.com/items?itemName=AlexAlvarez.sn-sync)
+[![VS Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/AlexAlvarez.sn-sync)](https://marketplace.visualstudio.com/items?itemName=AlexAlvarez.sn-sync)
+[![CI](https://img.shields.io/github/actions/workflow/status/AlexAlvarez092/sn-sync/ci.yml?label=CI)](https://github.com/AlexAlvarez092/sn-sync/actions/workflows/ci.yml)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL%20v3-blue)](LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-informational)](https://alexalvarez092.github.io/sn-sync)
+
 A VS Code extension to sync ServiceNow records to local files and push your changes back safely.
 
 ## What this extension does
