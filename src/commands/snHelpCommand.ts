@@ -13,13 +13,20 @@ import {
 
 const DOCS_URL = "https://alexalvarez092.github.io/sn-sync/";
 
+export function openExternalWithDefaultEnv(
+  target: vscode.Uri,
+  envApi: Pick<typeof vscode.env, "openExternal"> = vscode.env,
+): Thenable<boolean> {
+  return envApi.openExternal(target);
+}
+
 export interface SnHelpRuntime extends SnBaseCommandRuntime {
   openExternal(target: vscode.Uri): Thenable<boolean>;
 }
 
 const defaultRuntime: SnHelpRuntime = {
   ...defaultBaseRuntime,
-  openExternal: (target: vscode.Uri) => vscode.env.openExternal(target),
+  openExternal: (target: vscode.Uri) => openExternalWithDefaultEnv(target),
 };
 
 export async function runSnHelpCommand(
