@@ -17,4 +17,5 @@ export const SN_SYNC_COMMANDS = {
   PUSH_CURRENT: "sn-sync.push-current",
   PUSH_MODIFIED: "sn-sync.push-modified",
   PUSH_REPORT: "sn-sync.push-report",
+  HELP: "sn-sync.help",
 } as const;
