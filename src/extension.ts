@@ -17,6 +17,7 @@ import { registerSnPushCurrentCommand } from "@commands/snPushCurrentCommand.js"
 import { registerSnPushModifiedCommand } from "@commands/snPushModifiedCommand.js";
 import { registerSnPushReportCommand } from "@commands/snPushReportCommand.js";
 import { registerSnRunBackgroundScriptCommand } from "@commands/snRunBackgroundScriptCommand.js";
+import { registerSnHelpCommand } from "@commands/snHelpCommand.js";
 import { registerSnStatusBar } from "@services/snStatusBarService.js";
 import { flushScheduledTempMergeCleanup } from "@shared/services/snPushConflictResolutionService.js";
 import { createExtensionServices } from "@shared/services/snServiceFactory.js";
@@ -65,6 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
     services.pushReportService,
   );
   registerSnPushModifiedCommand(context, services.pushService);
+  registerSnHelpCommand(context);
   registerSnStatusBar(context);
 }
 

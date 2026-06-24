@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AlexAlvarez092/sn-sync/issues"
   },
-  "homepage": "https://github.com/AlexAlvarez092/sn-sync#readme",
+  "homepage": "https://alexalvarez092.github.io/sn-sync/",
   "engines": {
     "vscode": "^1.120.0"
   },
@@ -166,6 +166,10 @@
       {
         "command": "sn-sync.push",
         "title": "sn: push"
+      },
+      {
+        "command": "sn-sync.help",
+        "title": "sn: help"
       }
     ],
     "keybindings": [

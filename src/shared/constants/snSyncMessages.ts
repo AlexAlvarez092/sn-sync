@@ -137,4 +137,7 @@ export const SN_SYNC_MESSAGES = {
   PUSH_MODIFIED_SUCCESS_PREFIX: "sn-sync push modified completed.",
   PUSH_MODIFIED_FAILED_PREFIX: "Failed to push modified files to ServiceNow:",
   CLEAR_SRC_CONFIRM_ACTION: "Clear src",
+  HELP_OPEN_FAILED: "Failed to open sn-sync documentation in browser.",
+  HELP_SUCCESS: "sn-sync documentation opened in browser.",
+  HELP_FAILED_PREFIX: "Failed to open sn-sync help:",
 } as const;
