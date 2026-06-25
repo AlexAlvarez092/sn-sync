@@ -7,3 +7,4 @@ coverage/
 *.vsix
 .DS_Store
 **/.DS_Store
+.snsync/

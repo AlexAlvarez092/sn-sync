@@ -8,6 +8,10 @@ import {
   type SnSyncIndexServiceApi,
 } from "@services/snSyncIndexService.js";
 import {
+  SnBaseSnapshotStore,
+  type SnBaseSnapshotStoreApi,
+} from "@services/snBaseSnapshotStore.js";
+import {
   SN_SYNC_COMMANDS,
   SN_SYNC_ERROR_CODES,
   SN_SYNC_MESSAGES,
@@ -39,19 +43,14 @@ export interface SnPushModifiedRuntime extends SnBaseCommandRuntime {
       progress: vscode.Progress<{ message?: string; increment?: number }>,
     ) => Thenable<T>,
   ): Thenable<T>;
-  resolveConflict?(args: {
-    workspaceFolderUri: vscode.Uri;
-    candidate: {
-      localPath: string;
-      localContent: string;
-    };
-    remoteContent: string;
-  }): Thenable<SnPushConflictDecision>;
+  snapshotStore?: SnBaseSnapshotStoreApi;
+  resolveConflict?(args: SnPushConflictResolverInput): Thenable<SnPushConflictDecision>;
 }
 
 const defaultRuntime: SnPushModifiedRuntime = {
   ...defaultBaseRuntime,
   withProgress: withNotificationProgress,
+  snapshotStore: new SnBaseSnapshotStore(),
   resolveConflict: resolvePushConflictInteractive,
 };
 
@@ -158,6 +157,14 @@ export async function runSnPushModifiedCommand(
       candidatesToPush,
       storedContentsByLocalPath,
     );
+
+    if (runtime.snapshotStore) {
+      await writeSnapshotsFromStoredContents(
+        runtime.snapshotStore,
+        workspaceFolderUri,
+        storedContentsByLocalPath,
+      );
+    }
 
     void runtime.showInformationMessage(
       `${SN_SYNC_MESSAGES.PUSH_MODIFIED_SUCCESS_PREFIX} ${formatUploadedFilesCount(candidatesToPush.length)}${formatConflictSummary(
@@ -276,6 +283,13 @@ async function applyConflictDecisions(
   }
 
   for (const { candidate, remoteContent } of conflictCandidates) {
+    const baseContent = runtime.snapshotStore
+      ? await runtime.snapshotStore.readSnapshot(
+          workspaceFolderUri,
+          candidate.entry.baseHash,
+        )
+      : null;
+
     const decisionInput: SnPushConflictResolverInput = {
       workspaceFolderUri,
       candidate: {
@@ -283,6 +297,7 @@ async function applyConflictDecisions(
         localContent: candidate.localContent,
       },
       remoteContent,
+      ...(baseContent !== null ? { baseContent } : {}),
     };
 
     const decision = await runtime.resolveConflict(decisionInput);
@@ -456,4 +471,18 @@ async function updateBaseHashesFromStoredContents(
       ),
     })),
   );
+}
+
+async function writeSnapshotsFromStoredContents(
+  snapshotStore: SnBaseSnapshotStoreApi,
+  workspaceFolderUri: vscode.Uri,
+  storedContentsByLocalPath: ReadonlyMap<string, string>,
+): Promise<void> {
+  for (const [, content] of storedContentsByLocalPath) {
+    await snapshotStore.writeSnapshot(
+      workspaceFolderUri,
+      hashText(content),
+      content,
+    );
+  }
 }

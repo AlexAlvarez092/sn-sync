@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import type { SnBaseSnapshotStoreApi } from "@services/snBaseSnapshotStore.js";
 
 export interface SnPullIndexUpdateItem {
   localPath: string;
@@ -16,15 +17,20 @@ export interface SnPullFileWrittenEvent {
   sysId?: string;
   fieldName?: string;
   baseHash?: string;
+  content?: string;
 }
 
 export function createPullFileWrittenHandler(
   progress: vscode.Progress<{ message?: string; increment?: number }>,
   indexUpdates: SnPullIndexUpdateItem[],
-): (event: SnPullFileWrittenEvent) => void {
+  snapshotStore?: {
+    store: SnBaseSnapshotStoreApi;
+    workspaceFolderUri: vscode.Uri;
+  },
+): (event: SnPullFileWrittenEvent) => Promise<void> {
   let visibleFilesWritten = 0;
 
-  return ({
+  return async ({
     settingFolder,
     fileName,
     localPath,
@@ -32,6 +38,7 @@ export function createPullFileWrittenHandler(
     sysId,
     fieldName,
     baseHash,
+    content,
   }: SnPullFileWrittenEvent) => {
     visibleFilesWritten += 1;
     progress.report({
@@ -49,5 +56,13 @@ export function createPullFileWrittenHandler(
       fieldName,
       baseHash,
     });
+
+    if (snapshotStore && content !== undefined) {
+      await snapshotStore.store.writeSnapshot(
+        snapshotStore.workspaceFolderUri,
+        baseHash,
+        content,
+      );
+    }
   };
 }

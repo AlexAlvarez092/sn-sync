@@ -19,7 +19,20 @@ const nodeDiff3 = require("node-diff3") as {
     | { common: string[] }
     | { buffer1: string[]; buffer2: string[] }
   >;
+  diff3Merge: (
+    a: string[],
+    o: string[],
+    b: string[],
+    options?: {
+      excludeFalseConflicts?: boolean;
+      label?: { a?: string; o?: string; b?: string };
+    },
+  ) => Array<
+    | { ok: string[] }
+    | { conflict: { a: string[]; o: string[]; b: string[] } }
+  >;
 };
 
 export const merge = nodeDiff3.merge;
 export const diffComm = nodeDiff3.diffComm;
+export const diff3Merge = nodeDiff3.diff3Merge;

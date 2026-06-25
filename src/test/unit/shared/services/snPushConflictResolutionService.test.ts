@@ -311,6 +311,40 @@ suite("snPushConflictResolutionService", () => {
     assert.strictEqual(buildConflictMarkersFromDiff3(content, content), content);
   });
 
+  test("buildConflictMarkersFromDiff3 uses 3-way diff3Merge when base is provided", () => {
+    // Base: A + shared + B
+    // Local: A-modified + shared + B     (only local changed A)
+    // Remote: A + shared + B-modified    (only remote changed B)
+    // 3-way result should auto-merge: A-modified + shared + B-modified (no conflict)
+    const base = "line-a\nshared\nline-b";
+    const local = "line-a-modified\nshared\nline-b";
+    const remote = "line-a\nshared\nline-b-modified";
+
+    const result = buildConflictMarkersFromDiff3(local, remote, base);
+
+    assert.ok(
+      !result.includes("<<<<<<<"),
+      "no conflict markers expected when changes are in different regions",
+    );
+    assert.ok(result.includes("line-a-modified"), "local change preserved");
+    assert.ok(result.includes("line-b-modified"), "remote change preserved");
+    assert.ok(result.includes("shared"), "shared line preserved");
+  });
+
+  test("buildConflictMarkersFromDiff3 with base marks conflict when both sides change same region", () => {
+    // Base: shared line
+    // Local: changes the line one way, remote changes it another
+    const base = "shared-line";
+    const local = "local-version";
+    const remote = "remote-version";
+
+    const result = buildConflictMarkersFromDiff3(local, remote, base);
+
+    assert.ok(result.includes("<<<<<<<"), "conflict marker expected");
+    assert.ok(result.includes("local-version"), "local version in conflict");
+    assert.ok(result.includes("remote-version"), "remote version in conflict");
+  });
+
   test("vscode.diff is called once on the merge path", async () => {
     await withPatchedConflictUi(
       {

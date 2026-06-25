@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as os from "node:os";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
-import { diffComm } from "@shared/utils/diff3.cjs";
+import { diffComm, diff3Merge } from "@shared/utils/diff3.cjs";
 import { SN_SYNC_PUSH_CONFLICT_UI } from "@shared/constants/snSyncConstants.js";
 
 const DEFAULT_TEMP_MERGE_CLEANUP_DELAY_MS = 5 * 60 * 1000;
@@ -19,6 +19,7 @@ export interface SnPushConflictResolverInput {
   workspaceFolderUri: vscode.Uri;
   candidate: SnPushConflictCandidate;
   remoteContent: string;
+  baseContent?: string;
 }
 
 export type SnPushConflictDecision =
@@ -48,6 +49,7 @@ export async function resolvePushConflictInteractive({
   workspaceFolderUri,
   candidate,
   remoteContent,
+  baseContent,
 }: SnPushConflictResolverInput): Promise<SnPushConflictDecision> {
   const localUri = vscode.Uri.joinPath(workspaceFolderUri, candidate.localPath);
   const remoteTempUri = await writeTempRemoteSnapshot(remoteContent);
@@ -113,6 +115,7 @@ export async function resolvePushConflictInteractive({
   const mergedContent = buildConflictMarkersFromDiff3(
     candidate.localContent,
     remoteContent,
+    baseContent,
   );
 
   await vscode.workspace.fs.writeFile(
@@ -190,6 +193,7 @@ async function openRemoteVsLocalDiff(
 export function buildConflictMarkersFromDiff3(
   local: string,
   remote: string,
+  base?: string,
 ): string {
   if (local === remote) {
     return local;
@@ -197,6 +201,29 @@ export function buildConflictMarkersFromDiff3(
 
   const localLines = local.split("\n");
   const remoteLines = remote.split("\n");
+
+  if (base !== undefined) {
+    const baseLines = base.split("\n");
+    const regions = diff3Merge(localLines, baseLines, remoteLines);
+    const result: string[] = [];
+
+    for (const region of regions) {
+      if ("ok" in region) {
+        result.push(...region.ok);
+      } else {
+        result.push(
+          `<<<<<<< ${SN_SYNC_PUSH_CONFLICT_UI.MERGE_INPUT_LOCAL_TITLE}`,
+          ...region.conflict.a,
+          "=======",
+          ...region.conflict.b,
+          `>>>>>>> ${SN_SYNC_PUSH_CONFLICT_UI.MERGE_INPUT_REMOTE_TITLE}`,
+        );
+      }
+    }
+
+    return result.join("\n");
+  }
+
   const regions = diffComm(localLines, remoteLines);
   const result: string[] = [];
 

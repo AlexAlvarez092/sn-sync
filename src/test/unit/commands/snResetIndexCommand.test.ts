@@ -4,8 +4,15 @@ import {
   registerSnResetIndexCommand,
   runSnResetIndexCommand,
 } from "@commands/snResetIndexCommand.js";
+import type { SnBaseSnapshotStoreApi } from "@services/snBaseSnapshotStore.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 import { createTempWorkspaceUri } from "@test/helpers/testRuntime.js";
+
+const noopSnapshotStore: SnBaseSnapshotStoreApi = {
+  writeSnapshot: async () => undefined,
+  readSnapshot: async () => null,
+  clearAll: async () => undefined,
+};
 
 suite("snResetIndexCommand", () => {
   test("registers command and stores disposable in context subscriptions", () => {
@@ -79,6 +86,7 @@ suite("snResetIndexCommand", () => {
         getModifiedCandidates: async () => [],
         updateBaseHashes: async () => undefined,
       },
+      noopSnapshotStore,
       {
         getWorkspaceFolderUri: () => undefined,
         askConfirmation: async () => true,
@@ -116,6 +124,7 @@ suite("snResetIndexCommand", () => {
         getModifiedCandidates: async () => [],
         updateBaseHashes: async () => undefined,
       },
+      noopSnapshotStore,
       {
         getWorkspaceFolderUri: () => workspaceUri,
         askConfirmation: async (message: string, actionLabel: string) => {
@@ -157,6 +166,7 @@ suite("snResetIndexCommand", () => {
         getModifiedCandidates: async () => [],
         updateBaseHashes: async () => undefined,
       },
+      noopSnapshotStore,
       {
         getWorkspaceFolderUri: () =>
           createTempWorkspaceUri("reset-index-cancel"),
@@ -195,6 +205,7 @@ suite("snResetIndexCommand", () => {
         getModifiedCandidates: async () => [],
         updateBaseHashes: async () => undefined,
       },
+      noopSnapshotStore,
       {
         getWorkspaceFolderUri: () =>
           createTempWorkspaceUri("reset-index-failure"),
@@ -229,6 +240,7 @@ suite("snResetIndexCommand", () => {
         getModifiedCandidates: async () => [],
         updateBaseHashes: async () => undefined,
       },
+      noopSnapshotStore,
       {
         getWorkspaceFolderUri: () =>
           createTempWorkspaceUri("reset-index-missing-clear"),
@@ -278,6 +290,7 @@ suite("snResetIndexCommand", () => {
                     getModifiedCandidates: async () => [],
                     updateBaseHashes: async () => undefined,
                   },
+                  noopSnapshotStore,
                 );
               },
             );

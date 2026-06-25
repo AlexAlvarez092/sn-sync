@@ -9,6 +9,10 @@ import {
   type SnSyncIndexServiceApi,
 } from "@services/snSyncIndexService.js";
 import {
+  SnBaseSnapshotStore,
+  type SnBaseSnapshotStoreApi,
+} from "@services/snBaseSnapshotStore.js";
+import {
   SN_SYNC_COMMANDS,
   SN_SYNC_ERROR_CODES,
   SN_SYNC_MESSAGES,
@@ -77,6 +81,7 @@ export async function runSnPullTableCommand(
   indexService: SnSyncIndexServiceApi = new SnSyncIndexService(
     context.workspaceState,
   ),
+  snapshotStore: SnBaseSnapshotStoreApi = new SnBaseSnapshotStore(),
 ): Promise<void> {
   const workspaceFolderUri = getWorkspaceFolderOrShowError(runtime);
   if (!workspaceFolderUri) {
@@ -152,6 +157,7 @@ export async function runSnPullTableCommand(
         const onFileWritten = createPullFileWrittenHandler(
           progress,
           indexUpdates,
+          { store: snapshotStore, workspaceFolderUri },
         );
 
         const settingsForTable = settings.filter(
@@ -247,6 +253,7 @@ export function registerSnPullTableCommand(
         pullService,
         defaultRuntime,
         new SnSyncIndexService(context.workspaceState),
+        new SnBaseSnapshotStore(),
       ),
     message: "sn-sync: pulling table...",
   });
