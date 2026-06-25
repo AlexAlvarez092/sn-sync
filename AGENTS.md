@@ -101,13 +101,21 @@ There is no merge option. It was removed in PR #90 (see issue #87).
 | Use relative `../../` imports across boundaries | Use path aliases (`@shared/`, `@commands/`, etc.) |
 | Omit `.js` extension in imports | Node16 module resolution requires explicit `.js` extensions |
 
+## Language
+
+**English is the primary language of this project.** Code, commit messages, issues, PRs, and all documentation must be in English.
+
 ## Pull request process
 
-1. Create a branch: `feat/<issue>-<slug>` or `fix/<issue>-<slug>`
-2. Run `npm test` locally — all tests must pass
-3. Run `npm run coverage` — coverage must remain at 100% (statements, branches, functions, lines)
-4. Open PR using `.github/pull_request_template.md`
-5. Reference the related issue with `Closes #<n>`
+1. **Create a GitHub issue first** using the templates in `.github/ISSUE_TEMPLATE/` — document the problem, proposed change, and acceptance criteria before writing any code
+2. Create a branch: `feat/<issue>-<slug>` or `fix/<issue>-<slug>`
+3. Review the diff before every commit — no dead imports, dead fields, or parameters that are passed but never read
+4. Run `npm test` locally — all tests must pass
+5. Run `npm run coverage` — coverage must remain at 100% (statements, branches, functions, lines)
+6. Do a full code review: logic, dead code, type contracts, test quality, documentation accuracy
+7. Open PR using `.github/pull_request_template.md` — fill in every section
+8. Reference the related issue with `Closes #<n>`
+9. Update `.github/copilot-instructions.md` with any lessons learned
 
 ## Documentation
 

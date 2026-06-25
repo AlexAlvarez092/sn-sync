@@ -1,5 +1,74 @@
 # sn-sync — Copilot Instructions
 
+## Development workflow
+
+Follow this workflow for every implementation, no matter how small.
+
+### 1. Start with an issue
+
+Before writing any code, create a GitHub issue that documents:
+- What problem is being solved and why
+- What the proposed change is
+- Acceptance criteria
+
+Use the issue templates in `.github/ISSUE_TEMPLATE/`. Reference the issue number in all subsequent branch names, commits, and the PR.
+
+### 2. Create a branch
+
+```bash
+git checkout -b feat/<issue-number>-<short-slug>   # new feature
+git checkout -b fix/<issue-number>-<short-slug>    # bug fix
+git checkout -b refactor/<issue-number>-<short-slug>
+```
+
+Never work directly on `master`.
+
+### 3. Review before every commit
+
+Before running `git commit`, review the full diff:
+- No dead imports, dead variables, or dead fields
+- No inline hardcoded strings (use constants)
+- No leftover debug code
+- Types are as narrow as they need to be — not wider
+- Every parameter passed to a function is actually read by the receiver
+
+### 4. Final quality gate before opening a PR
+
+Before opening a pull request, verify all of the following:
+
+1. `npm run compile` — zero errors
+2. `npm test` — all tests pass
+3. `npm run coverage` — 100% coverage (statements, branches, functions, lines)
+4. All documentation updated:
+   - User behavior changes → `docs/`
+   - Command logic changes → `developer-docs/sn-<command>.md`
+   - Architecture changes → `developer-docs/architecture.md`
+5. Full code review: logic, dead code, type contracts, test quality, doc accuracy
+6. Update these Copilot instructions with any lessons learned from the implementation
+
+### 5. Open a PR using the template
+
+Use `.github/pull_request_template.md`. Fill in every section. Reference `Closes #<issue>`.
+
+### 6. Update this file after every implementation
+
+At the end of each implementation, add any new lessons learned to the **Lessons learned** section at the bottom of this file. This keeps Copilot's context accurate for future sessions.
+
+---
+
+## Language
+
+**English is the primary language of this project.** All of the following must be written in English:
+
+- Code (identifiers, comments, docstrings)
+- Commit messages
+- Issue titles and bodies
+- Pull request titles and bodies
+- Documentation (`docs/`, `developer-docs/`, `AGENTS.md`)
+- GitHub comments and review notes
+
+---
+
 ## What this project is
 
 sn-sync is a **VS Code extension** that syncs ServiceNow script records (server-side scripts, client scripts, etc.) to local files. It allows developers to edit ServiceNow code locally and push/pull changes bidirectionally. The extension authenticates via Basic auth or OAuth, tracks a local sync index for conflict detection, and surfaces all operations through VS Code commands and a status bar.
@@ -188,3 +257,33 @@ npm run lint        # eslint src/
 npm test            # compile + lint + vscode-test (449 tests)
 npm run coverage    # compile + lint + vscode-test --coverage
 ```
+
+---
+
+## Lessons learned
+
+This section is updated after each implementation. It captures mistakes, surprises, and decisions that future sessions should know about.
+
+### Interface fields must match what the implementation actually reads
+
+When refactoring, always check that every field declared in an interface is actually read by the function that receives it. In the merge removal (PR #90), `SnPushConflictResolverInput` kept `workspaceFolderUri` and `remoteContent` after the merge path was deleted — the resolver only used `candidate.localPath`. Similarly, `SnPushConflictCandidate.localContent` was kept after merge was removed, even though the resolver never reads content. Unused fields were caught only in review, not during the initial implementation. **Before committing: grep every field of every modified interface and confirm it is read.**
+
+### Test helpers must not do I/O for unused values
+
+The `withPatchedConflictUi` test helper created a real temp directory solely to produce a `workspaceFolderUri` that the function under test never read. Always ask: does the function under test actually use this value? If not, use a stub (`vscode.Uri.file("/fake")`).
+
+### `_open.mergeEditor` is private and unusable
+
+The VS Code `_open.mergeEditor` command is prefixed with `_` (private). With an empty base it auto-resolves to local content and shows "0 Conflicts Remaining" regardless of configuration. It cannot be used for conflict resolution. Do not attempt to use any `_`-prefixed VS Code command or API.
+
+### node-diff3 is ESM-only and incompatible with Node16/CJS
+
+`node-diff3` v3.2.1 exports ESM-only types. Static `import` from a CJS context (`.ts` file with `"module": "Node16"`) fails with TS1479. A `.cts` shim with `require()` is a workaround, but adds complexity. Before installing any npm package, verify it is CJS-compatible by checking its `"type"` field and `"exports"` map in `package.json`.
+
+### Conflict marker UX is not acceptable
+
+Writing raw diff3 conflict markers (`<<<<<<< local`, `=======`, `>>>>>>> remote`) to a file and asking the user to edit them manually is not acceptable UX for a VS Code extension. The merge option was removed entirely in PR #90. If a merge/3-way diff UX is needed in the future, it must use a proper editor integration — not raw conflict markers written to the working file.
+
+### Review in layers, not all at once
+
+Doing a single review pass at the end misses issues introduced mid-implementation. After each logical change (e.g. removing a feature, adding a service, rewriting a test helper), do a focused review of just that change before moving on. Defer broad review to the end only for catching interactions between changes.
