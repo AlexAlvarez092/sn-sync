@@ -31,12 +31,9 @@ import {
 export interface SnPushCurrentRuntime extends SnBaseCommandRuntime {
   getCurrentTextEditor(): vscode.TextEditor | undefined;
   resolveConflict?(args: {
-    workspaceFolderUri: vscode.Uri;
     candidate: {
       localPath: string;
-      localContent: string;
     };
-    remoteContent: string;
   }): Thenable<SnPushConflictDecision>;
 }
 
@@ -113,7 +110,6 @@ export async function runSnPushCurrentCommand(
     let contentToPush = localContent;
     let conflictCount = 0;
     let overwriteCount = 0;
-    let mergedCount = 0;
     let discardedCount = 0;
     let skippedCount = 0;
 
@@ -127,12 +123,9 @@ export async function runSnPushCurrentCommand(
     if (remoteHash !== entry.baseHash && runtime.resolveConflict) {
       conflictCount = 1;
       const decisionInput: SnPushConflictResolverInput = {
-        workspaceFolderUri,
         candidate: {
           localPath: entry.localPath,
-          localContent,
         },
-        remoteContent,
       };
       const decision = await runtime.resolveConflict(decisionInput);
 
@@ -143,7 +136,6 @@ export async function runSnPushCurrentCommand(
             {
               conflicts: conflictCount,
               overwrite: overwriteCount,
-              merged: mergedCount,
               discarded: discardedCount,
               skipped: skippedCount,
             },
@@ -174,7 +166,6 @@ export async function runSnPushCurrentCommand(
             {
               conflicts: conflictCount,
               overwrite: overwriteCount,
-              merged: mergedCount,
               discarded: discardedCount,
               skipped: skippedCount,
             },
@@ -183,12 +174,8 @@ export async function runSnPushCurrentCommand(
         return;
       }
 
-      if (decision.kind === "merge") {
-        mergedCount = 1;
-        contentToPush = decision.mergedContent;
-      } else if (decision.kind === "overwriteRemote") {
-        overwriteCount = 1;
-      }
+      // overwriteRemote
+      overwriteCount = 1;
     }
 
     const storedContent = await pushService
@@ -214,7 +201,6 @@ export async function runSnPushCurrentCommand(
         {
           conflicts: conflictCount,
           overwrite: overwriteCount,
-          merged: mergedCount,
           discarded: discardedCount,
           skipped: skippedCount,
         },

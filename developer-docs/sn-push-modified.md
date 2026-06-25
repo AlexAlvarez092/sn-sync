@@ -17,7 +17,7 @@ Push all locally modified indexed files as a batch, resolve conflicts per file i
 
 1. Discover modified candidates (local hash vs indexed baseHash).
 2. Validate remote conflicts for every candidate.
-3. Resolve each conflict with one of four actions: overwrite, merge, discard local, skip.
+3. Resolve each conflict with one of three actions: overwrite remote, discard local, skip (dismissed).
 4. Group only files selected for upload by table + sys_id.
 5. Upload one PATCH per record group with all selected fields in the JSON body.
 6. Update baseline hashes using stored values returned from each grouped PATCH response.
@@ -48,9 +48,8 @@ The spinner is debounced to avoid flicker on very fast executions.
    - append conflict candidate if mismatch, otherwise append directly to candidatesToPush
 7. For each conflict candidate, resolve interactively:
    - Overwrite remote: candidate goes to candidatesToPush
-   - Merge: merged content goes to candidatesToPush
    - Discard local: local file overwritten with remote content and baseline updated, no upload
-   - Skip: no upload, no baseline write
+   - Skip (dismissed picker or confirmation): no upload, no baseline write
 8. If candidatesToPush is empty, show success with 0 uploaded plus conflict summary and return.
 9. Run withProgress(SN_SYNC_MESSAGES.PUSH_PROGRESS_TITLE).
 10. Group candidatesToPush by table + sys_id.
@@ -75,14 +74,6 @@ The spinner is debounced to avoid flicker on very fast executions.
 - Remote writes to multiple ServiceNow records/fields (batched by record when several modified fields share the same table + sys_id).
 - Batch local baseline updates for uploaded files.
 - Immediate local file/baseline update for discard-local decisions.
-- For merge decisions, temporary remote-content files are created in the OS temp directory and scheduled for deferred cleanup.
-
-## Temporary merge-file cleanup
-
-- Cleanup delay defaults to 5 minutes.
-- Delay can be configured with environment variable `SN_SYNC_MERGE_CLEANUP_DELAY_MS`.
-- Configured delay is clamped to a bounded range (0 ms to 60 minutes).
-- Pending cleanup tasks are flushed when the extension deactivates to reduce leftover temp files.
 
 ## Request safety model
 

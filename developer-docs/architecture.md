@@ -23,7 +23,7 @@ sn-sync follows a command-service split:
 
 On activation, the extension registers all command handlers from src/extension.ts.
 It also registers a status bar service that exposes quick command entry points.
-On deactivation, the extension flushes pending temporary merge-file cleanup tasks.
+On deactivation, the extension performs no additional cleanup tasks.
 
 Activation now uses a centralized service composition root (`createExtensionServices`) to build and share core services (auth, pull, push, report, index, config, background script) before wiring command registrations.
 
@@ -86,7 +86,7 @@ The pull specialized commands (`pull current`, `pull table`, `pull by sys_id`) n
 ### 2) Push active flow
 
 - Input: active editor file + index entry
-- Process: local change check -> remote conflict check -> interactive resolve (overwrite/merge/discard/skip) -> push when applicable
+- Process: local change check -> remote conflict check -> interactive resolve (overwrite remote/discard local/skip) -> push when applicable
 - Output: one remote write + one baseline update, or local discard + baseline update
 
 ### 3) Push modified flow
@@ -325,4 +325,3 @@ flowchart TD
 - Pull and push commands prioritize explicit conflict handling and safe remote writes.
 - push modified resolves conflicts per file and still reduces redundant PATCH requests when multiple fields of the same record are modified.
 - Command output messaging is centralized through constants to keep behavior predictable and testable.
-- Conflict merge flows create temporary files under the OS temp directory; cleanup is deferred and also flushed at extension deactivation.

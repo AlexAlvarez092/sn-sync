@@ -40,12 +40,9 @@ export interface SnPushModifiedRuntime extends SnBaseCommandRuntime {
     ) => Thenable<T>,
   ): Thenable<T>;
   resolveConflict?(args: {
-    workspaceFolderUri: vscode.Uri;
     candidate: {
       localPath: string;
-      localContent: string;
     };
-    remoteContent: string;
   }): Thenable<SnPushConflictDecision>;
 }
 
@@ -62,7 +59,6 @@ interface SnPushModifiedConflictCandidate {
 
 interface SnPushModifiedConflictStats {
   discardedCount: number;
-  mergedCount: number;
   skippedCount: number;
   overwriteCount: number;
 }
@@ -134,7 +130,6 @@ export async function runSnPushModifiedCommand(
           {
             conflicts: conflictCandidates.length,
             overwrite: conflictStats.overwriteCount,
-            merged: conflictStats.mergedCount,
             discarded: conflictStats.discardedCount,
             skipped: conflictStats.skippedCount,
           },
@@ -164,7 +159,6 @@ export async function runSnPushModifiedCommand(
         {
           conflicts: conflictCandidates.length,
           overwrite: conflictStats.overwriteCount,
-          merged: conflictStats.mergedCount,
           discarded: conflictStats.discardedCount,
           skipped: conflictStats.skippedCount,
         },
@@ -203,7 +197,6 @@ export function registerSnPushModifiedCommand(
 function initConflictStats(): SnPushModifiedConflictStats {
   return {
     discardedCount: 0,
-    mergedCount: 0,
     skippedCount: 0,
     overwriteCount: 0,
   };
@@ -277,12 +270,9 @@ async function applyConflictDecisions(
 
   for (const { candidate, remoteContent } of conflictCandidates) {
     const decisionInput: SnPushConflictResolverInput = {
-      workspaceFolderUri,
       candidate: {
         localPath: candidate.entry.localPath,
-        localContent: candidate.localContent,
       },
-      remoteContent,
     };
 
     const decision = await runtime.resolveConflict(decisionInput);
@@ -290,16 +280,6 @@ async function applyConflictDecisions(
     if (decision.kind === "overwriteRemote") {
       conflictStats.overwriteCount += 1;
       candidatesToPush.push(candidate);
-      continue;
-    }
-
-    if (decision.kind === "merge") {
-      conflictStats.mergedCount += 1;
-      candidatesToPush.push({
-        ...candidate,
-        localContent: decision.mergedContent,
-        localHash: hashText(decision.mergedContent),
-      });
       continue;
     }
 

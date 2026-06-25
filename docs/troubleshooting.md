@@ -78,10 +78,8 @@ The diagnostics channel logs structured entries with the error code, command, ca
 
 | Action | When to use |
 |--------|-------------|
-| **merge** | Open VS Code's merge editor and resolve manually |
-| **overwrite** | You are confident your local version is correct |
+| **overwrite remote** | You are confident your local version is correct |
 | **discard local** | You want to accept the remote version and abandon local changes |
-| **skip** | Come back to this file later |
 
 ---
 

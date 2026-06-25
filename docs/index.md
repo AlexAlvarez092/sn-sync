@@ -36,7 +36,7 @@ No browser switching. No copy-paste. Just your editor.
 |---------|---------|
 | Auth stored securely | Credentials live in VS Code Secret Storage, never in files |
 | Two auth methods | Basic (username + password) or OAuth with PKCE |
-| Conflict resolution | Per-file choices: overwrite, merge, discard local, or skip |
+| Conflict resolution | Per-file choices: overwrite remote or discard local |
 | Status bar shortcuts | One-click access to common commands |
 | Background scripts | Run scripts directly in ServiceNow from VS Code |
 

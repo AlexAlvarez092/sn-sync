@@ -346,53 +346,6 @@ suite("snPushCurrentCommand", () => {
     assert.strictEqual(updated, true);
   });
 
-  test("resolves active conflict by pushing merged content", async () => {
-    let pushedContent = "";
-
-    await runSnPushCurrentCommand(
-      {} as vscode.ExtensionContext,
-      {
-        getRemoteFieldContent: async () => "remote-new",
-        pushFieldContent: async (_context, _workspace, _entry, content) => {
-          pushedContent = content;
-          return content;
-        },
-      },
-      {
-        findEntryByLocalPath: async () => ({
-          localPath: "src/a.js",
-          table: "sys_script",
-          sysId: "abc",
-          fieldName: "script",
-          baseHash: hashText("old"),
-          updatedAt: "now",
-        }),
-        toWorkspaceRelativePath: () => "src/a.js",
-        getModifiedCandidates: async () => [],
-        recordPullFiles: async () => undefined,
-        updateBaseHashes: async () => undefined,
-      },
-      {
-        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
-        getCurrentTextEditor: () =>
-          ({
-            document: {
-              uri: vscode.Uri.file("/tmp/ws/src/a.js"),
-              getText: () => "local-new",
-            },
-          }) as unknown as vscode.TextEditor,
-        showErrorMessage: async () => undefined,
-        showInformationMessage: async () => undefined,
-        resolveConflict: async () => ({
-          kind: "merge",
-          mergedContent: "merged-content",
-        }),
-      },
-    );
-
-    assert.strictEqual(pushedContent, "merged-content");
-  });
-
   test("resolves active conflict by discarding local and updating base hash", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sn-sync-active-"));
     const workspaceUri = vscode.Uri.file(tempDir);

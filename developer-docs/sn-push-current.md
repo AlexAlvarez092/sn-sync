@@ -49,9 +49,8 @@ If guard 3 detects a mismatch, the command opens interactive conflict resolution
 10. Fetch remote field content and compute remoteHash.
 11. If remoteHash differs from entry.baseHash, resolve conflict interactively:
     - Overwrite remote: push current local content.
-    - Merge: open merge editor (or conflict-marker fallback), then push merged content.
     - Discard local: write remote content to local file and update baseline hash without push.
-    - Skip: keep both sides unchanged and exit without push.
+    - Skip (dismissed picker or dismissed confirmation): keep both sides unchanged and exit without push.
 12. If no conflict, push local content via pushFieldContent.
 13. Update baseline hash from returned stored content and persist with indexService.updateBaseHashes.
 14. Show success with uploaded count and conflict summary.
@@ -62,14 +61,6 @@ If guard 3 detects a mismatch, the command opens interactive conflict resolution
 - Remote write to one ServiceNow record field.
 - Baseline hash update for one index entry when push succeeds.
 - For discard-local decision, local file content is replaced with remote and baseline is updated without remote write.
-- During merge resolution, a temporary remote-content file is created in the OS temp directory and scheduled for deferred cleanup.
-
-## Temporary merge-file cleanup
-
-- Cleanup delay defaults to 5 minutes.
-- Delay can be configured with environment variable `SN_SYNC_MERGE_CLEANUP_DELAY_MS`.
-- Configured delay is clamped to a bounded range (0 ms to 60 minutes).
-- Pending cleanup tasks are flushed when the extension deactivates to reduce leftover temp files.
 
 ## Request safety model
 
@@ -86,9 +77,7 @@ Conflict detection compares:
 When mismatched, command offers:
 
 - Overwrite remote
-- Merge local and remote
 - Discard local
-- Skip file
 
 Final message includes a conflict summary with counters.
 
@@ -137,8 +126,6 @@ sequenceDiagram
 						C->>C: resolveConflictInteractive()
 						alt Overwrite remote
 							C->>P: pushFieldContent(entry, localContent)
-						else Merge
-							C->>P: pushFieldContent(entry, mergedContent)
 						else Discard local
 							C->>I: updateBaseHashes(hash(remoteContent))
 							C->>R: showInformationMessage(PUSH_CURRENT_SUCCESS + summary)
@@ -166,7 +153,7 @@ sequenceDiagram
 
 - Symptom: Conflict error appears
   - Cause: Remote baseline changed since last local baseline.
-  - Resolution: Use one of the interactive options (overwrite, merge, discard, skip).
+  - Resolution: Use one of the interactive options (overwrite remote, discard local).
 
 - Symptom: Command finishes with 0 files uploaded and conflict counters
   - Cause: You selected Skip or Discard local.
