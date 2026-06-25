@@ -1,7 +1,4 @@
 import * as assert from "assert";
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
-import * as os from "node:os";
 import * as vscode from "vscode";
 import {
   formatConflictList,
@@ -35,11 +32,9 @@ suite("snPushConflictResolutionService", () => {
   test("returns skip when conflict picker is dismissed", async () => {
     await withPatchedConflictUi(
       { showQuickPick: async () => undefined },
-      async ({ workspaceFolderUri }) => {
+      async () => {
         const result = await resolvePushConflictInteractive({
-          workspaceFolderUri,
           candidate: { localPath: "a.js", localContent: "local" },
-          remoteContent: "remote",
         });
 
         assert.deepStrictEqual(result, { kind: "skip" });
@@ -50,11 +45,9 @@ suite("snPushConflictResolutionService", () => {
   test("returns overwriteRemote when overwrite option is selected", async () => {
     await withPatchedConflictUi(
       { showQuickPick: async () => ({ value: "overwriteRemote" }) },
-      async ({ workspaceFolderUri }) => {
+      async () => {
         const result = await resolvePushConflictInteractive({
-          workspaceFolderUri,
           candidate: { localPath: "a.js", localContent: "local" },
-          remoteContent: "remote",
         });
 
         assert.deepStrictEqual(result, { kind: "overwriteRemote" });
@@ -68,11 +61,9 @@ suite("snPushConflictResolutionService", () => {
         showQuickPick: async () => ({ value: "discardLocal" }),
         showWarningMessage: async () => "Discard local",
       },
-      async ({ workspaceFolderUri }) => {
+      async () => {
         const result = await resolvePushConflictInteractive({
-          workspaceFolderUri,
           candidate: { localPath: "a.js", localContent: "local" },
-          remoteContent: "remote",
         });
 
         assert.deepStrictEqual(result, { kind: "discardLocal" });
@@ -86,11 +77,9 @@ suite("snPushConflictResolutionService", () => {
         showQuickPick: async () => ({ value: "discardLocal" }),
         showWarningMessage: async () => undefined,
       },
-      async ({ workspaceFolderUri }) => {
+      async () => {
         const result = await resolvePushConflictInteractive({
-          workspaceFolderUri,
           candidate: { localPath: "a.js", localContent: "local" },
-          remoteContent: "remote",
         });
 
         assert.deepStrictEqual(result, { kind: "skip" });
@@ -109,11 +98,9 @@ suite("snPushConflictResolutionService", () => {
           return undefined;
         },
       },
-      async ({ workspaceFolderUri }) => {
+      async () => {
         await resolvePushConflictInteractive({
-          workspaceFolderUri,
           candidate: { localPath: "scripts/my-script.js", localContent: "local" },
-          remoteContent: "remote",
         });
       },
     );
@@ -134,11 +121,9 @@ suite("snPushConflictResolutionService", () => {
           return undefined;
         },
       },
-      async ({ workspaceFolderUri }) => {
+      async () => {
         await resolvePushConflictInteractive({
-          workspaceFolderUri,
           candidate: { localPath: "scripts/my-script.js", localContent: "local" },
-          remoteContent: "remote",
         });
       },
     );
@@ -159,11 +144,9 @@ suite("snPushConflictResolutionService", () => {
           return undefined;
         },
       },
-      async ({ workspaceFolderUri }) => {
+      async () => {
         await resolvePushConflictInteractive({
-          workspaceFolderUri,
           candidate: { localPath: "a.js", localContent: "local" },
-          remoteContent: "remote",
         });
       },
     );
@@ -183,17 +166,10 @@ interface PatchedConflictUiOptions {
   ) => Promise<string | undefined>;
 }
 
-interface PatchedConflictUiContext {
-  workspaceFolderUri: vscode.Uri;
-}
-
 async function withPatchedConflictUi(
   options: PatchedConflictUiOptions,
-  run: (ctx: PatchedConflictUiContext) => Promise<void>,
+  run: () => Promise<void>,
 ): Promise<void> {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sn-conflict-ui-"));
-  const workspaceFolderUri = vscode.Uri.file(tempDir);
-
   const windowObject = vscode.window as unknown as {
     showQuickPick: typeof vscode.window.showQuickPick;
     showWarningMessage: typeof vscode.window.showWarningMessage;
@@ -209,10 +185,9 @@ async function withPatchedConflictUi(
     : async () => undefined;
 
   try {
-    await run({ workspaceFolderUri });
+    await run();
   } finally {
     windowObject.showQuickPick = originalShowQuickPick;
     windowObject.showWarningMessage = originalShowWarningMessage;
-    await fs.rm(tempDir, { recursive: true, force: true });
   }
 }

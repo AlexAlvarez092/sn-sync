@@ -40,12 +40,10 @@ export interface SnPushModifiedRuntime extends SnBaseCommandRuntime {
     ) => Thenable<T>,
   ): Thenable<T>;
   resolveConflict?(args: {
-    workspaceFolderUri: vscode.Uri;
     candidate: {
       localPath: string;
       localContent: string;
     };
-    remoteContent: string;
   }): Thenable<SnPushConflictDecision>;
 }
 
@@ -273,12 +271,10 @@ async function applyConflictDecisions(
 
   for (const { candidate, remoteContent } of conflictCandidates) {
     const decisionInput: SnPushConflictResolverInput = {
-      workspaceFolderUri,
       candidate: {
         localPath: candidate.entry.localPath,
         localContent: candidate.localContent,
       },
-      remoteContent,
     };
 
     const decision = await runtime.resolveConflict(decisionInput);

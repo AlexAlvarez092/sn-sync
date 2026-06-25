@@ -31,12 +31,10 @@ import {
 export interface SnPushCurrentRuntime extends SnBaseCommandRuntime {
   getCurrentTextEditor(): vscode.TextEditor | undefined;
   resolveConflict?(args: {
-    workspaceFolderUri: vscode.Uri;
     candidate: {
       localPath: string;
       localContent: string;
     };
-    remoteContent: string;
   }): Thenable<SnPushConflictDecision>;
 }
 
@@ -126,12 +124,10 @@ export async function runSnPushCurrentCommand(
     if (remoteHash !== entry.baseHash && runtime.resolveConflict) {
       conflictCount = 1;
       const decisionInput: SnPushConflictResolverInput = {
-        workspaceFolderUri,
         candidate: {
           localPath: entry.localPath,
           localContent,
         },
-        remoteContent,
       };
       const decision = await runtime.resolveConflict(decisionInput);
 

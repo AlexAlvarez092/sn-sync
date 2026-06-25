@@ -7,9 +7,7 @@ export interface SnPushConflictCandidate {
 }
 
 export interface SnPushConflictResolverInput {
-  workspaceFolderUri: vscode.Uri;
   candidate: SnPushConflictCandidate;
-  remoteContent: string;
 }
 
 export type SnPushConflictDecision =
