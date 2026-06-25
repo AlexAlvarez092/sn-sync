@@ -8,10 +8,6 @@ import {
   type SnSyncIndexServiceApi,
 } from "@services/snSyncIndexService.js";
 import {
-  SnBaseSnapshotStore,
-  type SnBaseSnapshotStoreApi,
-} from "@services/snBaseSnapshotStore.js";
-import {
   SN_SYNC_COMMANDS,
   SN_SYNC_ERROR_CODES,
   SN_SYNC_MESSAGES,
@@ -34,14 +30,19 @@ import {
 
 export interface SnPushCurrentRuntime extends SnBaseCommandRuntime {
   getCurrentTextEditor(): vscode.TextEditor | undefined;
-  snapshotStore?: SnBaseSnapshotStoreApi;
-  resolveConflict?(args: SnPushConflictResolverInput): Thenable<SnPushConflictDecision>;
+  resolveConflict?(args: {
+    workspaceFolderUri: vscode.Uri;
+    candidate: {
+      localPath: string;
+      localContent: string;
+    };
+    remoteContent: string;
+  }): Thenable<SnPushConflictDecision>;
 }
 
 const defaultRuntime: SnPushCurrentRuntime = {
   ...defaultBaseRuntime,
   getCurrentTextEditor: () => vscode.window.activeTextEditor,
-  snapshotStore: new SnBaseSnapshotStore(),
   resolveConflict: resolvePushConflictInteractive,
 };
 
@@ -112,7 +113,6 @@ export async function runSnPushCurrentCommand(
     let contentToPush = localContent;
     let conflictCount = 0;
     let overwriteCount = 0;
-    let mergedCount = 0;
     let discardedCount = 0;
     let skippedCount = 0;
 
@@ -125,9 +125,6 @@ export async function runSnPushCurrentCommand(
 
     if (remoteHash !== entry.baseHash && runtime.resolveConflict) {
       conflictCount = 1;
-      const baseContent = runtime.snapshotStore
-        ? await runtime.snapshotStore.readSnapshot(workspaceFolderUri, entry.baseHash)
-        : null;
       const decisionInput: SnPushConflictResolverInput = {
         workspaceFolderUri,
         candidate: {
@@ -135,7 +132,6 @@ export async function runSnPushCurrentCommand(
           localContent,
         },
         remoteContent,
-        ...(baseContent !== null ? { baseContent } : {}),
       };
       const decision = await runtime.resolveConflict(decisionInput);
 
@@ -146,7 +142,6 @@ export async function runSnPushCurrentCommand(
             {
               conflicts: conflictCount,
               overwrite: overwriteCount,
-              merged: mergedCount,
               discarded: discardedCount,
               skipped: skippedCount,
             },
@@ -172,20 +167,11 @@ export async function runSnPushCurrentCommand(
           },
         ]);
 
-        if (runtime.snapshotStore) {
-          await runtime.snapshotStore.writeSnapshot(
-            workspaceFolderUri,
-            hashText(remoteContent),
-            remoteContent,
-          );
-        }
-
         void runtime.showInformationMessage(
           `${SN_SYNC_MESSAGES.PUSH_CURRENT_SUCCESS} ${formatUploadedFilesCount(0)}${formatConflictSummary(
             {
               conflicts: conflictCount,
               overwrite: overwriteCount,
-              merged: mergedCount,
               discarded: discardedCount,
               skipped: skippedCount,
             },
@@ -194,12 +180,8 @@ export async function runSnPushCurrentCommand(
         return;
       }
 
-      if (decision.kind === "merge") {
-        mergedCount = 1;
-        contentToPush = decision.mergedContent;
-      } else if (decision.kind === "overwriteRemote") {
-        overwriteCount = 1;
-      }
+      // overwriteRemote
+      overwriteCount = 1;
     }
 
     const storedContent = await pushService
@@ -220,20 +202,11 @@ export async function runSnPushCurrentCommand(
       },
     ]);
 
-    if (runtime.snapshotStore) {
-      await runtime.snapshotStore.writeSnapshot(
-        workspaceFolderUri,
-        hashText(storedContent),
-        storedContent,
-      );
-    }
-
     void runtime.showInformationMessage(
       `${SN_SYNC_MESSAGES.PUSH_CURRENT_SUCCESS} ${formatUploadedFilesCount(1)}${formatConflictSummary(
         {
           conflicts: conflictCount,
           overwrite: overwriteCount,
-          merged: mergedCount,
           discarded: discardedCount,
           skipped: skippedCount,
         },

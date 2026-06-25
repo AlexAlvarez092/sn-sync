@@ -8,10 +8,6 @@ import {
   type SnSyncIndexServiceApi,
 } from "@services/snSyncIndexService.js";
 import {
-  SnBaseSnapshotStore,
-  type SnBaseSnapshotStoreApi,
-} from "@services/snBaseSnapshotStore.js";
-import {
   SN_SYNC_COMMANDS,
   SN_SYNC_ERROR_CODES,
   SN_SYNC_MESSAGES,
@@ -43,14 +39,19 @@ export interface SnPushModifiedRuntime extends SnBaseCommandRuntime {
       progress: vscode.Progress<{ message?: string; increment?: number }>,
     ) => Thenable<T>,
   ): Thenable<T>;
-  snapshotStore?: SnBaseSnapshotStoreApi;
-  resolveConflict?(args: SnPushConflictResolverInput): Thenable<SnPushConflictDecision>;
+  resolveConflict?(args: {
+    workspaceFolderUri: vscode.Uri;
+    candidate: {
+      localPath: string;
+      localContent: string;
+    };
+    remoteContent: string;
+  }): Thenable<SnPushConflictDecision>;
 }
 
 const defaultRuntime: SnPushModifiedRuntime = {
   ...defaultBaseRuntime,
   withProgress: withNotificationProgress,
-  snapshotStore: new SnBaseSnapshotStore(),
   resolveConflict: resolvePushConflictInteractive,
 };
 
@@ -61,7 +62,6 @@ interface SnPushModifiedConflictCandidate {
 
 interface SnPushModifiedConflictStats {
   discardedCount: number;
-  mergedCount: number;
   skippedCount: number;
   overwriteCount: number;
 }
@@ -133,7 +133,6 @@ export async function runSnPushModifiedCommand(
           {
             conflicts: conflictCandidates.length,
             overwrite: conflictStats.overwriteCount,
-            merged: conflictStats.mergedCount,
             discarded: conflictStats.discardedCount,
             skipped: conflictStats.skippedCount,
           },
@@ -158,20 +157,11 @@ export async function runSnPushModifiedCommand(
       storedContentsByLocalPath,
     );
 
-    if (runtime.snapshotStore) {
-      await writeSnapshotsFromStoredContents(
-        runtime.snapshotStore,
-        workspaceFolderUri,
-        storedContentsByLocalPath,
-      );
-    }
-
     void runtime.showInformationMessage(
       `${SN_SYNC_MESSAGES.PUSH_MODIFIED_SUCCESS_PREFIX} ${formatUploadedFilesCount(candidatesToPush.length)}${formatConflictSummary(
         {
           conflicts: conflictCandidates.length,
           overwrite: conflictStats.overwriteCount,
-          merged: conflictStats.mergedCount,
           discarded: conflictStats.discardedCount,
           skipped: conflictStats.skippedCount,
         },
@@ -210,7 +200,6 @@ export function registerSnPushModifiedCommand(
 function initConflictStats(): SnPushModifiedConflictStats {
   return {
     discardedCount: 0,
-    mergedCount: 0,
     skippedCount: 0,
     overwriteCount: 0,
   };
@@ -283,13 +272,6 @@ async function applyConflictDecisions(
   }
 
   for (const { candidate, remoteContent } of conflictCandidates) {
-    const baseContent = runtime.snapshotStore
-      ? await runtime.snapshotStore.readSnapshot(
-          workspaceFolderUri,
-          candidate.entry.baseHash,
-        )
-      : null;
-
     const decisionInput: SnPushConflictResolverInput = {
       workspaceFolderUri,
       candidate: {
@@ -297,7 +279,6 @@ async function applyConflictDecisions(
         localContent: candidate.localContent,
       },
       remoteContent,
-      ...(baseContent !== null ? { baseContent } : {}),
     };
 
     const decision = await runtime.resolveConflict(decisionInput);
@@ -308,23 +289,12 @@ async function applyConflictDecisions(
       continue;
     }
 
-    if (decision.kind === "merge") {
-      conflictStats.mergedCount += 1;
-      candidatesToPush.push({
-        ...candidate,
-        localContent: decision.mergedContent,
-        localHash: hashText(decision.mergedContent),
-      });
-      continue;
-    }
-
     if (decision.kind === "discardLocal") {
       await discardLocalCandidate(
         workspaceFolderUri,
         candidate,
         remoteContent,
         indexService,
-        runtime.snapshotStore,
       );
       conflictStats.discardedCount += 1;
       continue;
@@ -339,7 +309,6 @@ async function discardLocalCandidate(
   candidate: SnSyncIndexCandidate,
   remoteContent: string,
   indexService: SnSyncIndexServiceApi,
-  snapshotStore?: SnBaseSnapshotStoreApi,
 ): Promise<void> {
   const localUri = resolveWorkspaceChildUri(workspaceFolderUri, [
     {
@@ -363,14 +332,6 @@ async function discardLocalCandidate(
       baseHash: hashText(remoteContent),
     },
   ]);
-
-  if (snapshotStore) {
-    await snapshotStore.writeSnapshot(
-      workspaceFolderUri,
-      hashText(remoteContent),
-      remoteContent,
-    );
-  }
 }
 
 function groupCandidatesByRecord(
@@ -481,18 +442,4 @@ async function updateBaseHashesFromStoredContents(
       ),
     })),
   );
-}
-
-async function writeSnapshotsFromStoredContents(
-  snapshotStore: SnBaseSnapshotStoreApi,
-  workspaceFolderUri: vscode.Uri,
-  storedContentsByLocalPath: ReadonlyMap<string, string>,
-): Promise<void> {
-  for (const [, content] of storedContentsByLocalPath) {
-    await snapshotStore.writeSnapshot(
-      workspaceFolderUri,
-      hashText(content),
-      content,
-    );
-  }
 }

@@ -15,10 +15,6 @@ import {
   SnSyncIndexService,
   type SnSyncIndexServiceApi,
 } from "@services/snSyncIndexService.js";
-import {
-  SnBaseSnapshotStore,
-  type SnBaseSnapshotStoreApi,
-} from "@services/snBaseSnapshotStore.js";
 
 export interface SnResetIndexRuntime extends SnBaseCommandRuntime {
   askConfirmation(message: string, actionLabel: string): Thenable<boolean>;
@@ -40,7 +36,6 @@ const defaultRuntime: SnResetIndexRuntime = {
 export async function runSnResetIndexCommand(
   context: vscode.ExtensionContext,
   indexService: SnSyncIndexServiceApi,
-  snapshotStore: SnBaseSnapshotStoreApi,
   runtime: SnResetIndexRuntime = defaultRuntime,
 ): Promise<void> {
   const workspaceFolderUri = getWorkspaceFolderOrShowError(runtime);
@@ -63,7 +58,6 @@ export async function runSnResetIndexCommand(
     }
 
     await indexService.clearIndex(workspaceFolderUri);
-    await snapshotStore.clearAll(workspaceFolderUri);
 
     void runtime.showInformationMessage(SN_SYNC_MESSAGES.RESET_INDEX_SUCCESS);
   } catch (error) {
@@ -84,12 +78,11 @@ export function registerSnResetIndexCommand(
   indexService: SnSyncIndexServiceApi = new SnSyncIndexService(
     context.workspaceState,
   ),
-  snapshotStore: SnBaseSnapshotStoreApi = new SnBaseSnapshotStore(),
 ): void {
   registerCommandWithStatus({
     context,
     commandId: SN_SYNC_COMMANDS.RESET_INDEX,
-    task: () => runSnResetIndexCommand(context, indexService, snapshotStore),
+    task: () => runSnResetIndexCommand(context, indexService),
     message: "sn-sync: resetting index...",
   });
 }

@@ -9,10 +9,6 @@ import {
   type SnSyncIndexServiceApi,
 } from "@services/snSyncIndexService.js";
 import {
-  SnBaseSnapshotStore,
-  type SnBaseSnapshotStoreApi,
-} from "@services/snBaseSnapshotStore.js";
-import {
   SN_SYNC_COMMANDS,
   SN_SYNC_ERROR_CODES,
   SN_SYNC_MESSAGES,
@@ -69,7 +65,6 @@ export async function runSnPullAllFilesCommand(
   indexService: SnSyncIndexServiceApi = new SnSyncIndexService(
     context.workspaceState,
   ),
-  snapshotStore: SnBaseSnapshotStoreApi = new SnBaseSnapshotStore(),
 ): Promise<void> {
   const workspaceFolderUri = getWorkspaceFolderOrShowError(runtime);
   if (!workspaceFolderUri) {
@@ -123,7 +118,6 @@ export async function runSnPullAllFilesCommand(
         const onFileWritten = createPullFileWrittenHandler(
           progress,
           indexUpdates,
-          { store: snapshotStore, workspaceFolderUri },
         );
 
         for (const setting of settings) {
@@ -194,7 +188,6 @@ export function registerSnPullAllFilesCommand(
         pullService,
         defaultRuntime,
         new SnSyncIndexService(context.workspaceState),
-        new SnBaseSnapshotStore(),
       ),
     message: "sn-sync: pulling all files...",
   });

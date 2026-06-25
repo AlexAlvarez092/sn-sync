@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import { SnSyncConfigService } from "@services/snSyncConfigService.js";
 import type { SnSyncIndexServiceApi } from "@services/snSyncIndexService.js";
-import type { SnBaseSnapshotStoreApi } from "@services/snBaseSnapshotStore.js";
 import { SN_SYNC_MESSAGES } from "@shared/constants/snSyncConstants.js";
 import {
   type SnBaseCommandRuntime,
@@ -38,7 +37,6 @@ export async function runScopedPullWithIndex(args: {
   runtime: SnScopedPullRuntime;
   configService: SnSyncConfigService;
   indexService: SnSyncIndexServiceApi;
-  snapshotStore?: SnBaseSnapshotStoreApi;
   runPull: (params: {
     settings: ExtensionConfigSetting[];
     rootDir: string;
@@ -82,9 +80,6 @@ export async function runScopedPullWithIndex(args: {
       const onFileWritten = createPullFileWrittenHandler(
         progress,
         indexUpdates,
-        args.snapshotStore
-          ? { store: args.snapshotStore, workspaceFolderUri: args.workspaceFolderUri }
-          : undefined,
       );
 
       const summary = await args.runPull({

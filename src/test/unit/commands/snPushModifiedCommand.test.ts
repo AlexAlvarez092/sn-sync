@@ -415,62 +415,6 @@ suite("snPushModifiedCommand", () => {
     assert.ok(shownInfos[0].includes("Skipped: 1"));
   });
 
-  test("resolves conflict by merge and pushes merged content", async () => {
-    const pushedContents: string[] = [];
-    const shownInfos: string[] = [];
-
-    await runSnPushModifiedCommand(
-      {} as vscode.ExtensionContext,
-      {
-        getRemoteFieldContent: async () => "remote-changed",
-        pushFieldContent: async (_context, _workspaceUri, _entry, content) => {
-          pushedContents.push(content);
-          return content;
-        },
-      },
-      {
-        getModifiedCandidates: async () => [
-          {
-            entry: {
-              localPath: "src/a.js",
-              table: "sys_script",
-              sysId: "a",
-              fieldName: "script",
-              baseHash: hashText("base"),
-              updatedAt: "now",
-            },
-            localContent: "local-a",
-            localHash: hashText("local-a"),
-          },
-        ],
-        findEntryByLocalPath: async () => undefined,
-        toWorkspaceRelativePath: () => "",
-        recordPullFiles: async () => undefined,
-        updateBaseHashes: async () => undefined,
-      },
-      {
-        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
-        showErrorMessage: async () => undefined,
-        showInformationMessage: async (message: string) => {
-          shownInfos.push(message);
-          return undefined;
-        },
-        withProgress: async (_title, task) =>
-          task({
-            report: () => undefined,
-          }),
-        resolveConflict: async () => ({
-          kind: "merge",
-          mergedContent: "merged-content",
-        }),
-      },
-    );
-
-    assert.deepStrictEqual(pushedContents, ["merged-content"]);
-    assert.strictEqual(shownInfos.length, 1);
-    assert.ok(shownInfos[0].includes("Merged: 1"));
-  });
-
   test("resolves conflict by discard and reports zero uploaded summary", async () => {
     const shownInfos: string[] = [];
     const updatedHashes: string[] = [];

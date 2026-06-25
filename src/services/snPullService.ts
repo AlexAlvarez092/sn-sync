@@ -39,7 +39,6 @@ export interface SnPullProgressEvent {
   sysId?: string;
   fieldName?: string;
   baseHash?: string;
-  content?: string;
 }
 
 export interface SnPullOptions {
@@ -371,7 +370,6 @@ export class SnPullService implements SnPullServiceApi {
         sysId,
         fieldName: field.field_name,
         baseHash: hashText(content),
-        content,
       });
     }
 
