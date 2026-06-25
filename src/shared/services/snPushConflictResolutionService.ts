@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as os from "node:os";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
+import { diffComm } from "@shared/utils/diff3.cjs";
 import { SN_SYNC_PUSH_CONFLICT_UI } from "@shared/constants/snSyncConstants.js";
 
 const DEFAULT_TEMP_MERGE_CLEANUP_DELAY_MS = 5 * 60 * 1000;
@@ -49,7 +50,7 @@ export async function resolvePushConflictInteractive({
   remoteContent,
 }: SnPushConflictResolverInput): Promise<SnPushConflictDecision> {
   const localUri = vscode.Uri.joinPath(workspaceFolderUri, candidate.localPath);
-  const remoteTempUri = await writeTempMergeInput("remote", remoteContent);
+  const remoteTempUri = await writeTempRemoteSnapshot(remoteContent);
 
   await openRemoteVsLocalDiff(localUri, candidate.localPath, remoteTempUri);
 
@@ -108,31 +109,24 @@ export async function resolvePushConflictInteractive({
       : { kind: "skip" };
   }
 
-  const openedMergeEditor = await openMergeEditor(localUri, {
-    remoteUri: remoteTempUri,
+  // merge path
+  const mergedContent = buildConflictMarkersFromDiff3(
+    candidate.localContent,
+    remoteContent,
+  );
+
+  await vscode.workspace.fs.writeFile(
+    localUri,
+    new TextEncoder().encode(mergedContent),
+  );
+
+  const mergeDocument = await vscode.workspace.openTextDocument(localUri);
+  await vscode.window.showTextDocument(mergeDocument, {
+    preview: false,
+    preserveFocus: false,
   });
 
-  if (!openedMergeEditor) {
-    const mergedContent = buildMergeWithConflictMarkers(
-      candidate.localContent,
-      remoteContent,
-    );
-
-    await vscode.workspace.fs.writeFile(
-      localUri,
-      new TextEncoder().encode(mergedContent),
-    );
-
-    const mergeDocument = await vscode.workspace.openTextDocument(localUri);
-    await vscode.window.showTextDocument(mergeDocument, {
-      preview: false,
-      preserveFocus: false,
-    });
-
-    scheduleTempUriCleanup(remoteTempUri);
-  } else {
-    scheduleTempUriCleanup(remoteTempUri);
-  }
+  scheduleTempUriCleanup(remoteTempUri);
 
   const mergeAction = await vscode.window.showInformationMessage(
     `${SN_SYNC_PUSH_CONFLICT_UI.MERGE_PROMPT_PREFIX} ${candidate.localPath}, ${SN_SYNC_PUSH_CONFLICT_UI.MERGE_PROMPT_SUFFIX}`,
@@ -141,12 +135,16 @@ export async function resolvePushConflictInteractive({
   );
 
   if (mergeAction !== SN_SYNC_PUSH_CONFLICT_UI.MERGE_ACTION_PUSH) {
+    await vscode.workspace.fs.writeFile(
+      localUri,
+      new TextEncoder().encode(candidate.localContent),
+    );
     return { kind: "skip" };
   }
 
-  const mergeDocument = await vscode.workspace.openTextDocument(localUri);
-  if (mergeDocument.isDirty) {
-    await mergeDocument.save();
+  const resultDocument = await vscode.workspace.openTextDocument(localUri);
+  if (resultDocument.isDirty) {
+    await resultDocument.save();
   }
 
   const mergedBytes = await vscode.workspace.fs.readFile(localUri);
@@ -189,44 +187,34 @@ async function openRemoteVsLocalDiff(
   );
 }
 
-function buildMergeWithConflictMarkers(local: string, remote: string): string {
+export function buildConflictMarkersFromDiff3(
+  local: string,
+  remote: string,
+): string {
   if (local === remote) {
     return local;
   }
 
-  return ["<<<<<<< LOCAL", local, "=======", remote, ">>>>>>> REMOTE", ""].join(
-    "\n",
-  );
-}
+  const localLines = local.split("\n");
+  const remoteLines = remote.split("\n");
+  const regions = diffComm(localLines, remoteLines);
+  const result: string[] = [];
 
-async function openMergeEditor(
-  outputUri: vscode.Uri,
-  inputs: {
-    remoteUri: vscode.Uri;
-  },
-): Promise<boolean> {
-  try {
-    await vscode.commands.executeCommand("_open.mergeEditor", {
-      base: inputs.remoteUri,
-      input1: {
-        uri: outputUri,
-        title: SN_SYNC_PUSH_CONFLICT_UI.MERGE_INPUT_LOCAL_TITLE,
-        description: SN_SYNC_PUSH_CONFLICT_UI.MERGE_INPUT_LOCAL_DESCRIPTION,
-        detail: SN_SYNC_PUSH_CONFLICT_UI.MERGE_INPUT_LOCAL_DETAIL,
-      },
-      input2: {
-        uri: inputs.remoteUri,
-        title: SN_SYNC_PUSH_CONFLICT_UI.MERGE_INPUT_REMOTE_TITLE,
-        description: SN_SYNC_PUSH_CONFLICT_UI.MERGE_INPUT_REMOTE_DESCRIPTION,
-        detail: SN_SYNC_PUSH_CONFLICT_UI.MERGE_INPUT_REMOTE_DETAIL,
-      },
-      output: outputUri,
-    });
-
-    return true;
-  } catch {
-    return false;
+  for (const region of regions) {
+    if ("common" in region) {
+      result.push(...region.common);
+    } else {
+      result.push(
+        `<<<<<<< ${SN_SYNC_PUSH_CONFLICT_UI.MERGE_INPUT_LOCAL_TITLE}`,
+        ...region.buffer1,
+        "=======",
+        ...region.buffer2,
+        `>>>>>>> ${SN_SYNC_PUSH_CONFLICT_UI.MERGE_INPUT_REMOTE_TITLE}`,
+      );
+    }
   }
+
+  return result.join("\n");
 }
 
 function scheduleTempUriCleanup(tempUri: vscode.Uri): void {
@@ -284,12 +272,9 @@ function getTempMergeCleanupDelayMs(): number {
   );
 }
 
-async function writeTempMergeInput(
-  label: string,
-  content: string,
-): Promise<vscode.Uri> {
+async function writeTempRemoteSnapshot(content: string): Promise<vscode.Uri> {
   const fileUri = vscode.Uri.file(
-    path.join(os.tmpdir(), `sn-sync-merge-${label}-${randomUUID()}.txt`),
+    path.join(os.tmpdir(), `sn-sync-merge-remote-${randomUUID()}.txt`),
   );
 
   await vscode.workspace.fs.writeFile(
@@ -298,3 +283,4 @@ async function writeTempMergeInput(
   );
   return fileUri;
 }
+

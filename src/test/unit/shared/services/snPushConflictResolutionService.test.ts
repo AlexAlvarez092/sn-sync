@@ -4,6 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import {
+  buildConflictMarkersFromDiff3,
   formatConflictList,
   formatConflictSummary,
   flushScheduledTempMergeCleanup,
@@ -122,31 +123,100 @@ suite("snPushConflictResolutionService", () => {
     );
   });
 
-  test("returns skip when merge editor opens but user skips pushing merged", async () => {
+  test("returns skip when user skips after choosing merge", async () => {
     await withPatchedConflictUi(
       {
         showQuickPick: async () => ({ value: "merge" }),
         showInformationMessage: async () => "Skip file",
+        initialLocalFileContent: "original-local",
       },
-      async ({ executeCalls, workspaceFolderUri }) => {
+      async ({ workspaceFolderUri, localFileUri }) => {
         const result = await resolvePushConflictInteractive({
           workspaceFolderUri,
           candidate: {
             localPath: "a.js",
-            localContent: "local",
+            localContent: "original-local",
           },
           remoteContent: "remote",
         });
 
         assert.deepStrictEqual(result, { kind: "skip" });
-        assert.ok(
-          executeCalls.some((call) => call.command === "_open.mergeEditor"),
-        );
         assert.strictEqual(
-          executeCalls.filter((call) => call.command === "_open.mergeEditor")
-            .length,
-          1,
+          await fs.readFile(localFileUri.fsPath, "utf8"),
+          "original-local",
+          "local file must be restored to original content on skip",
         );
+      },
+    );
+  });
+
+  test("restores original content when merge notification is dismissed", async () => {
+    await withPatchedConflictUi(
+      {
+        showQuickPick: async () => ({ value: "merge" }),
+        initialLocalFileContent: "original-local",
+      },
+      async ({ workspaceFolderUri, localFileUri }) => {
+        const result = await resolvePushConflictInteractive({
+          workspaceFolderUri,
+          candidate: {
+            localPath: "a.js",
+            localContent: "original-local",
+          },
+          remoteContent: "remote",
+        });
+
+        assert.deepStrictEqual(result, { kind: "skip" });
+        assert.strictEqual(
+          await fs.readFile(localFileUri.fsPath, "utf8"),
+          "original-local",
+          "local file must be restored to original content when notification is dismissed",
+        );
+      },
+    );
+  });
+
+  test("writes diff3 conflict markers to local file before user confirms", async () => {
+    let contentOnDiskDuringPrompt = "";
+
+    await withPatchedConflictUi(
+      {
+        showQuickPick: async () => ({ value: "merge" }),
+        showInformationMessage: async () => "Skip file",
+        initialLocalFileContent: "local line",
+      },
+      async ({ workspaceFolderUri, localFileUri }) => {
+        const windowObject = vscode.window as unknown as {
+          showInformationMessage: (...args: unknown[]) => Promise<unknown>;
+        };
+        const original = windowObject.showInformationMessage;
+        windowObject.showInformationMessage = async (...args: unknown[]) => {
+          contentOnDiskDuringPrompt = await fs.readFile(
+            localFileUri.fsPath,
+            "utf8",
+          );
+          return original(...args);
+        };
+
+        try {
+          await resolvePushConflictInteractive({
+            workspaceFolderUri,
+            candidate: {
+              localPath: "a.js",
+              localContent: "local line",
+            },
+            remoteContent: "remote line",
+          });
+        } finally {
+          windowObject.showInformationMessage = original;
+        }
+
+        assert.ok(
+          contentOnDiskDuringPrompt.includes("<<<<<<<"),
+          "conflict markers must be written to disk before user responds",
+        );
+        assert.ok(contentOnDiskDuringPrompt.includes("local line"));
+        assert.ok(contentOnDiskDuringPrompt.includes("remote line"));
       },
     );
   });
@@ -157,7 +227,7 @@ suite("snPushConflictResolutionService", () => {
         showQuickPick: async () => ({ value: "merge" }),
         showInformationMessage: async () => "Push merged",
         mergeDocumentDirty: true,
-        initialLocalFileContent: "merged-from-editor",
+        savedFileContent: "merged-from-editor",
       },
       async ({ workspaceFolderUri }) => {
         const result = await resolvePushConflictInteractive({
@@ -177,79 +247,12 @@ suite("snPushConflictResolutionService", () => {
     );
   });
 
-  test("does not delete merge temp files immediately after opening merge editor", async () => {
-    await withPatchedConflictUi(
-      {
-        showQuickPick: async () => ({ value: "merge" }),
-        showInformationMessage: async () => "Skip file",
-      },
-      async ({ executeCalls, workspaceFolderUri }) => {
-        await resolvePushConflictInteractive({
-          workspaceFolderUri,
-          candidate: {
-            localPath: "a.js",
-            localContent: "local",
-          },
-          remoteContent: "remote",
-        });
-
-        assert.strictEqual(
-          executeCalls.filter((call) => call.command === "_open.mergeEditor")
-            .length,
-          1,
-        );
-        assert.strictEqual(
-          executeCalls.filter((call) => call.command === "vscode.diff").length,
-          1,
-        );
-      },
-    );
-  });
-
-  test("falls back to conflict markers when merge editor cannot open", async () => {
+  test("no conflict markers when local and remote are identical", async () => {
     await withPatchedConflictUi(
       {
         showQuickPick: async () => ({ value: "merge" }),
         showInformationMessage: async () => "Push merged",
-        failMergeEditor: true,
-      },
-      async ({ workspaceFolderUri, localFileUri }) => {
-        const result = await resolvePushConflictInteractive({
-          workspaceFolderUri,
-          candidate: {
-            localPath: "a.js",
-            localContent: "local",
-          },
-          remoteContent: "remote",
-        });
-
-        assert.deepStrictEqual(result, {
-          kind: "merge",
-          mergedContent: [
-            "<<<<<<< LOCAL",
-            "local",
-            "=======",
-            "remote",
-            ">>>>>>> REMOTE",
-            "",
-          ].join("\n"),
-        });
-
-        assert.ok(
-          (await fs.readFile(localFileUri.fsPath, "utf8")).includes(
-            "<<<<<<< LOCAL",
-          ),
-        );
-      },
-    );
-  });
-
-  test("fallback keeps original content when local and remote are equal", async () => {
-    await withPatchedConflictUi(
-      {
-        showQuickPick: async () => ({ value: "merge" }),
-        showInformationMessage: async () => "Push merged",
-        failMergeEditor: true,
+        initialLocalFileContent: "same-content",
       },
       async ({ workspaceFolderUri, localFileUri }) => {
         const result = await resolvePushConflictInteractive({
@@ -268,6 +271,71 @@ suite("snPushConflictResolutionService", () => {
         assert.strictEqual(
           await fs.readFile(localFileUri.fsPath, "utf8"),
           "same-content",
+        );
+      },
+    );
+  });
+
+  test("buildConflictMarkersFromDiff3 produces line-level conflict markers", () => {
+    const local = ["line1", "local change", "line3"].join("\n");
+    const remote = ["line1", "remote change", "line3"].join("\n");
+
+    const result = buildConflictMarkersFromDiff3(local, remote);
+
+    assert.ok(result.includes("<<<<<<<"), "must contain opening marker");
+    assert.ok(result.includes("======="), "must contain separator");
+    assert.ok(result.includes(">>>>>>>"), "must contain closing marker");
+    assert.ok(result.includes("local change"), "must contain local content");
+    assert.ok(result.includes("remote change"), "must contain remote content");
+
+    // Unchanged lines must appear outside of conflict markers
+    const lines = result.split("\n");
+    const markerIndices = lines
+      .map((l, i) => ({ l, i }))
+      .filter(({ l }) => l.startsWith("<<<<<<<") || l.startsWith(">>>>>>>"))
+      .map(({ i }) => i);
+    const line1Index = lines.indexOf("line1");
+    const line3Index = lines.indexOf("line3");
+    assert.ok(
+      line1Index < markerIndices[0],
+      "line1 must appear before the conflict block",
+    );
+    assert.ok(
+      line3Index > markerIndices[markerIndices.length - 1],
+      "line3 must appear after the conflict block",
+    );
+  });
+
+  test("buildConflictMarkersFromDiff3 returns unchanged content when local equals remote", () => {
+    const content = "line1\nline2\nline3";
+    assert.strictEqual(buildConflictMarkersFromDiff3(content, content), content);
+  });
+
+  test("vscode.diff is called once on the merge path", async () => {
+    await withPatchedConflictUi(
+      {
+        showQuickPick: async () => ({ value: "merge" }),
+        showInformationMessage: async () => "Skip file",
+      },
+      async ({ executeCalls, workspaceFolderUri }) => {
+        await resolvePushConflictInteractive({
+          workspaceFolderUri,
+          candidate: {
+            localPath: "a.js",
+            localContent: "local",
+          },
+          remoteContent: "remote",
+        });
+
+        assert.strictEqual(
+          executeCalls.filter((call) => call.command === "vscode.diff").length,
+          1,
+        );
+        assert.strictEqual(
+          executeCalls.filter((call) => call.command === "_open.mergeEditor")
+            .length,
+          0,
+          "_open.mergeEditor must not be called",
         );
       },
     );
@@ -472,9 +540,9 @@ interface ConflictUiHarnessOptions {
   ) => Promise<{ value: string } | undefined>;
   showWarningMessage?: (message: string) => Promise<string | undefined>;
   showInformationMessage?: (message: string) => Promise<string | undefined>;
-  failMergeEditor?: boolean;
   mergeDocumentDirty?: boolean;
   initialLocalFileContent?: string;
+  savedFileContent?: string;
 }
 
 async function withPatchedConflictUi(
@@ -591,6 +659,13 @@ async function withPatchedConflictUi(
         isDirty: true,
         save: async () => {
           (document as { isDirty: boolean }).isDirty = false;
+          if (options.savedFileContent !== undefined) {
+            await fs.writeFile(
+              localFileUri.fsPath,
+              options.savedFileContent,
+              "utf8",
+            );
+          }
           return true;
         },
         getText: () => options.initialLocalFileContent ?? "",
@@ -607,10 +682,6 @@ async function withPatchedConflictUi(
     ...args: unknown[]
   ) => {
     executeCalls.push({ command, args });
-    if (options.failMergeEditor && command === "_open.mergeEditor") {
-      throw new Error("merge-editor-unavailable");
-    }
-
     return undefined;
   }) as typeof commandsObject.executeCommand;
 
