@@ -34,7 +34,7 @@ suite("snPushConflictResolutionService", () => {
       { showQuickPick: async () => undefined },
       async () => {
         const result = await resolvePushConflictInteractive({
-          candidate: { localPath: "a.js", localContent: "local" },
+          candidate: { localPath: "a.js" },
         });
 
         assert.deepStrictEqual(result, { kind: "skip" });
@@ -47,7 +47,7 @@ suite("snPushConflictResolutionService", () => {
       { showQuickPick: async () => ({ value: "overwriteRemote" }) },
       async () => {
         const result = await resolvePushConflictInteractive({
-          candidate: { localPath: "a.js", localContent: "local" },
+          candidate: { localPath: "a.js" },
         });
 
         assert.deepStrictEqual(result, { kind: "overwriteRemote" });
@@ -63,7 +63,7 @@ suite("snPushConflictResolutionService", () => {
       },
       async () => {
         const result = await resolvePushConflictInteractive({
-          candidate: { localPath: "a.js", localContent: "local" },
+          candidate: { localPath: "a.js" },
         });
 
         assert.deepStrictEqual(result, { kind: "discardLocal" });
@@ -79,7 +79,7 @@ suite("snPushConflictResolutionService", () => {
       },
       async () => {
         const result = await resolvePushConflictInteractive({
-          candidate: { localPath: "a.js", localContent: "local" },
+          candidate: { localPath: "a.js" },
         });
 
         assert.deepStrictEqual(result, { kind: "skip" });
@@ -100,7 +100,7 @@ suite("snPushConflictResolutionService", () => {
       },
       async () => {
         await resolvePushConflictInteractive({
-          candidate: { localPath: "scripts/my-script.js", localContent: "local" },
+          candidate: { localPath: "scripts/my-script.js" },
         });
       },
     );
@@ -123,7 +123,7 @@ suite("snPushConflictResolutionService", () => {
       },
       async () => {
         await resolvePushConflictInteractive({
-          candidate: { localPath: "scripts/my-script.js", localContent: "local" },
+          candidate: { localPath: "scripts/my-script.js" },
         });
       },
     );
@@ -146,7 +146,7 @@ suite("snPushConflictResolutionService", () => {
       },
       async () => {
         await resolvePushConflictInteractive({
-          candidate: { localPath: "a.js", localContent: "local" },
+          candidate: { localPath: "a.js" },
         });
       },
     );

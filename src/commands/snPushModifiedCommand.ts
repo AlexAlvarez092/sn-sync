@@ -42,7 +42,6 @@ export interface SnPushModifiedRuntime extends SnBaseCommandRuntime {
   resolveConflict?(args: {
     candidate: {
       localPath: string;
-      localContent: string;
     };
   }): Thenable<SnPushConflictDecision>;
 }
@@ -273,7 +272,6 @@ async function applyConflictDecisions(
     const decisionInput: SnPushConflictResolverInput = {
       candidate: {
         localPath: candidate.entry.localPath,
-        localContent: candidate.localContent,
       },
     };
 

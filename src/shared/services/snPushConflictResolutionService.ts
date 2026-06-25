@@ -3,7 +3,6 @@ import { SN_SYNC_PUSH_CONFLICT_UI } from "@shared/constants/snSyncConstants.js";
 
 export interface SnPushConflictCandidate {
   localPath: string;
-  localContent: string;
 }
 
 export interface SnPushConflictResolverInput {
