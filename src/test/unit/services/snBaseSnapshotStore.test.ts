@@ -91,6 +91,11 @@ suite("snBaseSnapshotStore", () => {
       const hash = "path-check-hash";
       await store.writeSnapshot(workspaceUri, hash, "content");
 
+      // The "sha256:" prefix must be stripped from the filename so the path
+      // is valid on Windows (where ":" is the ADS separator).
+      const hashWithPrefix = `sha256:${hash}`;
+      await store.writeSnapshot(workspaceUri, hashWithPrefix, "other");
+
       const expectedPath = path.join(
         tempDir,
         SN_SYNC_PATHS.BASE_SNAPSHOT_DIR,
@@ -99,6 +104,61 @@ suite("snBaseSnapshotStore", () => {
       await assert.doesNotReject(
         () => fs.access(expectedPath),
         "snapshot file should exist at expected path",
+      );
+
+      const prefixedPath = path.join(
+        tempDir,
+        SN_SYNC_PATHS.BASE_SNAPSHOT_DIR,
+        hash, // prefix stripped → same filename portion
+      );
+      // Both hashes differ only in prefix; they resolve to different safe names
+      const strippedPath = path.join(
+        tempDir,
+        SN_SYNC_PATHS.BASE_SNAPSHOT_DIR,
+        hash, // "sha256:" prefix stripped leaves the raw hex
+      );
+      await assert.doesNotReject(
+        () => fs.access(strippedPath),
+        "sha256:-prefixed hash must also be accessible without the prefix",
+      );
+
+      // Ensure no file named "sha256:..." exists (colon in filename)
+      const colonPath = path.join(
+        tempDir,
+        SN_SYNC_PATHS.BASE_SNAPSHOT_DIR,
+        hashWithPrefix,
+      );
+      await assert.rejects(
+        () => fs.access(colonPath),
+        "file with colon in name must NOT exist",
+      );
+    });
+  });
+
+  test("writeSnapshot re-throws non-FileNotFound stat errors", async () => {
+    await withTempDir("sn-snapshot-stat-error-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      const permissionError = vscode.FileSystemError.NoPermissions(
+        vscode.Uri.file(path.join(tempDir, ".snsync/base/somehash")),
+      );
+
+      const fakeFs = {
+        stat: async () => {
+          throw permissionError;
+        },
+        writeFile: async () => {
+          throw new Error("writeFile must not be called when stat throws a non-FileNotFound error");
+        },
+        readFile: async () => new Uint8Array(),
+        delete: async () => undefined,
+      } as unknown as typeof vscode.workspace.fs;
+
+      const store = new SnBaseSnapshotStore(fakeFs);
+      await assert.rejects(
+        () => store.writeSnapshot(workspaceUri, "sha256:somehash", "content"),
+        (err: Error) => err === permissionError,
+        "non-FileNotFound error from stat must be rethrown",
       );
     });
   });

@@ -172,6 +172,14 @@ export async function runSnPushCurrentCommand(
           },
         ]);
 
+        if (runtime.snapshotStore) {
+          await runtime.snapshotStore.writeSnapshot(
+            workspaceFolderUri,
+            hashText(remoteContent),
+            remoteContent,
+          );
+        }
+
         void runtime.showInformationMessage(
           `${SN_SYNC_MESSAGES.PUSH_CURRENT_SUCCESS} ${formatUploadedFilesCount(0)}${formatConflictSummary(
             {

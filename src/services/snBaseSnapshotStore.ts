@@ -28,7 +28,13 @@ export class SnBaseSnapshotStore implements SnBaseSnapshotStoreApi {
     try {
       await this.fsApi.stat(fileUri);
       // File already exists — same hash means same content, no write needed.
-    } catch {
+    } catch (err) {
+      if (
+        !(err instanceof vscode.FileSystemError) ||
+        err.code !== "FileNotFound"
+      ) {
+        throw err;
+      }
       await this.fsApi.writeFile(
         fileUri,
         new TextEncoder().encode(content),
@@ -69,10 +75,13 @@ export class SnBaseSnapshotStore implements SnBaseSnapshotStoreApi {
     workspaceFolderUri: vscode.Uri,
     hash: string,
   ): vscode.Uri {
+    // Strip the "sha256:" prefix so the filename is valid on Windows (where ":"
+    // is the Alternate Data Stream separator and cannot appear in a filename).
+    const safeHash = hash.replace(/^[^:]+:/, "");
     return vscode.Uri.joinPath(
       workspaceFolderUri,
       SN_SYNC_PATHS.BASE_SNAPSHOT_DIR,
-      hash,
+      safeHash,
     );
   }
 }

@@ -324,6 +324,7 @@ async function applyConflictDecisions(
         candidate,
         remoteContent,
         indexService,
+        runtime.snapshotStore,
       );
       conflictStats.discardedCount += 1;
       continue;
@@ -338,6 +339,7 @@ async function discardLocalCandidate(
   candidate: SnSyncIndexCandidate,
   remoteContent: string,
   indexService: SnSyncIndexServiceApi,
+  snapshotStore?: SnBaseSnapshotStoreApi,
 ): Promise<void> {
   const localUri = resolveWorkspaceChildUri(workspaceFolderUri, [
     {
@@ -361,6 +363,14 @@ async function discardLocalCandidate(
       baseHash: hashText(remoteContent),
     },
   ]);
+
+  if (snapshotStore) {
+    await snapshotStore.writeSnapshot(
+      workspaceFolderUri,
+      hashText(remoteContent),
+      remoteContent,
+    );
+  }
 }
 
 function groupCandidatesByRecord(
