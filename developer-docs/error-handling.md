@@ -93,7 +93,7 @@ Current standardized command failure codes:
 3. Confirm whether category is auth/conflict/network/validation/unknown.
 4. Apply category-first remediation:
    - auth: re-run `sn: auth`, choose `validate auth`, and if needed rerun `configure auth`
-   - conflict: run pull, merge, and retry
+   - conflict: run pull and retry, choosing overwrite remote or discard local as needed
    - network: retry and verify instance/network availability
    - validation: verify command inputs, workspace preconditions, and indexed/configured ServiceNow identifiers (for example blank `sys_id`, missing workspace, or invalid/empty configuration values)
 5. If unresolved, open a bug report and include:

@@ -26,7 +26,7 @@ sn-sync helps you work with ServiceNow scripts in a local workflow:
 - Execute ServiceNow background scripts directly from VS Code.
 - Open the active indexed file directly in ServiceNow.
 - Push only the active file or all modified files.
-- Interactive conflict actions per file: overwrite, merge, discard local, skip.
+- Interactive conflict actions per file: overwrite remote or discard local.
 - Push report with progress and markdown output.
 - Immediate command feedback in status bar with debounced spinner.
 

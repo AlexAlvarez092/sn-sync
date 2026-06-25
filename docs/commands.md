@@ -102,10 +102,8 @@ When a remote record has changed since your last pull, sn-sync shows a per-file 
 
 | Action | What happens |
 |--------|-------------|
-| **overwrite** | Your local version is pushed regardless of remote changes |
-| **merge** | VS Code's merge editor opens for manual resolution |
+| **overwrite remote** | Your local version is pushed regardless of remote changes |
 | **discard local** | Your local file is reverted to the remote version |
-| **skip** | This file is left untouched for now |
 
 ---
 
