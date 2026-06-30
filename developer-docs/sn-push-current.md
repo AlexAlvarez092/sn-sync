@@ -26,6 +26,8 @@ The command enforces these guards before remote upload:
 2. File has local changes.
 3. Remote baseline is verified against indexed baseHash.
 
+Unsaved editor changes are persisted to disk automatically before guard evaluation. If the save fails, the command aborts.
+
 If guard 3 detects a mismatch, the command opens interactive conflict resolution.
 
 ## Preconditions
@@ -44,23 +46,26 @@ If guard 3 detects a mismatch, the command opens interactive conflict resolution
 5. Resolve workspace-relative localPath using indexService.toWorkspaceRelativePath.
 6. Resolve indexed entry using findEntryByLocalPath.
 7. If entry is missing, show SN_SYNC_MESSAGES.PUSH_CURRENT_NOT_INDEXED.
-8. Read active editor text and compute localHash.
-9. If localHash equals entry.baseHash, show SN_SYNC_MESSAGES.PUSH_CURRENT_NO_LOCAL_CHANGES.
-10. Fetch remote field content and compute remoteHash.
-11. If remoteHash differs from entry.baseHash, resolve conflict interactively:
+8. If document.isDirty, call document.save().
+   - If save returns false, show SN_SYNC_MESSAGES.PUSH_CURRENT_SAVE_FAILED and abort.
+9. Read active editor text and compute localHash.
+10. If localHash equals entry.baseHash, show SN_SYNC_MESSAGES.PUSH_CURRENT_NO_LOCAL_CHANGES.
+11. Fetch remote field content and compute remoteHash.
+12. If remoteHash differs from entry.baseHash, resolve conflict interactively:
     - Overwrite remote: push current local content.
     - Discard local: write remote content to local file and update baseline hash without push.
     - Skip (dismissed picker or dismissed confirmation): keep both sides unchanged and exit without push.
-12. If no conflict, push local content via pushFieldContent.
-13. Update baseline hash from returned stored content and persist with indexService.updateBaseHashes.
-14. Show success with uploaded count and conflict summary.
-15. On any thrown error, show SN_SYNC_MESSAGES.PUSH_CURRENT_FAILED_PREFIX + details.
+13. If no conflict, push local content via pushFieldContent.
+14. Update baseline hash from returned stored content and persist with indexService.updateBaseHashes.
+15. Show success with uploaded count and conflict summary.
+16. On any thrown error, show SN_SYNC_MESSAGES.PUSH_CURRENT_FAILED_PREFIX + details.
 
 ## Side effects
 
 - Remote write to one ServiceNow record field.
 - Baseline hash update for one index entry when push succeeds.
 - For discard-local decision, local file content is replaced with remote and baseline is updated without remote write.
+- If the document had unsaved changes, the file is saved to disk before the push proceeds.
 
 ## Request safety model
 
@@ -114,6 +119,12 @@ sequenceDiagram
 			alt Not indexed
 				C->>R: showInformationMessage(PUSH_CURRENT_NOT_INDEXED)
 			else Indexed
+				alt document.isDirty
+					C->>C: document.save()
+					alt Save failed
+						C->>R: showErrorMessage(PUSH_CURRENT_SAVE_FAILED)
+					end
+				end
 				C->>C: hash local content
 				alt No local changes
 					C->>R: showInformationMessage(PUSH_CURRENT_NO_LOCAL_CHANGES)
@@ -146,6 +157,10 @@ sequenceDiagram
 ```
 
 ## Troubleshooting
+
+- Symptom: "Failed to save the current file before pushing"
+  - Cause: VS Code could not persist the unsaved document to disk (e.g., file system error, read-only file).
+  - Resolution: Resolve the save error manually (check disk space, file permissions), then retry the push.
 
 - Symptom: "Active file is not indexed"
   - Cause: File has no index entry.
