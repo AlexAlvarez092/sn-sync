@@ -3,7 +3,7 @@
   "publisher": "AlexAlvarez",
   "displayName": "sn-sync",
   "description": "A VS Code extension for syncing ServiceNow script records to local files and safely pushing local changes back",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
