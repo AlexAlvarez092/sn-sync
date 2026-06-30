@@ -88,6 +88,16 @@ export async function runSnPushCurrentCommand(
   }
 
   try {
+    if (currentEditor.document.isDirty) {
+      const saved = await currentEditor.document.save();
+      if (!saved) {
+        void runtime.showErrorMessage(
+          SN_SYNC_MESSAGES.PUSH_CURRENT_SAVE_FAILED,
+        );
+        return;
+      }
+    }
+
     const localContent = currentEditor.document.getText();
     const localHash = hashText(localContent);
 

@@ -612,6 +612,115 @@ suite("snPushCurrentCommand", () => {
       `${SN_SYNC_MESSAGES.PUSH_CURRENT_SUCCESS} 1 file uploaded.`,
     ]);
   });
+
+  test("auto-saves dirty document before pushing", async () => {
+    const shownInfos: string[] = [];
+    let savedCalled = false;
+    let pushed = false;
+
+    await runSnPushCurrentCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getRemoteFieldContent: async () => "old",
+        pushFieldContent: async () => {
+          pushed = true;
+          return "dirty-content";
+        },
+      },
+      {
+        findEntryByLocalPath: async () => ({
+          localPath: "src/a.js",
+          table: "sys_script",
+          sysId: "abc",
+          fieldName: "script",
+          baseHash: hashText("old"),
+          updatedAt: "now",
+        }),
+        toWorkspaceRelativePath: () => "src/a.js",
+        getModifiedCandidates: async () => [],
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+      },
+      {
+        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+        getCurrentTextEditor: () =>
+          ({
+            document: {
+              uri: vscode.Uri.file("/tmp/ws/src/a.js"),
+              isDirty: true,
+              save: async () => {
+                savedCalled = true;
+                return true;
+              },
+              getText: () => "dirty-content",
+            },
+          }) as unknown as vscode.TextEditor,
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async (message: string) => {
+          shownInfos.push(message);
+          return undefined;
+        },
+      },
+    );
+
+    assert.strictEqual(savedCalled, true);
+    assert.strictEqual(pushed, true);
+    assert.deepStrictEqual(shownInfos, [
+      `${SN_SYNC_MESSAGES.PUSH_CURRENT_SUCCESS} 1 file uploaded.`,
+    ]);
+  });
+
+  test("aborts and shows error when save of dirty document fails", async () => {
+    const shownErrors: string[] = [];
+    let pushed = false;
+
+    await runSnPushCurrentCommand(
+      {} as vscode.ExtensionContext,
+      {
+        getRemoteFieldContent: async () => "old",
+        pushFieldContent: async () => {
+          pushed = true;
+          return "";
+        },
+      },
+      {
+        findEntryByLocalPath: async () => ({
+          localPath: "src/a.js",
+          table: "sys_script",
+          sysId: "abc",
+          fieldName: "script",
+          baseHash: hashText("old"),
+          updatedAt: "now",
+        }),
+        toWorkspaceRelativePath: () => "src/a.js",
+        getModifiedCandidates: async () => [],
+        recordPullFiles: async () => undefined,
+        updateBaseHashes: async () => undefined,
+      },
+      {
+        getWorkspaceFolderUri: () => vscode.Uri.file("/tmp/ws"),
+        getCurrentTextEditor: () =>
+          ({
+            document: {
+              uri: vscode.Uri.file("/tmp/ws/src/a.js"),
+              isDirty: true,
+              save: async () => false,
+              getText: () => "dirty-content",
+            },
+          }) as unknown as vscode.TextEditor,
+        showErrorMessage: async (message: string) => {
+          shownErrors.push(message);
+          return undefined;
+        },
+        showInformationMessage: async () => undefined,
+      },
+    );
+
+    assert.strictEqual(pushed, false);
+    assert.deepStrictEqual(shownErrors, [
+      SN_SYNC_MESSAGES.PUSH_CURRENT_SAVE_FAILED,
+    ]);
+  });
 });
 
 function withPatchedRegisterCommand(run: () => void): void {

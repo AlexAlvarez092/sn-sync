@@ -111,6 +111,8 @@ export const SN_SYNC_MESSAGES = {
     "No local changes detected for the current file.",
   PUSH_CURRENT_CONFLICT_PREFIX:
     "Push aborted: remote conflicts detected for current file. No files were uploaded:",
+  PUSH_CURRENT_SAVE_FAILED:
+    "Failed to save the current file before pushing. Resolve any save errors and try again.",
   PUSH_CURRENT_SUCCESS: "sn-sync push current completed.",
   PUSH_CURRENT_FAILED_PREFIX: "Failed to push current file to ServiceNow:",
   PUSH_SCOPE_PROMPT: "Choose push scope",
