@@ -96,6 +96,10 @@ Pushes local changes back to ServiceNow. Shows a scope selector:
 | **all files** | All files that have changed since the last pull or push |
 | **report** | No push — generates a Markdown report of pending changes |
 
+### Auto-save before push
+
+When pushing the **current file**, if the active editor has unsaved changes, sn-sync saves the file automatically before reading its content. This ensures what is pushed to ServiceNow matches exactly what is visible in the editor. If the save fails, the push is aborted and an error message is shown.
+
 ### Conflict resolution
 
 When a remote record has changed since your last pull, sn-sync shows a per-file conflict menu:
