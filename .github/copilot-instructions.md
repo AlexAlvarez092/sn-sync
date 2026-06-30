@@ -287,3 +287,7 @@ Writing raw diff3 conflict markers (`<<<<<<< local`, `=======`, `>>>>>>> remote`
 ### Review in layers, not all at once
 
 Doing a single review pass at the end misses issues introduced mid-implementation. After each logical change (e.g. removing a feature, adding a service, rewriting a test helper), do a focused review of just that change before moving on. Defer broad review to the end only for catching interactions between changes.
+
+### Always update both docs/ and developer-docs/ before opening a PR
+
+Any implementation that changes user-visible behavior must update `docs/` **and** any implementation that changes command logic must update `developer-docs/sn-<command>.md`. Both must be done in the same commit as the code change, before opening the PR — not as follow-up corrections after the fact.
