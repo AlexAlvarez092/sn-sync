@@ -236,6 +236,7 @@ suite("snPullTableCommand", () => {
     const shownInfos: string[] = [];
     const selectedTables: string[] = [];
     const usedRootDirs: string[] = [];
+    const replacedTables: string[] = [];
     const replacedUpdates: Array<{
       localPath: string;
       table: string;
@@ -326,7 +327,8 @@ suite("snPullTableCommand", () => {
         toWorkspaceRelativePath: () => "",
         getModifiedCandidates: async () => [],
         recordPullFiles: async () => undefined,
-        replacePullSnapshot: async (_workspaceUri, updates) => {
+        replaceTableSnapshot: async (_workspaceUri, table, updates) => {
+          replacedTables.push(table);
           replacedUpdates.push(...updates);
         },
         updateBaseHashes: async () => undefined,
@@ -335,6 +337,7 @@ suite("snPullTableCommand", () => {
 
     assert.deepStrictEqual(selectedTables, ["sp_widget"]);
     assert.deepStrictEqual(usedRootDirs, ["app"]);
+    assert.deepStrictEqual(replacedTables, ["sp_widget"]);
     assert.deepStrictEqual(replacedUpdates, [
       {
         localPath: "app/widgets/widget/widget.html",
@@ -408,7 +411,7 @@ suite("snPullTableCommand", () => {
         toWorkspaceRelativePath: () => "",
         getModifiedCandidates: async () => [],
         recordPullFiles: async () => undefined,
-        replacePullSnapshot: async () => undefined,
+        replaceTableSnapshot: async () => undefined,
         updateBaseHashes: async () => undefined,
       },
     );
@@ -464,7 +467,7 @@ suite("snPullTableCommand", () => {
         toWorkspaceRelativePath: () => "",
         getModifiedCandidates: async () => [],
         recordPullFiles: async () => undefined,
-        replacePullSnapshot: async () => undefined,
+        replaceTableSnapshot: async () => undefined,
         updateBaseHashes: async () => undefined,
       },
     );
@@ -474,7 +477,7 @@ suite("snPullTableCommand", () => {
     ]);
   });
 
-  test("shows detailed error when index service does not support replacePullSnapshot", async () => {
+  test("shows detailed error when index service does not support replaceTableSnapshot", async () => {
     const shownErrors: string[] = [];
 
     await runSnPullTableCommand(
@@ -526,7 +529,7 @@ suite("snPullTableCommand", () => {
     );
 
     assert.deepStrictEqual(shownErrors, [
-      `${SN_SYNC_MESSAGES.PULL_TABLE_FAILED_PREFIX} (SN_PULL_TABLE_FAILED) Index service does not support replacePullSnapshot`,
+      `${SN_SYNC_MESSAGES.PULL_TABLE_FAILED_PREFIX} (SN_PULL_TABLE_FAILED) Index service does not support replaceTableSnapshot`,
     ]);
   });
 
@@ -590,7 +593,7 @@ suite("snPullTableCommand", () => {
     ]);
   });
 
-  test("clears rootDir when clearBeforePull is delete", async () => {
+  test("clears selected table folder when clearBeforePull is delete", async () => {
     const deletedUris: string[] = [];
 
     await runSnPullTableCommand(
@@ -603,6 +606,13 @@ suite("snPullTableCommand", () => {
             query: "active=true",
             key: "id",
             fields: [{ extension: "html", field_name: "template" }],
+          },
+          {
+            folder: "rules",
+            table: "sys_script",
+            query: "active=true",
+            key: "name",
+            fields: [{ extension: "js", field_name: "script" }],
           },
         ],
         getPreferences: async () => ({
@@ -622,7 +632,8 @@ suite("snPullTableCommand", () => {
           createTempWorkspaceUri("pull-table-delete-root"),
         showErrorMessage: async () => undefined,
         showInformationMessage: async () => undefined,
-        showQuickPick: async (items) => items[0],
+        showQuickPick: async (items) =>
+          items.find((item) => item.label === "sp_widget"),
         showWarningMessage: async () => {
           throw new Error("must-not-be-called");
         },
@@ -638,13 +649,16 @@ suite("snPullTableCommand", () => {
         toWorkspaceRelativePath: () => "",
         getModifiedCandidates: async () => [],
         recordPullFiles: async () => undefined,
-        replacePullSnapshot: async () => undefined,
+        replaceTableSnapshot: async () => undefined,
         updateBaseHashes: async () => undefined,
       },
     );
 
     assert.strictEqual(deletedUris.length, 1);
-    assert.ok(deletedUris[0].endsWith("/custom-src/old-file.txt"));
+    assert.ok(
+      deletedUris[0].endsWith("/custom-src/widgets/old-file.txt"),
+      `Expected path to end with /custom-src/widgets/old-file.txt, got: ${deletedUris[0]}`,
+    );
   });
 
   test("prompts on ask preference and skips clear when user keeps files", async () => {
@@ -697,7 +711,7 @@ suite("snPullTableCommand", () => {
         toWorkspaceRelativePath: () => "",
         getModifiedCandidates: async () => [],
         recordPullFiles: async () => undefined,
-        replacePullSnapshot: async () => undefined,
+        replaceTableSnapshot: async () => undefined,
         updateBaseHashes: async () => undefined,
       },
     );
@@ -707,12 +721,14 @@ suite("snPullTableCommand", () => {
     assert.strictEqual(deleteCalled, false);
   });
 
-  test("default runtime uses ask prompt and clears files when user confirms", async () => {
+  test("default runtime uses ask prompt and clears only table folder when user confirms", async () => {
     const workspaceUri = createTempWorkspaceUri(
       "pull-table-default-runtime-ask",
     );
-    const srcUri = vscode.Uri.joinPath(workspaceUri, "src");
-    const staleFileUri = vscode.Uri.joinPath(srcUri, "stale.txt");
+    const widgetsDirUri = vscode.Uri.joinPath(workspaceUri, "src", "widgets");
+    const staleFileUri = vscode.Uri.joinPath(widgetsDirUri, "stale.txt");
+    const otherDirUri = vscode.Uri.joinPath(workspaceUri, "src", "rules");
+    const otherFileUri = vscode.Uri.joinPath(otherDirUri, "other.js");
     const windowObject = vscode.window as unknown as {
       showWarningMessage: (
         message: string,
@@ -721,10 +737,15 @@ suite("snPullTableCommand", () => {
     };
     const originalShowWarningMessage = windowObject.showWarningMessage;
 
-    await vscode.workspace.fs.createDirectory(srcUri);
+    await vscode.workspace.fs.createDirectory(widgetsDirUri);
     await vscode.workspace.fs.writeFile(
       staleFileUri,
       new TextEncoder().encode("stale"),
+    );
+    await vscode.workspace.fs.createDirectory(otherDirUri);
+    await vscode.workspace.fs.writeFile(
+      otherFileUri,
+      new TextEncoder().encode("other"),
     );
 
     await withPatchedWorkspaceFolders(
@@ -762,6 +783,13 @@ suite("snPullTableCommand", () => {
                       key: "id",
                       fields: [{ extension: "html", field_name: "template" }],
                     },
+                    {
+                      folder: "rules",
+                      table: "sys_script",
+                      query: "active=true",
+                      key: "name",
+                      fields: [{ extension: "js", field_name: "script" }],
+                    },
                   ],
                   getPreferences: async () => ({
                     rootDir: "src",
@@ -784,8 +812,11 @@ suite("snPullTableCommand", () => {
       },
     );
 
-    const entries = await vscode.workspace.fs.readDirectory(srcUri);
-    assert.strictEqual(entries.length, 0);
+    const widgetsEntries = await vscode.workspace.fs.readDirectory(widgetsDirUri);
+    assert.strictEqual(widgetsEntries.length, 0);
+
+    const otherEntries = await vscode.workspace.fs.readDirectory(otherDirUri);
+    assert.strictEqual(otherEntries.length, 1);
   });
 });
 

@@ -129,6 +129,10 @@ export async function runSnPullTableCommand(
 
     await ensureDirectoryExists(runtime, rootDirUri);
 
+    const settingsForTable = settings.filter(
+      (setting) => setting.table === selected.table,
+    );
+
     const shouldDeleteBeforePull = await shouldDeleteBeforePullTableCommand(
       runtime,
       preferences.pull.clearBeforePull,
@@ -136,7 +140,13 @@ export async function runSnPullTableCommand(
     );
 
     if (shouldDeleteBeforePull) {
-      await clearDirectory(runtime, rootDirUri);
+      for (const setting of settingsForTable) {
+        const settingDirUri = resolveWorkspaceChildUri(workspaceFolderUri, [
+          { value: preferences.rootDir, label: "rootDir", allowHierarchy: true },
+          { value: setting.folder, label: "folder", allowHierarchy: true },
+        ]);
+        await clearDirectory(runtime, settingDirUri);
+      }
     }
 
     const summary = await runtime.withProgress(
@@ -152,10 +162,6 @@ export async function runSnPullTableCommand(
         const onFileWritten = createPullFileWrittenHandler(
           progress,
           indexUpdates,
-        );
-
-        const settingsForTable = settings.filter(
-          (setting) => setting.table === selected.table,
         );
 
         const result = pullService.pullTable
@@ -179,12 +185,13 @@ export async function runSnPullTableCommand(
               },
             );
 
-        if (!indexService.replacePullSnapshot) {
-          throw new Error("Index service does not support replacePullSnapshot");
+        if (!indexService.replaceTableSnapshot) {
+          throw new Error("Index service does not support replaceTableSnapshot");
         }
 
-        await indexService.replacePullSnapshot(
+        await indexService.replaceTableSnapshot(
           workspaceFolderUri,
+          selected.table,
           indexUpdates,
         );
 
