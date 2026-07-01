@@ -31,6 +31,7 @@ Before running `git commit`, review the full diff:
 - No leftover debug code
 - Types are as narrow as they need to be — not wider
 - Every parameter passed to a function is actually read by the receiver
+- **Documentation updated** — if the commit changes command logic, a corresponding update to `developer-docs/sn-<command>.md` must be in the same commit. If it changes user-visible behavior, `docs/` must be updated too. Never commit code changes without the matching doc changes.
 
 ### 4. Final quality gate before opening a PR
 
@@ -291,3 +292,7 @@ Doing a single review pass at the end misses issues introduced mid-implementatio
 ### Always update both docs/ and developer-docs/ before opening a PR
 
 Any implementation that changes user-visible behavior must update `docs/` **and** any implementation that changes command logic must update `developer-docs/sn-<command>.md`. Both must be done in the same commit as the code change, before opening the PR — not as follow-up corrections after the fact.
+
+### Track documentation as an explicit todo, never as an afterthought
+
+Documentation has been forgotten twice (PRs #90, #95). The root cause: it was never tracked as a todo item during planning. **Every time implementation todos are created, a documentation todo must be created alongside them.** The doc todo must be marked done before the first `git commit` that touches command logic. If the SQL todos list does not contain a doc item, the planning is incomplete — stop and add it before writing any code.
