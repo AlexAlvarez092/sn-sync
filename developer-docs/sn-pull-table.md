@@ -34,7 +34,7 @@ Pull records for one configured table only, without running a full pull.
 9. Ensure `rootDir` exists with `ensureDirectoryExists`.
 10. Evaluate `pull.clearBeforePull` preference:
 
-- `delete`: clear `rootDir` before pull.
+- `delete`: clear each setting folder for the selected table before pull (e.g. `rootDir/widgets/`). Other tables' folders are untouched.
 - `keep`: skip cleanup.
 - `ask`: prompt user (`Clear src` / `Keep src`) before proceeding.
 
@@ -45,7 +45,8 @@ Pull records for one configured table only, without running a full pull.
 - Preferred path: `pullService.pullTable(...)`.
 - Fallback path: `pullService.pullConfiguredScripts(...)` using settings filtered by selected table.
 
-14. Persist index state with `indexService.replacePullSnapshot(...)`.
+14. Persist index state with `indexService.replaceTableSnapshot(workspaceFolderUri, selectedTable, ...)`.
+    Only entries for the selected table are replaced; entries for other tables are preserved.
 15. Report progress completion.
 16. Show success with `SN_SYNC_MESSAGES.PULL_TABLE_SUCCESS_PREFIX` + files/records/table.
 17. On error, show `SN_SYNC_MESSAGES.PULL_TABLE_FAILED_PREFIX` + normalized details.
@@ -65,16 +66,16 @@ This avoids one request per synced field and keeps multi-field records efficient
 
 ## Index behavior
 
-This command replaces the stored pull snapshot (`replacePullSnapshot`) with files written during the command.
+This command replaces index entries scoped to the selected table only (`replaceTableSnapshot`).
 
-As with `sn: pull all files`, index entries not included in this run are removed from the snapshot.
+Entries for other tables are preserved. Only entries belonging to the selected table are removed and rewritten with the files written during this run.
 
 ## Side effects
 
 - Creates `rootDir` if it does not exist.
-- Optionally clears `rootDir` before pull based on `pull.clearBeforePull`.
+- Optionally clears the selected table's setting folders before pull (not `rootDir`) based on `pull.clearBeforePull`.
 - Writes local files for selected table records.
-- Replaces sync index snapshot with written files.
+- Replaces sync index entries for the selected table only (other tables' entries are preserved).
 
 ## Direct dependencies
 
@@ -116,7 +117,7 @@ sequenceDiagram
             C->>R: withProgress(PULL_PROGRESS_TITLE)
             C->>P: pullTable(selectedTable)
             P-->>C: onFileWritten callbacks + summary
-            C->>I: replacePullSnapshot(indexUpdates)
+            C->>I: replaceTableSnapshot(selectedTable, indexUpdates)
             C->>R: showInformationMessage(PULL_TABLE_SUCCESS_PREFIX + totals)
          end
       end
