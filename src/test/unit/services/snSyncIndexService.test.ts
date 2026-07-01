@@ -320,6 +320,104 @@ suite("snSyncIndexService", () => {
     });
   });
 
+  test("replaceTableSnapshot replaces only entries for the given table", async () => {
+    const memento = createMemoryMemento();
+    const service = new SnSyncIndexService(memento);
+
+    await withTempDir("sn-sync-index-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      await service.recordPullFiles(workspaceUri, [
+        {
+          localPath: "src/widgets/w1.html",
+          table: "sp_widget",
+          sysId: "w1",
+          fieldName: "template",
+          baseHash: "sha256:w1",
+        },
+        {
+          localPath: "src/rules/r1.js",
+          table: "sys_script",
+          sysId: "r1",
+          fieldName: "script",
+          baseHash: "sha256:r1",
+        },
+      ]);
+
+      await service.replaceTableSnapshot(workspaceUri, "sp_widget", [
+        {
+          localPath: "src/widgets/w2.html",
+          table: "sp_widget",
+          sysId: "w2",
+          fieldName: "template",
+          baseHash: "sha256:w2",
+        },
+      ]);
+
+      const oldWidgetEntry = await service.findEntryByLocalPath(
+        workspaceUri,
+        "src/widgets/w1.html",
+      );
+      assert.strictEqual(oldWidgetEntry, undefined);
+
+      const newWidgetEntry = await service.findEntryByLocalPath(
+        workspaceUri,
+        "src/widgets/w2.html",
+      );
+      assert.ok(newWidgetEntry);
+      assert.strictEqual(newWidgetEntry?.sysId, "w2");
+
+      const ruleEntry = await service.findEntryByLocalPath(
+        workspaceUri,
+        "src/rules/r1.js",
+      );
+      assert.ok(ruleEntry);
+      assert.strictEqual(ruleEntry?.sysId, "r1");
+    });
+  });
+
+  test("replaceTableSnapshot with empty updates clears only the given table", async () => {
+    const memento = createMemoryMemento();
+    const service = new SnSyncIndexService(memento);
+
+    await withTempDir("sn-sync-index-", async (tempDir) => {
+      const workspaceUri = vscode.Uri.file(tempDir);
+
+      await service.recordPullFiles(workspaceUri, [
+        {
+          localPath: "src/widgets/w1.html",
+          table: "sp_widget",
+          sysId: "w1",
+          fieldName: "template",
+          baseHash: "sha256:w1",
+        },
+        {
+          localPath: "src/rules/r1.js",
+          table: "sys_script",
+          sysId: "r1",
+          fieldName: "script",
+          baseHash: "sha256:r1",
+        },
+      ]);
+
+      await service.replaceTableSnapshot(workspaceUri, "sp_widget", []);
+
+      const widgetEntry = await service.findEntryByLocalPath(
+        workspaceUri,
+        "src/widgets/w1.html",
+      );
+      assert.strictEqual(widgetEntry, undefined);
+
+      const ruleEntry = await service.findEntryByLocalPath(
+        workspaceUri,
+        "src/rules/r1.js",
+      );
+      assert.ok(ruleEntry);
+      assert.strictEqual(ruleEntry?.sysId, "r1");
+    });
+  });
+
+
   test("clearIndex removes all entries", async () => {
     const memento = createMemoryMemento();
     const service = new SnSyncIndexService(memento);

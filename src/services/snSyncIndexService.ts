@@ -24,6 +24,11 @@ export interface SnSyncIndexServiceApi {
     workspaceFolderUri: vscode.Uri,
     updates: SnPullIndexUpdate[],
   ): Promise<void>;
+  replaceTableSnapshot?(
+    workspaceFolderUri: vscode.Uri,
+    table: string,
+    updates: SnPullIndexUpdate[],
+  ): Promise<void>;
   findEntryByLocalPath(
     workspaceFolderUri: vscode.Uri,
     localPath: string,
@@ -78,6 +83,24 @@ export class SnSyncIndexService implements SnSyncIndexServiceApi {
       version: 1,
       entries: {},
     };
+
+    this.applyPullUpdates(state, updates);
+
+    await this.saveState(workspaceFolderUri, state);
+  }
+
+  public async replaceTableSnapshot(
+    workspaceFolderUri: vscode.Uri,
+    table: string,
+    updates: SnPullIndexUpdate[],
+  ): Promise<void> {
+    const state = this.getState(workspaceFolderUri);
+
+    for (const key of Object.keys(state.entries)) {
+      if (state.entries[key].table === table) {
+        delete state.entries[key];
+      }
+    }
 
     this.applyPullUpdates(state, updates);
 
